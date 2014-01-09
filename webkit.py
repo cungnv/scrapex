@@ -192,11 +192,8 @@ class WebView(QWebView):
 		
 		
 
-class WebPage(QWebPage):
+class WebPage(QWebPage):	
 	
-	# def userAgentForUrl(self, url):
- 	#	return self.user_agent
-
     def javaScriptAlert(self, frame, message):
         print 'js alert: ', message
 
@@ -215,9 +212,7 @@ class WebPage(QWebPage):
 
 class NetworkAccessManager(QNetworkAccessManager):
 	def __init__(self):
-		QNetworkAccessManager.__init__(self)
-		# proxy = QNetworkProxy(QNetworkProxy.HttpProxy, '198.203.28.96', 60099, 'kimanh1084','pwd12345')
-		# self.setProxy(proxy)
+		QNetworkAccessManager.__init__(self)		
 
 	def setProxy(self, hostport, userpass=None):
 		hostport = hostport.strip()
