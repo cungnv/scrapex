@@ -239,7 +239,8 @@ class Scraper(object):
 				
 			if next:		
 				#go to the next page				
-				nexturl = doc.x(next)
+				nexturl = next(url=url, page= pages[0], doc=doc) if hasattr(next, '__call__') else doc.x(next)
+				#print nexturl
 				#del doc #release memory
 				if nexturl:				
 					pages[0] += 1
@@ -423,5 +424,7 @@ class Scraper(object):
 		common.savecsv(path, record)
 		#free the flag
 		self.writingflag = False
-			
+	def putfile(self, filename, data):
+		common.putfile(self.joinpath(filename), data)	
+		return self
 

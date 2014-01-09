@@ -1,7 +1,6 @@
 import urlparse, requests, time, zlib
 from node import Node
 from cache import Cache
-import webkit
 
 def open(req, errorhandler = None):	
 	cache = req.get('cache') if isinstance(req.get('cache'), Cache) else None
@@ -85,15 +84,17 @@ def open(req, errorhandler = None):
 		if req.get('bin') is True:
 			return None
 		else:		
-			return DOM(url=req.url, passdata = req.get('passdata'))
+			return DOM(url=req.url, passdata = req.get('passdata'), statuscode = r.status_code)
 
 
 class DOM(Node):
-	def __init__(self, url='', html='<html></html>', passdata= {}):		
+	def __init__(self, url='', html='<html></html>', passdata= {}, statuscode=200):		
 		Node.__init__(self, html)
 		self.url = url
 		self.passdata = passdata if passdata else {}
-		#print self.x('//title')	
+		self.statuscode = statuscode
+
+		
 		
 		#resolve relative urls
 		baseurl = self.x("//base/@href").tostring()

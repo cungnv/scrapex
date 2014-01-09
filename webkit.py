@@ -17,7 +17,7 @@ app = QApplication(sys.argv)
 
 
 class WebView(QWebView):
-	def __init__(self, show = False, timeout=30, **options):				
+	def __init__(self, show = False, timeout=30, image=False, js=True, **options):				
 		QWebView.__init__( self )
 		self.timeout = timeout
 		
@@ -33,6 +33,12 @@ class WebView(QWebView):
 		self.timer.setSingleShot(True)
 		self.timer.timeout.connect(self.loop.quit)	
 		self.loadFinished.connect(self.loop.quit)
+
+		#settings
+		self.settings().setAttribute(QWebSettings.AutoLoadImages, image)
+		self.settings().setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
+		self.settings().setAttribute(QWebSettings.JavascriptEnabled, js)
+
 
 		if show: self.show()
 

@@ -13,5 +13,5 @@ setup(
     author_email='cungjava2000@gmail.com',
     description='A simple web scraping lib for Python',    
     url='https://github.com/cungnv/scrapex',    
-    license='lgpl',
+    license='LGPL',
 )
