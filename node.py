@@ -2,8 +2,9 @@ from lxml import etree
 import lxml.html
 from StringIO import StringIO
 import re, HTMLParser, copy
-
+import sys
 from common import DataItem
+import common
 
 class Node(object):
 	lxmlnode = None
@@ -14,7 +15,8 @@ class Node(object):
 				self.lxmlnode = lxml.html.fromstring(lxmlnode)
 			except Exception, e:
 				print e
-				self.lxmlnode = lxml.html.fromstring('<html></html>')	
+				self.lxmlnode = lxml.html.fromstring('<html></html>')
+				
 		else:				
 			self.lxmlnode = lxmlnode
 

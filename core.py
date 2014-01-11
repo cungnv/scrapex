@@ -14,13 +14,7 @@ import requests
 
 
 class Scraper(object):
-	"""
-	a base scraper for each job
-	- store common config data
-	- has a central downloading queue for all threading downloads
-	- has common methods: save data
-
-	"""
+	
 	def __init__(self, **options):
 		print 'start'
 		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else (os.getcwd())
@@ -252,7 +246,7 @@ class Scraper(object):
 					queue.put({'req':Request(url=nexturl, **options), 'cb': handler})	
 			elif nextpost:
 				nexturl = doc.url
-				print nexturl
+				#print nexturl
 				post = nextpost(doc) if hasattr(nextpost, '__call__') else nextpost
 
 				if post:
@@ -271,7 +265,7 @@ class Scraper(object):
 		threads = []
 		for i in range(cc):
 			#print 'start threads'
-			t = Worker(queue = queue, timeout=0.01)			
+			t = Worker(queue = queue, timeout=0.1)			
 			t.setDaemon(True)
 			threads.append(t)
 			t.start()		
@@ -283,7 +277,7 @@ class Scraper(object):
 		#waiting for all the threads exit
 		try:
 			while len(threads) > 0:
-				time.sleep(0.1)
+				time.sleep(0.01)
 				#count = len(threads)
 				for i, t in enumerate(threads):
 					#t = threads[i]

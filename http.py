@@ -1,8 +1,14 @@
 import urlparse, requests, time, zlib
 from node import Node
 from cache import Cache
+import common
 
-def open(req, errorhandler = None):	
+def open(req, errorhandler = None):
+
+	#normalise the post
+	if req.post and isinstance(req.post, basestring):
+		req.post = dict(urlparse.parse_qsl(req.post))
+		
 	cache = req.get('cache') if isinstance(req.get('cache'), Cache) else None
 	
 	#try read from cache first
@@ -84,7 +90,7 @@ def open(req, errorhandler = None):
 		if req.get('bin') is True:
 			return None
 		else:		
-			return DOM(url=req.url, passdata = req.get('passdata'), statuscode = r.status_code)
+			return DOM(url=req.url, passdata = req.get('passdata'), statuscode = r.status_code if r else -1)
 
 
 class DOM(Node):
