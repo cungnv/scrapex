@@ -9,6 +9,7 @@ setup(
     author='Cung Nguyen',
     author_email='cungjava2000@gmail.com',
     description='A simple web scraping lib for Python',    
-    url='https://github.com/cungnv/scrapex',    
+    url='https://github.com/cungnv/scrapex',   
+    download_url = 'https://github.com/cungnv/scrapex/archive/master.zip', 
     license='LGPL',
 )
