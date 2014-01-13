@@ -1,4 +1,5 @@
 import hashlib, os, copy, codecs, re,urllib
+from HTMLParser import HTMLParser
 
 def md5(text):
 	return hashlib.md5(text).hexdigest()
@@ -89,7 +90,28 @@ def subreg(s, reg):
 	flags = redata['flags'] or re.S
 	m = re.search(reg, s, flags = flags)
 	return m.groups(0)[0] if m else ''
+
+def reg(s, reg):
 	
+	redata = parsereflags(reg)
+	reg = redata['reg']
+	flags = redata['flags'] or re.S
+	m = re.search(reg, s, flags = flags)
+	fields = re.findall('\?P<([\w\d]+)>', reg)
+	
+	res = DumpObject()
+
+	if m:
+		for field, value in m.groupdict(default='').iteritems():
+			setattr(res, field, value)
+	else:
+		#no match, set default values
+		for field in fields:
+			setattr(res, field, '')	
+
+	return res	
+
+
 	
 def sub(s, startstr, endstr):
 	start = s.find(startstr) if startstr else 0
@@ -218,6 +240,9 @@ def toml(des):
 			return des
 
 	return des.subreg('([\d\.]+)\s*ml--is')	+ ' ml' if des.subreg('([\d\.]+)\s*ml--is') else des
+def htmldecode(encodedstr):
+	parser = HTMLParser()
+	return parser.unescape(encodedstr)
 
 
 
@@ -252,6 +277,10 @@ class DataItem(unicode):
 		return DataItem(self.data.strip())
 	def urlencode(self):
 		return DataItem(urllib.quote_plus(self.data))
+	def reg(self, regpattern):
+		return reg(self.data, regpattern)
+	def htmldecode(self):
+		return DataItem(htmldecode(self.data))
 
 	def len(self):
 		return len(self.data)
@@ -267,3 +296,6 @@ class Adddress(object):
 		self.full = full
 	def __str__(self):
 		return unicode('street: %s, street2: %s, city: %s, state: %s, zip: %s, country: %s' % (self.street, self.street2, self.city, self.state, self.zip, self.country))				
+		
+class DumpObject(object):
+	pass		

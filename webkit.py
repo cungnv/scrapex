@@ -42,8 +42,7 @@ class WebView(QWebView):
 
 		if show: self.show()
 
-
-	
+		
 	def open(self, url, show = False, **options):
 
 		timeout = options.get('timeout', self.timeout)
@@ -186,10 +185,13 @@ class WebView(QWebView):
 		all = self.page().mainFrame().findAllElements(css).toList()
 		return all[0] if all else None
 
-	def __del__(self):				
-		self.setPage(None)	
+	def __del__(self):					
+		print 'closing...'
+		self.setPage(None)
 
-	def closeEvent(self, event):		
+
+	def closeEvent(self, event):
+		self.setPage(None)				
 		self.loop.quit()
 	
 	def setProxy(self, hostport, userpass=None):

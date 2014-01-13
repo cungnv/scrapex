@@ -107,7 +107,7 @@ class DOM(Node):
 		if not baseurl:
 			baseurl = self.url
 
-		for n in self.q('//a[@href and not(contains(@href, "javascript")) and not(contains(@href, "#")) and not(contains(@href, "mailto:"))]'):					
+		for n in self.q('//a[@href and not(@href='') and not(contains(@href, "javascript")) and not(contains(@href, "#")) and not(contains(@href, "mailto:"))]'):					
 			n.set('href', urlparse.urljoin(baseurl, n.get('href').tostring()))
 		for n in self.q('//form[@action]'):					
 			n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))	

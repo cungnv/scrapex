@@ -17,6 +17,8 @@ class Scraper(object):
 	
 	def __init__(self, **options):
 		print 'start'
+		self.onfinished = options.get('onfinished', None)
+
 		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else (os.getcwd())
 
 		self.config = dict(
@@ -54,7 +56,10 @@ class Scraper(object):
 		#set flags
 		self.writingflag = False
 	def  __del__(self):
-		print 'done'
+		if self.onfinished:
+			self.onfinished()
+		else:
+			print 'done'	
 	
 	def joinpath(self, filename):
 		return os.path.join(self.dir, filename)
@@ -208,61 +213,94 @@ class Scraper(object):
 			options['proxy'] = self.proxy()
 		if options.get('cache', False):
 			options['cache'] = self.cache
+
+		threads = []	
  
 
 		def handler(doc):
 			
 			if debug:
 				print 'page ', pages[0]
-			if parselist:
-				parselist(doc)
-
+			
 			#download and parse details	
 			if detail:
 				if debug:
 					print 'details: ', doc.q(detail).len()
 				for listing in doc.q(detail):
 					queue.put({'req':Request(url=listing.nodevalue(), **options) , 'cb': parsedetail})
-					# if cc == 1:
-					# 	if parsedetail:
-					# 		parsedetail(self.load(url=listing.nodevalue(), **options))
-					# 	else: 
-					# 		self.load(url=listing.nodevalue(), **options)
-					# else:													
-					# 	queue.put({'req':Request(url=listing.nodevalue(), **options) , 'cb': parsedetail})
-				
-			if next:		
-				#go to the next page				
-				nexturl = next(url=url, page= pages[0], doc=doc) if hasattr(next, '__call__') else doc.x(next)
-				#print nexturl
-				#del doc #release memory
-				if nexturl:				
-					pages[0] += 1
-					page = pages[0]
-					if maxpages != 0 and page > maxpages:
-						#max allowed page reached
-						return
+					
+			done = False
 
-					queue.put({'req':Request(url=nexturl, **options), 'cb': handler})	
+			_nexturl = None
+			_nextpost = None
+
+			if next:
+				_nexturl = next(url=url, page= pages[0], doc=doc) if hasattr(next, '__call__') else doc.x(next)
 			elif nextpost:
-				nexturl = doc.url
-				#print nexturl
-				post = nextpost(doc) if hasattr(nextpost, '__call__') else nextpost
+				_nexturl = doc.url				
+				_nextpost = nextpost(doc) if hasattr(nextpost, '__call__') else nextpost
+			
+			if (next and _nexturl) or (nextpost and _nextpost):
+				#print _nexturl
 
-				if post:
-					pages[0] += 1
-					page = pages[0]
-					if maxpages != 0 and page > maxpages:
-						#max allowed page reached
-						return
-					queue.put({'req':Request(nexturl, post, **options), 'cb': handler})		
+				pages[0] += 1
+				page = pages[0]
+
+				if maxpages != 0 and page > maxpages:
+					done = True
+				else:	
+					queue.put({'req':Request(_nexturl, _nextpost, **options), 'cb': handler})
+			else:
+				done = True
+
+			if done:
+				#'tell worker pagin is done'
+				for worker in threads:
+					worker.done = True		
+
+
+			if parselist:
+				parselist(doc)
+
+			# if next:		
+			# 	#go to the next page				
+			# 	nexturl = next(url=url, page= pages[0], doc=doc) if hasattr(next, '__call__') else doc.x(next)
+			# 	#print nexturl
+			# 	#del doc #release memory
+
+			# 	if nexturl:				
+			# 		pages[0] += 1
+			# 		page = pages[0]
+			# 		if maxpages != 0 and page > maxpages:
+			# 			#max allowed page reached
+			# 			return
+					
+			# 		queue.put({'req':Request(url=nexturl, **options), 'cb': handler})	
+
+			# elif nextpost:
+			# 	nexturl = doc.url
+			# 	#print nexturl
+			# 	post = nextpost(doc) if hasattr(nextpost, '__call__') else nextpost
+
+			# 	if post:
+			# 		pages[0] += 1
+			# 		page = pages[0]
+			# 		if maxpages != 0 and page > maxpages:
+			# 			#max allowed page reached
+			# 			return
+			# 		queue.put({'req':Request(nexturl, post, **options), 'cb': handler})
+			# else:
+			# 	#no next page, so tell all workers the pagin is done
+			# 	print 'tell worker pagin is done'
+			# 	for worker in threads:
+			# 		worker.done = True				
 					
 
 		##### end of the handler function ##################################################				
 
 			
 		#start workers		
-		threads = []
+		
 		for i in range(cc):
 			#print 'start threads'
 			t = Worker(queue = queue, timeout=0.1)			
@@ -270,6 +308,7 @@ class Scraper(object):
 			threads.append(t)
 			t.start()		
 
+		#print url
 		queue.put({'req':Request(url, post, **options), 'cb': handler})
 		
 		queue.join() #wait until this loop done	
@@ -306,13 +345,7 @@ class Scraper(object):
 		if options.get('cache', False):
 			options['cache'] = self.cache
 		
-		#start workers		
-		threads = []
-		for i in range(cc):
-			t = Worker(queue = queue, timeout=5)
-			t.setDaemon(True)
-			threads.append(t)
-			t.start()
+		
 		urls = common.readlines(os.path.join(self.dir, urlfile))
 		if debug: print 'urls:', len(urls)	
 		for line in urls:			
@@ -322,6 +355,16 @@ class Scraper(object):
 			filename = common.subreg(line, filenamereg) if filenamereg else (makefilename(line) if makefilename  else common.md5(url) + '.htm')
 			
 			queue.put({'req':Request(url = url, filename=filename, **options), 'cb': cb})
+
+		#start workers		
+		threads = []
+		for i in range(cc):
+			t = Worker(queue = queue, timeout=5)
+			t.done = True
+			t.setDaemon(True)
+			threads.append(t)
+			t.start()
+				
 		queue.join() #wait until this loop done	
 		#waiting for all the threads exit
 		try:
@@ -418,6 +461,28 @@ class Scraper(object):
 		common.savecsv(path, record)
 		#free the flag
 		self.writingflag = False
+	def appendline(self, filename, line, dedup=False):		
+		#waiting while other thread writing
+		while self.writingflag:			
+			pass
+		#hold the flag	
+		self.writingflag = True
+		path = self.joinpath(filename)					
+
+		if dedup:
+			if not hasattr(self,'_data_lines'):				
+				self._data_lines = []
+
+			if common.md5(line) not in self._data_lines:								
+				self._data_lines.append(common.md5(line))							
+				common.appendfile(path, line+'\r\n')
+		else:
+			common.appendfile(path, line+'\r\n')
+					
+
+		#free the flag
+		self.writingflag = False	
+
 	def putfile(self, filename, data):
 		common.putfile(self.joinpath(filename), data)	
 		return self
