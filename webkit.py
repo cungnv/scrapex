@@ -43,13 +43,15 @@ class WebView(QWebView):
 		if show: self.show()
 
 		
-	def open(self, url, show = False, **options):
+	def open(self, url, **options):
 
 		timeout = options.get('timeout', self.timeout)
-
-
+		if isinstance(url, QUrl):
+			self.load(url)
+		else:
+			self.load(QUrl(url))
+			
 		
-		self.load(QUrl(url))
 
 		self.timer.start(timeout* 1000)
 
@@ -233,7 +235,7 @@ class NetworkAccessManager(QNetworkAccessManager):
 
 		proxy = QNetworkProxy(QNetworkProxy.HttpProxy, host, int(port), user, password)
 
-		QNetworkProxy.setProxy(proxy)
+		QNetworkAccessManager.setProxy(self, proxy)
 
 		return self
 
