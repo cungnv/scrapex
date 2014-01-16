@@ -109,6 +109,13 @@ class Node(object):
 			return self.x('./@id')
 		except Exception:
 			return DataItem()		
+	def name(self):
+		try:
+			return self.x('./@name')
+		except Exception:
+			return DataItem()		
+			
+
 	def contains(self, something):
 		return something in self.html()
 

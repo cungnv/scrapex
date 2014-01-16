@@ -4,6 +4,9 @@ from cache import Cache
 import common
 
 def open(req, errorhandler = None):
+	#fix the url
+	# if ' ' in req.url:
+	# 	req.url = req.url.replace(' ','+')
 
 	#normalise the post
 	if req.post and isinstance(req.post, basestring):
@@ -67,8 +70,14 @@ def open(req, errorhandler = None):
 			return bytes
 
 		html = bytes.decode(req.get('encoding', r.encoding), 'ignore')
+
+		#verify data
 		if req.get('contain') and req.get('contain') not in html:
 			raise Exception("html not contain: %s", req.get('contain'))
+		verify = req.get('verify')
+		
+		if verify and (not verify(html)):
+			raise Exception("html valid")
 		
 		#write html to cache
 		if cache:
@@ -84,7 +93,7 @@ def open(req, errorhandler = None):
 
 		if errorhandler:
 			errorhandler(err = e, req = req, res = r)
-		else:
+		elif req.get('debug', True):
 			print e, 'url: ', req.url
 				
 		if req.get('bin') is True:
@@ -115,7 +124,12 @@ class DOM(Node):
 			n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))	
 		for n in self.q('//img[@src]'):					
 			n.set('src', urlparse.urljoin(baseurl, n.get('src').tostring()))		
+	def formdata(self):
+		data = dict()
+		for node in self.q("//input[@name and @value]"):
+			data.update(dict( ( (node.name(), node.value(),), ) ))
 
+		return data	
 
 
 

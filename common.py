@@ -1,4 +1,4 @@
-import hashlib, os, copy, codecs, re,urllib
+import hashlib, os, copy, codecs, re,urllib, urlparse, json
 from HTMLParser import HTMLParser
 
 def md5(text):
@@ -99,7 +99,7 @@ def reg(s, reg):
 	m = re.search(reg, s, flags = flags)
 	fields = re.findall('\?P<([\w\d]+)>', reg)
 	
-	res = DumpObject()
+	res = DataObject()
 
 	if m:
 		for field, value in m.groupdict(default='').iteritems():
@@ -297,5 +297,26 @@ class Adddress(object):
 	def __str__(self):
 		return unicode('street: %s, street2: %s, city: %s, state: %s, zip: %s, country: %s' % (self.street, self.street2, self.city, self.state, self.zip, self.country))				
 		
-class DumpObject(object):
-	pass		
+class DataObject(object):
+	def __init__(self, **data):
+		for key, value in data.iteritems():
+			setattr(self,key,value)
+class MyDict(object):
+	def __init__(self, **data):
+		self.data = data
+	def update(self, dict={}, **data):
+		self.data.update(data)
+		self.data.update(dict)
+		return self
+	def frompoststring(self, post):
+		self.update(dict(urlparse.parse_qsl(post)))
+		return self
+	def dict(self):
+		return self.data	
+
+	def __str__(self):
+		print '__str__'
+		return str(self.data)
+
+
+		

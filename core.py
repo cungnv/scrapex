@@ -235,10 +235,12 @@ class Scraper(object):
 			_nextpost = None
 
 			if next:
-				_nexturl = next(url=url, page= pages[0], doc=doc) if hasattr(next, '__call__') else doc.x(next)
+				_nexturl = next(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(next, '__call__') else doc.x(next)
 			elif nextpost:
-				_nexturl = doc.url				
-				_nextpost = nextpost(doc) if hasattr(nextpost, '__call__') else nextpost
+				_nexturl = doc.url
+				
+				_nextpost = nextpost(common.DataObject(doc=doc, page=pages[0], starturl=common.DataItem(url))) if hasattr(nextpost, '__call__') else nextpost
+				
 			
 			if (next and _nexturl) or (nextpost and _nextpost):
 				#print _nexturl
@@ -329,7 +331,7 @@ class Scraper(object):
 			pass
 
 
-	def loadbatch(self, urlfile, filenamereg= None, urlreg=None, makefilename =None,  cb= None, cc = 1, debug=True,  **_options):
+	def loadbatch(self, urlfile, filenamereg= None, urlreg=None, makefilename =None,  cb= None, cc = 1, debug=True, **_options):
 
 		options = common.combinedicts(self.config, _options)
 		isproxy = options.get('proxy') == True
@@ -347,14 +349,21 @@ class Scraper(object):
 		
 		
 		urls = common.readlines(os.path.join(self.dir, urlfile))
-		if debug: print 'urls:', len(urls)	
+		if debug: print 'urls:', len(urls)
+		cntpending = 0	
 		for line in urls:			
 			options['proxy'] = self.proxy() if isproxy else None
 
 			url = common.subreg(line, urlreg) if urlreg else line
 			filename = common.subreg(line, filenamereg) if filenamereg else (makefilename(line) if makefilename  else common.md5(url) + '.htm')
 			
+			if self.cache.exists(url=url, filename=filename):
+				continue
+			
+			cntpending += 1
+
 			queue.put({'req':Request(url = url, filename=filename, **options), 'cb': cb})
+		print 'pendings:', cntpending	
 
 		#start workers		
 		threads = []
