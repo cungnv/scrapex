@@ -19,7 +19,16 @@ easy_install requests
 
 easy_install xlwt
 
-And for Windows, please download and install lxml from:
+** Some notes for Windows users
+- Download and install lxml from:
 http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
+
+- to use easy_install command, please download and run this python script:
+
+https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py
+
+...then make sure to add C:\Python27\Scripts to your system path
+
+
 
 
