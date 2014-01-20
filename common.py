@@ -247,7 +247,7 @@ def parsecookies(cookiestr):
 	cookiestr = cookiestr.replace('Cookie: ','')
 	cookies = []
 	for cookie in cookiestr.split('; '):
-		cookie = common.DataItem(cookie).trim().reg('^(?P<name>[^=]+)=(?P<value>.*?)$');
+		cookie = DataItem(cookie).trim().reg('^(?P<name>[^=]+)=(?P<value>.*?)$');
 		cookies.append((cookie.name, cookie.value,))
 	return dict(cookies)		
 
