@@ -8,6 +8,8 @@ def open(req, errorhandler = None):
 	# if ' ' in req.url:
 	# 	req.url = req.url.replace(' ','+')
 
+	print req.get('cookies')
+
 	#normalise the post
 	if req.post and isinstance(req.post, basestring):
 		req.post = dict(urlparse.parse_qsl(req.post))
@@ -54,9 +56,9 @@ def open(req, errorhandler = None):
 		time.sleep(req.get('delay', 0.001))	
 		r = None
 		if req.post:
-			r = client.post(req.url, data = req.post, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True)
+			r = client.post(req.url, data = req.post, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True, cookies= req.get('cookies', None))
 		else:	
-			r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
+			r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True, cookies= req.get('cookies', None))
 		
 		if r.status_code != 200:
 			raise Exception('Invalid status code: %s' % r.status_code)
@@ -73,7 +75,7 @@ def open(req, errorhandler = None):
 
 		#verify data
 		if req.get('contain') and req.get('contain') not in html:
-			raise Exception("html not contain: %s", req.get('contain'))
+			raise Exception("html not contain: {0}".format(req.get('contain')))
 		verify = req.get('verify')
 		
 		if verify and (not verify(html)):
@@ -118,8 +120,14 @@ class DOM(Node):
 		
 		for n in self.q('//a[@href and not(contains(@href, "javascript")) and not(contains(@href, "#")) and not(contains(@href, "mailto:"))]'):					
 			if n.href().trim() == '': continue
-
 			n.set('href', urlparse.urljoin(baseurl, n.get('href').tostring()))
+
+		for n in self.q('//iframe[@src]'):					
+			if n.src().trim() == '': continue
+			n.set('src', urlparse.urljoin(baseurl, n.src()))
+	
+
+
 		for n in self.q('//form[@action]'):					
 			n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))	
 		for n in self.q('//img[@src]'):					

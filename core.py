@@ -264,38 +264,7 @@ class Scraper(object):
 			if parselist:
 				parselist(doc)
 
-			# if next:		
-			# 	#go to the next page				
-			# 	nexturl = next(url=url, page= pages[0], doc=doc) if hasattr(next, '__call__') else doc.x(next)
-			# 	#print nexturl
-			# 	#del doc #release memory
-
-			# 	if nexturl:				
-			# 		pages[0] += 1
-			# 		page = pages[0]
-			# 		if maxpages != 0 and page > maxpages:
-			# 			#max allowed page reached
-			# 			return
-					
-			# 		queue.put({'req':Request(url=nexturl, **options), 'cb': handler})	
-
-			# elif nextpost:
-			# 	nexturl = doc.url
-			# 	#print nexturl
-			# 	post = nextpost(doc) if hasattr(nextpost, '__call__') else nextpost
-
-			# 	if post:
-			# 		pages[0] += 1
-			# 		page = pages[0]
-			# 		if maxpages != 0 and page > maxpages:
-			# 			#max allowed page reached
-			# 			return
-			# 		queue.put({'req':Request(nexturl, post, **options), 'cb': handler})
-			# else:
-			# 	#no next page, so tell all workers the pagin is done
-			# 	print 'tell worker pagin is done'
-			# 	for worker in threads:
-			# 		worker.done = True				
+			
 					
 
 		##### end of the handler function ##################################################				
