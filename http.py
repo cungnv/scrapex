@@ -8,7 +8,7 @@ def open(req, errorhandler = None):
 	# if ' ' in req.url:
 	# 	req.url = req.url.replace(' ','+')
 
-	print req.get('cookies')
+
 
 	#normalise the post
 	if req.post and isinstance(req.post, basestring):
