@@ -245,6 +245,9 @@ class Scraper(object):
 			if (next and _nexturl) or (nextpost and _nextpost):
 				#print _nexturl
 
+				if debug==2:
+					print 'nextpost: ', _nextpost, '_nexturl: ', _nexturl
+
 				pages[0] += 1
 				page = pages[0]
 

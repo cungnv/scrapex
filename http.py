@@ -24,16 +24,19 @@ def open(req, errorhandler = None):
 	client = req.get('client') if req.get('client') else requests
 
 
-	#print 'client: ', type(client)	
-
-	headers = req.get('headers', {
+	
+	#default headers
+	headers = {
 		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 		"User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.2) Gecko/20100101 Firefox/10.0.2",
 		"Accept-Language": "en-us,en;q=0.5",
-		"Accept-Encoding": "gzip, deflate",	
-		#"Connection": "keep-alive"
+		"Accept-Encoding": "gzip, deflate",			
 		"Connection": "close"
-	})
+	}
+	#update user-passed in headers
+	headers.update(req.get('headers', {})) 
+
+
 	proxy = req.get('proxy', None)	
 	proxyauth = req.get('proxyauth', None)
 	if proxy:

@@ -256,7 +256,10 @@ def parsecookies(cookiestr):
 class DataItem(unicode):
 
 	def __init__(self, data=u''):
-		self.data = data
+		
+		if data is None: data = ''
+
+		self.data = unicode(data)
 	
 	
 	def __repr__(self):
