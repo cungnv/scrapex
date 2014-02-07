@@ -18,7 +18,7 @@ def open(req, errorhandler = None):
 	
 	#try read from cache first
 	if cache and cache.exists(url = req.url, post = req.post, filename = req.get('filename')):		
-		return DOM(url=req.url, passdata = req.get('passdata'), html=cache.read(url = req.url, post = req.post, filename = req.get('filename')))
+		return DOM(url=req.url, passdata = req.get('passdata'), html=cache.read(url = req.url, post = req.post, filename = req.get('filename')), htmlclean = req.get('htmlclean'))
 
 
 	client = req.get('client') if req.get('client') else requests
@@ -88,7 +88,7 @@ def open(req, errorhandler = None):
 		if cache:
 			cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = html) # in utf8 format
 		
-		return DOM(html=html, url = req.url, passdata = req.get('passdata'))		
+		return DOM(html=html, url = req.url, passdata = req.get('passdata'), htmlclean = req.get('htmlclean'))		
 
 	except Exception, e:		
 		if tries > 0:
@@ -106,9 +106,15 @@ def open(req, errorhandler = None):
 		else:		
 			return DOM(url=req.url, passdata = req.get('passdata'), statuscode = r.status_code if r else -1)
 
+def getredirecturl(url):
+	res = requests.head(url=url, allow_redirects = False)
+	return res.headers.get('location') or res.headers.get('Location', '')
 
 class DOM(Node):
-	def __init__(self, url='', html='<html></html>', passdata= {}, statuscode=200):		
+	def __init__(self, url='', html='<html></html>', passdata= {}, statuscode=200, htmlclean=None):		
+		if htmlclean:
+			html = htmlclean(html)
+
 		Node.__init__(self, html)
 		self.url = url
 		self.passdata = passdata if passdata else {}
