@@ -120,7 +120,7 @@ class Node(object):
 		return something in self.html()
 
 	def insertlinebreaks(self):
-		for _node in doc.q(".//*"):
+		for _node in self.q(".//*"):
 			node = _node.lxmlnode
 			if node.tag.lower() in ['p','li','br']:
 				
