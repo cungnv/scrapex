@@ -119,6 +119,21 @@ class Node(object):
 	def contains(self, something):
 		return something in self.html()
 
+	def insertlinebreaks(self):
+		for _node in doc.q(".//*"):
+		node = _node.lxmlnode
+		if node.tag.lower() in ['p','li','br']:
+			
+			if node.tag.lower() == 'br':
+				newline = etree.Element('newline')
+				newline.text = '\n'
+				node.append(newline)
+			else:
+				newline = etree.SubElement(node, 'newline')
+				newline.text = '\n'		
+		return self		
+	
+
 class NodeList(list):	
 	def __init__(self, *args):
 		list.__init__(self, *args)

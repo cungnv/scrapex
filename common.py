@@ -1,5 +1,6 @@
 import hashlib, os, copy, codecs, re,urllib, urlparse, json
 from HTMLParser import HTMLParser
+import pickle
 
 def md5(text):
 	return hashlib.md5(text).hexdigest()
@@ -250,7 +251,13 @@ def parsecookies(cookiestr):
 		cookie = DataItem(cookie).trim().reg('^(?P<name>[^=]+)=(?P<value>.*?)$');
 		cookies.append((cookie.name, cookie.value,))
 	return dict(cookies)		
-
+def saveobject(fullpath, obj):
+	with open(fullpath,'wb') as f:
+		pickle.dump(obj, f)
+		
+def loadobject(fullpath):
+	with open(fullpath,'rb') as f:
+		return pickle.load(f)
 
 
 class DataItem(unicode):
@@ -271,7 +278,7 @@ class DataItem(unicode):
 	def tostring(self):
 		return self.data						
 
-	def replace(self, old, new):
+	def replace(self, old, new=''):
 		return DataItem(self.data.replace(old, new))		
 
 	def rr(self, old, new):

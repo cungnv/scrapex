@@ -48,7 +48,7 @@ class Scraper(object):
 		self.dir = self.config.get('dir')
 		if not os.path.exists(self.dir): os.makedirs(self.dir)			
 		self.cache = Cache(os.path.join(self.dir, 'cache')) if self.config.get('cache') else None	
-		self.client = requests.Session()		
+		self.client = options.get('client') or  requests.Session()		
 		#self.client.config['keep_alive'] = False
 		self.proxies = []
 		self.loadproxies()
