@@ -121,16 +121,16 @@ class Node(object):
 
 	def insertlinebreaks(self):
 		for _node in doc.q(".//*"):
-		node = _node.lxmlnode
-		if node.tag.lower() in ['p','li','br']:
-			
-			if node.tag.lower() == 'br':
-				newline = etree.Element('newline')
-				newline.text = '\n'
-				node.append(newline)
-			else:
-				newline = etree.SubElement(node, 'newline')
-				newline.text = '\n'		
+			node = _node.lxmlnode
+			if node.tag.lower() in ['p','li','br']:
+				
+				if node.tag.lower() == 'br':
+					newline = etree.Element('newline')
+					newline.text = '\n'
+					node.append(newline)
+				else:
+					newline = etree.SubElement(node, 'newline')
+					newline.text = '\n'		
 		return self		
 	
 
