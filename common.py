@@ -1,4 +1,4 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json
+import hashlib, os, copy, codecs, re,urllib, urlparse, json, string
 from HTMLParser import HTMLParser
 import pickle
 
@@ -258,6 +258,11 @@ def saveobject(fullpath, obj):
 def loadobject(fullpath):
 	with open(fullpath,'rb') as f:
 		return pickle.load(f)
+def atoz():
+	return [alpha for alpha in string.lowercase]
+def AtoZ():
+	return [alpha for alpha in string.uppercase]	
+
 
 
 class DataItem(unicode):

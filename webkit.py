@@ -126,7 +126,7 @@ class WebView(QWebView):
 		ele = self.findone(css)
 		if not ele:
 			raise Exception('no element found to fill:', css)
-		if ele.tagName().lower() == 'input':				
+		if ele.tagName().lower() in ['input', 'option']:				
 			ele.evaluateJavaScript("this.value = '%s'" % value )
 		else:
 			ele.setPlainText(value)	

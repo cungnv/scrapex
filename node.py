@@ -12,7 +12,11 @@ class Node(object):
 	def __init__(self, lxmlnode):
 		if 'lxml' not in str(type(lxmlnode)):			
 			try:					
+				if '<?xml' in lxmlnode:
+					lxmlnode = re.sub('^\s*<\?xml.*\?>', '', lxmlnode)
+					
 				self.lxmlnode = lxml.html.fromstring(lxmlnode)
+
 			except Exception, e:
 				print e
 				self.lxmlnode = lxml.html.fromstring('<html></html>')
