@@ -9,7 +9,7 @@ class Cache(object):
 		if not os.path.exists(self.location):
 			os.makedirs(location)
 
-	def makekey(self, url, post = ''):		
+	def makekey(self, url, post = ''):				
 		return common.md5(url + str(post)) + '.htm'
 
 	def write(self, url, data, post='',filename = None):

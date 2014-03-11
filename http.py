@@ -9,10 +9,10 @@ def open(req, errorhandler = None):
 	# 	req.url = req.url.replace(' ','+')
 
 
-
 	#normalise the post
 	if req.post and isinstance(req.post, basestring):
-		req.post = dict(urlparse.parse_qsl(req.post))
+		#req.post = dict(urlparse.parse_qsl(req.post))
+		pass
 		
 	cache = req.get('cache') if isinstance(req.get('cache'), Cache) else None
 	
@@ -30,9 +30,13 @@ def open(req, errorhandler = None):
 		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 		"User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.2) Gecko/20100101 Firefox/10.0.2",
 		"Accept-Language": "en-us,en;q=0.5",
-		"Accept-Encoding": "gzip, deflate",			
+		"Accept-Encoding": "gzip, deflate",	
+			
 		"Connection": "close"
 	}
+	if req.post:
+		headers.update({"Content-Type": "application/x-www-form-urlencoded"})
+		
 	#update user-passed in headers
 	headers.update(req.get('headers', {})) 
 
@@ -104,14 +108,14 @@ def open(req, errorhandler = None):
 		if req.get('bin') is True:
 			return None
 		else:		
-			return DOM(url=req.url, passdata = req.get('passdata'), statuscode = r.status_code if r else -1)
+			return DOM(url=req.url, passdata = req.get('passdata'), statuscode = r.status_code if r else -1, ok=False)
 
 def getredirecturl(url):
 	res = requests.head(url=url, allow_redirects = False)
 	return res.headers.get('location') or res.headers.get('Location', '')
 
 class DOM(Node):
-	def __init__(self, url='', html='<html></html>', passdata= {}, statuscode=200, htmlclean=None):		
+	def __init__(self, url='', html='<html></html>', passdata= {}, statuscode=200, htmlclean=None, ok=True):		
 		if htmlclean:
 			html = htmlclean(html)
 
@@ -119,6 +123,7 @@ class DOM(Node):
 		self.url = url
 		self.passdata = passdata if passdata else {}
 		self.statuscode = statuscode
+		self.ok = ok
 
 		
 		

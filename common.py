@@ -262,9 +262,9 @@ def atoz():
 	return [alpha for alpha in string.lowercase]
 def AtoZ():
 	return [alpha for alpha in string.uppercase]	
-
-
-
+def urlencode(rawstr):
+	return urllib.quote_plus(rawstr)
+	
 class DataItem(unicode):
 
 	def __init__(self, data=u''):

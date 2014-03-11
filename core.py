@@ -197,7 +197,7 @@ class Scraper(object):
 
 
 
-	def pagin(self, url, next=None, post=None,nextpost=None, parselist=None, detail= None, parsedetail= None, cc = None, maxpages = 0, debug=True,  **_options):
+	def pagin(self, url, next=None, post=None,nextpost=None, parselist=None, detail= None, parsedetail= None, cc = None, maxpages = 0, debug=True, verify=None,  **_options):
 
 		options = common.combinedicts(self.config, _options)
 		if not cc: 
@@ -218,9 +218,14 @@ class Scraper(object):
  
 
 		def handler(doc):
+			if verify:				
+				if not verify(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)):
+					doc.ok = False
+					print "invalid doc at page {0}".format(pages[0])
 			
 			if debug:
-				print 'page ', pages[0]
+				print 'done page', pages[0]
+			
 			
 			#download and parse details	
 			if detail:
@@ -236,9 +241,8 @@ class Scraper(object):
 
 			if next:
 				_nexturl = next(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(next, '__call__') else doc.x(next)
-			elif nextpost:
-				_nexturl = doc.url
-				
+			if nextpost:
+				if not next: _nexturl = doc.url								
 				_nextpost = nextpost(common.DataObject(doc=doc, page=pages[0], starturl=common.DataItem(url))) if hasattr(nextpost, '__call__') else nextpost
 				
 			
@@ -303,7 +307,7 @@ class Scraper(object):
 			pass
 
 
-	def loadbatch(self, urlfile, filenamereg= None, urlreg=None, makefilename =None,  cb= None, cc = 1, debug=True, **_options):
+	def loadbatch(self, urlfile, filename=None, url=None,  cb= None, cc = 1, debug=True, **_options):
 
 		options = common.combinedicts(self.config, _options)
 		isproxy = options.get('proxy') == True
@@ -326,15 +330,15 @@ class Scraper(object):
 		for line in urls:			
 			options['proxy'] = self.proxy() if isproxy else None
 
-			url = common.subreg(line, urlreg) if urlreg else line
-			filename = common.subreg(line, filenamereg) if filenamereg else (makefilename(line) if makefilename  else common.md5(url) + '.htm')
+			_url = url(line) if hasattr(url,'__call__') else line
+			_filename = filename(line) if hasattr(filename,'__call__')  else common.md5(_url) + '.htm'
 			
-			if self.cache.exists(url=url, filename=filename):
+			if self.cache.exists(url=_url, filename=_filename):
 				continue
 			
 			cntpending += 1
 
-			queue.put({'req':Request(url = url, filename=filename, **options), 'cb': cb})
+			queue.put({'req':Request(url = _url, filename=_filename, **options), 'cb': cb})
 		print 'pendings:', cntpending	
 
 		#start workers		
