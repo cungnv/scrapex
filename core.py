@@ -9,7 +9,7 @@ import common
 
 
 import time, os
-import urlparse
+from urlparse import urlparse
 import requests
 
 
@@ -140,57 +140,7 @@ class Scraper(object):
 				return None
 
 
-	def loop(self, url, next, post=None, cb=None, cc = None, **_options):
-		options = common.combinedicts(self.config, _options)
-
-		doneurls = [url]
-		queue = Queue()
-
-
-
-		#apply scraper-level options
-		options["client"] = (self.client if options.get('cookie')	else None)
-		if options.get('proxy') is True:
-			options['proxy'] = self.proxy()
-		
-		if options.get('cache', False):
-			options['cache'] = self.cache
-
- 
-
-		def handler(doc):
-			if cb:
-				cb(doc)
-
-			for n in doc.q(next):
-				nexturl = n.nodevalue()
-				if nexturl not in doneurls:					
-					doneurls.append(nexturl)
-					queue.put({'req':Request(url=nexturl, **options), 'cb': handler})					
-					
-		#start workers					
-		threads = []
-		for i in range(cc if cc else self.config['cc']):
-			t = Worker(queue = queue, timeout=0.01)
-			t.setDaemon(True)
-			threads.append(t)
-			t.start()		
-
-		queue.put({'req':Request(url, post, **options), 'cb': handler})
-
-		queue.join() #wait until this loop done
-		#waiting for all the threads exit
-		try:
-			while len(threads) > 0:
-				time.sleep(0.1)
-				#count = len(threads)
-				for i, t in enumerate(threads):
-					t = threads[i]
-					if not t.isAlive():
-						del threads[i]
-			
-		except Exception as e:
-			print e
+	
 
 		
 
@@ -471,4 +421,103 @@ class Scraper(object):
 	def putfile(self, filename, data):
 		common.putfile(self.joinpath(filename), data)	
 		return self
+
+	def loop(self, url, next, post=None, cb=None, cc = None, deep=2, debug=0, allow_external = False, linkfilter=None,  **_options):
+		options = common.combinedicts(self.config, _options)
+
+		doneurls = [common.md5(url)]
+		queue = Queue()
+		
+		domain = common.getdomain(url).lower()
+
+
+
+		#apply scraper-level options
+		options["client"] = (self.client if options.get('cookie')	else None)
+		if options.get('proxy') is True:
+			options['proxy'] = self.proxy()
+		
+		if options.get('cache', False):
+			options['cache'] = self.cache
+
+ 
+
+		def handler(doc):
+
+			if doc.passdata.get('deep')<deep:
+				for n in doc.q(next):
+					nexturl = n.nodevalue()
+
+					if domain != common.getdomain(nexturl):
+						continue
+					if linkfilter and not linkfilter(url=nexturl):
+						continue
+
+					if common.md5(nexturl) not in doneurls:					
+						doneurls.append(common.md5(nexturl))
+						queue.put({'req':Request(url=nexturl,passdata=dict(deep=doc.passdata.get('deep')+1), **options), 'cb': handler})					
+			if debug:
+				print 'deep: ', doc.passdata.get('deep') #test
+				print doc.url
+
+			if cb:
+				cb(doc)
+		
+		
+		queue.put({'req':Request(url, post,passdata=dict(deep=1), **options), 'cb': handler})			
+		#start workers					
+		threads = []
+		for i in range(cc if cc else self.config['cc']):
+			t = Worker(queue = queue, timeout=0.01)
+			t.setDaemon(True)
+			threads.append(t)
+			t.start()		
+
+		
+		queue.join() #wait until this loop done
+		#waiting for all the threads exit
+		try:
+			while len(threads) > 0:
+				time.sleep(0.1)
+				#count = len(threads)
+				for i, t in enumerate(threads):
+					t = threads[i]
+					if not t.isAlive():
+						del threads[i]
+			
+		except Exception as e:
+			print e	
+
+	def findemails(self, url):
+		if not common.subreg(url, '^(http)'):
+			url = 'http://'+url
+		if '@' in url:
+			return common.findemails(url)	
+
+		res = []		
+		def linkfilter(url):
+			keywords = ["contact","contact us","about","info","imprint","kontakt","uber","wir","impressum","contacter","representatives"]
+			for kw in keywords:
+				if kw.lower() in url:
+					return True
+			return False		
+		def parse(doc):
+			for email in common.getemails(doc.html()):
+				if email not in res:
+					res.append(email)
+
+		self.loop(url=url,
+			next="//a/@href | //iframe/@src",			
+			deep=2,
+			linkfilter = linkfilter,
+			cb = parse,
+			cc=10,
+			debug=0
+
+			)		
+		return res		
+			
+
+
+
 

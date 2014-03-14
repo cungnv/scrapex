@@ -2,6 +2,7 @@ import hashlib, os, copy, codecs, re,urllib, urlparse, json, string
 from HTMLParser import HTMLParser
 import pickle
 
+
 def md5(text):
 	return hashlib.md5(text).hexdigest()
 def putbin(path, data):	
@@ -264,6 +265,23 @@ def AtoZ():
 	return [alpha for alpha in string.uppercase]	
 def urlencode(rawstr):
 	return urllib.quote_plus(rawstr)
+def getdomain(url):
+	urldata = urlparse.urlparse(url)
+	return urldata.netloc
+def getemails(doc):
+	doc = DataItem(doc)
+	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] --is", '@')
+	
+	emails = re.compile(r'\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b', re.S|re.I).findall(doc)
+
+	res = []
+	for email in emails:
+		if re.compile('(\.htm|\.html|\.jpg|\.jpeg|\.gif|\.png|\.pdf|\.php|\.aspx|\.tif|\.tiff|\.bmp)$', re.I).search(email):
+			continue
+		if email not in res:
+			res.append(email)	
+	return res		
+
 	
 class DataItem(unicode):
 
@@ -306,6 +324,7 @@ class DataItem(unicode):
 
 	def len(self):
 		return len(self.data)
+
 
 class Adddress(object):		
 	def __init__(self, street='', street2='', city='', state='', zip ='', country = '', full=''):			

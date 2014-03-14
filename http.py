@@ -152,14 +152,22 @@ class DOM(Node):
 			data.update(dict( ( (node.name(), node.value(),), ) ))
 
 		return data	
+	def aspx_vs(self):
+		return self.x("//input[@id='__VIEWSTATE']/@value").urlencode()
+	def aspx_ev(self):
+		return self.x("//input[@id='__EVENTVALIDATION']/@value").urlencode()	
+
 
 
 
 class Request(object):	
-	def __init__(self, url, post = None, **options):		
+	def __init__(self, url, post = None, passdata={}, **options):		
 		self.url = url	
 		self.post = post
 		self.options = options
+		if passdata:
+			self.options.update(dict(passdata=passdata))
+		
 
 	def get(self, name, default = None):
 		return self.options.get(name, default)
