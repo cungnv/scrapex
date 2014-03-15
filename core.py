@@ -274,7 +274,8 @@ class Scraper(object):
 			options['cache'] = self.cache
 		
 		
-		urls = common.readlines(os.path.join(self.dir, urlfile))
+		urls = urlfile if isinstance(urlfile, list) else common.readlines(os.path.join(self.dir, urlfile))
+
 		if debug: print 'urls:', len(urls)
 		cntpending = 0	
 		for line in urls:			

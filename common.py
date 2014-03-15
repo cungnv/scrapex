@@ -267,7 +267,7 @@ def urlencode(rawstr):
 	return urllib.quote_plus(rawstr)
 def getdomain(url):
 	urldata = urlparse.urlparse(url)
-	return urldata.netloc
+	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
 def getemails(doc):
 	doc = DataItem(doc)
 	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] --is", '@')
