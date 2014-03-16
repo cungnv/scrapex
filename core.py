@@ -285,6 +285,8 @@ class Scraper(object):
 			_filename = filename(line) if hasattr(filename,'__call__')  else common.md5(_url) + '.htm'
 			
 			if self.cache.exists(url=_url, filename=_filename):
+				if cb:
+					cb(self.load(url=_url, filename=_filename))
 				continue
 			
 			cntpending += 1

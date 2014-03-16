@@ -153,9 +153,9 @@ class DOM(Node):
 
 		return data	
 	def aspx_vs(self):
-		return self.x("//input[@id='__VIEWSTATE']/@value").urlencode()
+		return self.x("//input[@id='__VIEWSTATE']/@value").urlencode() or self.html().sub('__VIEWSTATE|','|').urlencode()
 	def aspx_ev(self):
-		return self.x("//input[@id='__EVENTVALIDATION']/@value").urlencode()	
+		return self.x("//input[@id='__EVENTVALIDATION']/@value").urlencode() or self.html().sub('__EVENTVALIDATION|','|').urlencode()
 
 
 
