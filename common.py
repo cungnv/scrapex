@@ -18,6 +18,7 @@ def putbin(path, data):
 
 def putfile(path, data, encoding = 'utf-8'):
 	#f = open(path, 'w')
+	
 	f = codecs.open(path, 'w', encoding)
 	f.write(data)
 	f.close()

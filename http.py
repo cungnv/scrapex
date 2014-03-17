@@ -7,7 +7,7 @@ def open(req, errorhandler = None):
 	#fix the url
 	# if ' ' in req.url:
 	# 	req.url = req.url.replace(' ','+')
-
+	errorhandler = req.get('errorhandler', None) #temp
 
 	#normalise the post
 	if req.post and isinstance(req.post, basestring):
