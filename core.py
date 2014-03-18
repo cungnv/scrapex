@@ -492,6 +492,7 @@ class Scraper(object):
 			print e	
 
 	def findemails(self, url):
+		if not url: return []
 		if not common.subreg(url, '^(http)'):
 			url = 'http://'+url
 		if '@' in url:
