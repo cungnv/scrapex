@@ -15,8 +15,12 @@ import requests
 
 class Scraper(object):
 	
-	def __init__(self, **options):
-		print 'start'
+	def __init__(self, startmessage='start', donemessage='done', **options):
+		self.startmessage = startmessage
+		self.donemessage = donemessage
+
+		print self.startmessage if self.startmessage
+
 		self.onfinished = options.get('onfinished', None)
 
 		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else (os.getcwd())
@@ -59,7 +63,7 @@ class Scraper(object):
 		if self.onfinished:
 			self.onfinished()
 		else:
-			print 'done'	
+			print self.donemessage if self.donemessage
 	
 	def joinpath(self, filename):
 		return os.path.join(self.dir, filename)
