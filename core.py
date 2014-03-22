@@ -19,7 +19,8 @@ class Scraper(object):
 		self.startmessage = startmessage
 		self.donemessage = donemessage
 
-		print self.startmessage if self.startmessage
+		if self.startmessage:
+			print self.startmessage
 
 		self.onfinished = options.get('onfinished', None)
 
@@ -62,8 +63,8 @@ class Scraper(object):
 	def  __del__(self):
 		if self.onfinished:
 			self.onfinished()
-		else:
-			print self.donemessage if self.donemessage
+		elif self.donemessage:
+			print self.donemessage
 	
 	def joinpath(self, filename):
 		return os.path.join(self.dir, filename)
