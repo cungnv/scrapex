@@ -153,10 +153,15 @@ def savecsv(path, record, sep=',', quote='"', escape = '"'):
 			values.append(quote + value + quote)
 				
 
-	if not os.path.exists(path):
-		appendfile(path, sep.join(keys)+'\r\n')
+	# if not os.path.exists(path):
+	# 	appendfile(path, sep.join(keys)+'\r\n')
 
-	appendfile(path, sep.join(values)+'\r\n')	
+	# appendfile(path, sep.join(values)+'\r\n')	
+
+	if not os.path.exists(path):
+		appendfile(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
+	else:		
+		appendfile(path, sep.join(values)+'\r\n')	
 
 def filename(path):
 	return subreg(path, '/([^/\?\$]+\.[a-z]{2,4})$--is')
