@@ -303,7 +303,7 @@ def readconfig(path):
 	names = re.compile(r'^\s*[\w]{5,}\:', re.M).findall(configstr)
 	for name in names:
 		#config.update({name.replace(':','').strip() : configstr.sub(name,'\n').trim() })
-		config.set({name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
+		config.set( name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
 	
 	return config
 
