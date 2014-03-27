@@ -92,7 +92,7 @@ def subreg(s, reg):
 	reg = redata['reg']
 	flags = redata['flags'] or re.S
 	m = re.search(reg, s, flags = flags)
-	return m.groups(0)[0] if m else ''
+	return DataItem( m.groups(0)[0] if m else '')
 
 def reg(s, reg):
 	
@@ -123,12 +123,12 @@ def sub(s, startstr, endstr):
 
 	to = s.find(endstr, start)
 	if to == -1: return '' #not found
-	return s[start:to]
+	return DataItem( s[start:to] )
 def rr(pt, to, s):
 	redata = parsereflags(pt)
 	reg = redata['reg']
 	flags = redata['flags'] or re.S	
-	return re.sub(reg, to, s, flags = flags)
+	return DataItem( re.sub(reg, to, s, flags = flags) )
 
 def savecsv(path, record, sep=',', quote='"', escape = '"'):		
 	values = []
@@ -270,7 +270,7 @@ def atoz():
 def AtoZ():
 	return [alpha for alpha in string.uppercase]	
 def urlencode(rawstr):
-	return urllib.quote_plus(rawstr)
+	return DataItem( urllib.quote_plus(rawstr) )
 def getdomain(url):
 	urldata = urlparse.urlparse(url)
 	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
@@ -287,6 +287,25 @@ def getemails(doc):
 		if email not in res:
 			res.append(email)	
 	return res		
+
+def parsename(full):
+	
+	item = DataItem(full).trim()
+	first = item.subreg('^(.*?)\s+(?:[^\s]+)$')
+	last = item.subreg('^(?:.*?)\s+([^\s]+)$') or item
+	return common.DataObject(first=first, last=last, full=full)
+
+def readconfig(path):
+	configstr = common.DataItem(common.getfile(path) + '\n')
+	configstr = configstr.rr(r'^\s*\#.*?$--m','')
+	
+	config = DataObject()
+	names = re.compile(r'^\s*[\w]{5,}\:', re.M).findall(configstr)
+	for name in names:
+		#config.update({name.replace(':','').strip() : configstr.sub(name,'\n').trim() })
+		config.set({name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
+	
+	return config
 
 	
 class DataItem(unicode):
@@ -348,6 +367,10 @@ class DataObject(object):
 	def __init__(self, **data):
 		for key, value in data.iteritems():
 			setattr(self,key,value)
+	def set(self, key, value):
+		setattr(self,key,value)
+		return self
+
 class MyDict(object):
 	def __init__(self, **data):
 		self.data = data

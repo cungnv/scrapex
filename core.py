@@ -33,8 +33,7 @@ class Scraper(object):
 			proxy=False, 
 			proxyfile = os.path.join(_dir, 'proxy.txt'),  
 			cookie = False,
-			js=False, 
-			jsentine = 'PyV8',
+			js=False, 			
 			timeout = 5,
 			delay = 0.1,
 			retries = 0
