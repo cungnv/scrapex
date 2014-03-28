@@ -198,7 +198,7 @@ def address(full, twolines=False):
 		street = subreg(street,'^(.*?),(?:[^\,]+)$')
 
 
-	return Adddress(street = street, street2=street2, city= city, state = state, zip = zip, full = bkfull)		
+	return Address(street = street, street2=street2, city= city, state = state, zip = zip, full = bkfull)		
 
 
 
@@ -293,7 +293,7 @@ def parsename(full):
 	item = DataItem(full).trim()
 	first = item.subreg('^(.*?)\s+(?:[^\s]+)$')
 	last = item.subreg('^(?:.*?)\s+([^\s]+)$') or item
-	return common.DataObject(first=first, last=last, full=full)
+	return DataObject(first=first, last=last, full=full)
 
 def readconfig(path):
 	configstr = common.DataItem(common.getfile(path) + '\n')
@@ -351,7 +351,7 @@ class DataItem(unicode):
 		return len(self.data)
 
 
-class Adddress(object):		
+class Address(object):		
 	def __init__(self, street='', street2='', city='', state='', zip ='', country = '', full=''):			
 		self.street= street
 		self.street2 = street2
@@ -370,6 +370,26 @@ class DataObject(object):
 	def set(self, key, value):
 		setattr(self,key,value)
 		return self
+	def fromlist(self, arr, trim=True):
+		i=0
+		while i< len(arr) - 1:
+			value = arr[i+1]
+			if trim and isinstance(value, basestring):				
+				value = value.strip()
+
+			self.set(arr[i], value)
+
+			i+=2
+
+		return self
+	def __str__(self):
+		data = []
+		for att in dir(self):
+			value = getattr(self, att)
+			if '__' not in att and not hasattr(value, '__call__'):
+				data.append(u'{0}: {1}'.format(att, value))
+		return '{<DataObject> ' + ', '.join(data)	+ ' }'	
+
 
 class MyDict(object):
 	def __init__(self, **data):
