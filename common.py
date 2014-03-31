@@ -297,7 +297,7 @@ def parsename(full):
 	return DataObject(first=first, last=last, full=full)
 
 def readconfig(path):
-	configstr = common.DataItem(common.getfile(path) + '\n')
+	configstr = DataItem(getfile(path) + '\n')
 	configstr = configstr.rr(r'^\s*\#.*?$--m','')
 	
 	config = DataObject()
