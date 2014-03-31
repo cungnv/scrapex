@@ -1,4 +1,5 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json, string
+import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading
+from Queue import Queue
 from HTMLParser import HTMLParser
 import pickle
 
@@ -306,6 +307,36 @@ def readconfig(path):
 		config.set( name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
 	
 	return config
+def startthreads(items, worker, cc=1):
+	class Worker(threading.Thread):	
+		def __init__(self, queue, func):
+			threading.Thread.__init__(self)		
+			self.queue = queue	
+			self.func = func
+
+		def run(self):
+			try:
+				while True:					
+					item = self.queue.get()
+					try:										
+						self.func(item)
+					except Exception, e:
+						print e						
+					self.queue.task_done()
+			except Exception, e2:			
+				pass
+
+	queue = Queue()
+	for item in items:
+		queue.put(item)
+	#start workers	
+	
+	for i in range(cc):		
+		t = Worker(queue = queue, func=worker)			
+		t.setDaemon(True)		
+		t.start()	
+
+	queue.join()	
 
 	
 class DataItem(unicode):
