@@ -237,8 +237,7 @@ def toml(des):
 
 	for m in ms:
 		try:
-			bk_m = m
-			print m
+			bk_m = m			
 			m = DataItem(m).rr('oz--is','').rr('fl--is','').trim()
 
 			value = float(m)
@@ -317,23 +316,23 @@ def startthreads(items, worker, cc=1):
 		def run(self):
 			try:
 				while True:					
-					item = self.queue.get()
+					item = self.queue.get(block=False)
 					try:										
 						self.func(item)
 					except Exception, e:
 						print e						
 					self.queue.task_done()
-			except Exception, e2:			
+			except:			
 				pass
+				
 
 	queue = Queue()
 	for item in items:
 		queue.put(item)
-	#start workers	
-	
+	#start workers		
 	for i in range(cc):		
 		t = Worker(queue = queue, func=worker)			
-		t.setDaemon(True)		
+		t.setDaemon(True)				
 		t.start()	
 
 	queue.join()	
