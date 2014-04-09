@@ -11,7 +11,9 @@ A simple web scraping lib for Python
 #Install
 
 easy_install https://github.com/cungnv/scrapex/archive/master.zip
+
 Or
+
 pip install https://github.com/cungnv/scrapex/archive/master.zip
 
 #Install Dependencies
