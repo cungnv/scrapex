@@ -394,8 +394,10 @@ class Scraper(object):
 		self.writingflag = True
 			
 		path = os.path.join(self.dir, filename)
-		if not hasattr(self, path) and os.path.exists(path):						
-			os.remove(path)
+		#if not hasattr(self, path) and os.path.exists(path):						
+		if not hasattr(self, path):
+			if os.path.exists(path):						
+				os.remove(path)		
 			setattr(self, path, '')	
 					
 		
