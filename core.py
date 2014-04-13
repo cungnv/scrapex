@@ -24,7 +24,8 @@ class Scraper(object):
 
 		self.onfinished = options.get('onfinished', None)
 
-		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else (os.getcwd())
+
+		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else os.path.dirname( os.path.join( os.getcwd(), sys.argv[0] ) )
 
 		self.config = dict(
 			dir = _dir, 
@@ -394,7 +395,7 @@ class Scraper(object):
 		self.writingflag = True
 			
 		path = os.path.join(self.dir, filename)
-		#if not hasattr(self, path) and os.path.exists(path):						
+		
 		if not hasattr(self, path):
 			if os.path.exists(path):						
 				os.remove(path)		
