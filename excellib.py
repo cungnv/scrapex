@@ -17,8 +17,10 @@ def savexls(filepath, data):
 		for j, col in enumerate(r):
 			if j % 2 == 0:
 				heahers.append(col)
-			else:						
-				values.append(col.strip())
+			else:			
+				if isinstance(col, basestring):
+					col = col.strip()			
+				values.append(col)
 		if i==0:
 			#write headers
 			for colindex, h in enumerate(heahers):
