@@ -15,10 +15,10 @@ class Node(object):
 				if '<?xml' in lxmlnode:
 					lxmlnode = re.sub('^\s*<\?xml.*\?>', '', lxmlnode)
 					
-				self.lxmlnode = lxml.html.fromstring(lxmlnode)
+				self.lxmlnode = lxml.html.fromstring(lxmlnode or '<nothing/>')
 
 			except Exception, e:
-				print e
+				#print e
 				self.lxmlnode = lxml.html.fromstring('<html></html>')
 				
 		else:				
