@@ -438,8 +438,11 @@ class MyDict(object):
 			if keys and name not in keys:
 				continue	
 			if name not in self.data.keys():
-				continue
-				
+				if keys and name in keys:
+					pass
+				else:
+					continue
+			
 			self.update({name:value})
 		return self		
 

@@ -184,10 +184,12 @@ class Scraper(object):
 			
 			#download and parse details	
 			if detail:
+				listings = detail(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(detail, '__call__') else doc.q(detail)
 				if debug:
-					print 'details: ', doc.q(detail).len()
-				for listing in doc.q(detail):
-					queue.put({'req':Request(url=listing.nodevalue(), **options) , 'cb': parsedetail})
+					print 'details: ', len(listings)
+
+				for listing in listings:
+					queue.put({'req':Request(url= listing if isinstance(listing, basestring) else listing.nodevalue(), **options) , 'cb': parsedetail})
 					
 			done = False
 

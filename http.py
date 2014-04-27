@@ -10,10 +10,9 @@ def open(req, errorhandler = None):
 	errorhandler = req.get('errorhandler', None) #temp
 
 	#normalise the post
-	if req.post and isinstance(req.post, basestring):
-		#req.post = dict(urlparse.parse_qsl(req.post))
-		pass
-		
+	if req.post and isinstance(req.post, common.MyDict):
+		req.post = req.post.dict()
+				
 	cache = req.get('cache') if isinstance(req.get('cache'), Cache) else None
 	
 	#try read from cache first
@@ -71,6 +70,11 @@ def open(req, errorhandler = None):
 			raise Exception('Invalid status code: %s' % r.status_code)
 		if 'gzip' in r.headers.get('content-encoding', ''):
 			bytes = zlib.decompress(r.raw.read(), 16+zlib.MAX_WBITS)	
+
+		elif 'deflate' in r.headers.get('content-encoding', ''):
+
+			bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(r.raw.read())	
+		
 		else:
 			bytes = r.raw.read()	
 

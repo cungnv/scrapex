@@ -9,8 +9,8 @@ class Cache(object):
 		if not os.path.exists(self.location):
 			os.makedirs(location)
 
-	def makekey(self, url, post = ''):				
-		return common.md5(url + str(post)) + '.htm'
+	def makekey(self, url, post = ''):	
+		return common.md5(url + (str(post) if post else '')) + '.htm'
 
 	def write(self, url, data, post='',filename = None):
 		key = filename if filename else 	self.makekey(url,post)
@@ -23,6 +23,9 @@ class Cache(object):
 		key = filename if filename else 	self.makekey(url,post)
 		
 		return os.path.exists(os.path.join(self.location, key))
-
+	def iterate(self):
+		for filename in os.listdir(self.location):
+			html = self.read(filename=filename)
+			yield (filename, html)
 
 		
