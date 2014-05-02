@@ -16,7 +16,10 @@ def open(req, errorhandler = None):
 	cache = req.get('cache') if isinstance(req.get('cache'), Cache) else None
 	
 	#try read from cache first
-	if cache and cache.exists(url = req.url, post = req.post, filename = req.get('filename')):		
+	if cache and cache.exists(url = req.url, post = req.post, filename = req.get('filename')):
+		if req.get('bin'):
+			return cache.read(url = req.url, post = req.post, filename = req.get('filename'))
+
 		return DOM(url=req.url, passdata = req.get('passdata'), html=cache.read(url = req.url, post = req.post, filename = req.get('filename')), htmlclean = req.get('htmlclean'))
 
 
@@ -80,6 +83,9 @@ def open(req, errorhandler = None):
 
 		if req.get('bin') is True:
 			#download binary file
+			if cache:
+				cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = bytes) # in utf8 format
+
 			return bytes
 
 		html = bytes.decode(req.get('encoding', r.encoding), 'ignore')
