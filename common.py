@@ -242,6 +242,7 @@ def toml(des):
 
 			value = float(m)
 			size_ml = round(value * 29.5735296875, 0) # Convert.ToInt32(Math.Round((29.5735296875) * value, 0));
+
 			newsize = '%d ml' % size_ml
 			des = des.replace(bk_m, newsize)
 		except Exception:
@@ -336,6 +337,9 @@ def startthreads(items, worker, cc=1):
 		t.start()	
 
 	queue.join()	
+
+def tojsonstring(js):
+	return json.dumps(js, indent=4, sort_keys=True)
 
 	
 class DataItem(unicode):

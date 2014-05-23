@@ -197,13 +197,27 @@ class Scraper(object):
 			_nextpost = None
 
 			if next:
-				_nexturl = next(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(next, '__call__') else doc.x(next)
+				_nexturl = next(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(next, '__call__') else ( next if next.startswith('http') else doc.x(next) )
 			if nextpost:
-				if not next: _nexturl = doc.url								
+				if not next: 
+					#next is not provided, use the original url
+					_nexturl = doc.url								
 				_nextpost = nextpost(common.DataObject(doc=doc, page=pages[0], starturl=common.DataItem(url))) if hasattr(nextpost, '__call__') else nextpost
-				
 			
-			if (next and _nexturl) or (nextpost and _nextpost):
+			if nextpost:
+				if _nextpost:
+					done = False
+				else:
+					done = True
+			else:
+				if not _nexturl:
+					done = True
+				else:
+					done = False				
+
+			
+			#if (next and _nexturl ) or (nextpost and _nextpost):
+			if not done:
 				#print _nexturl
 
 				if debug==2:

@@ -39,7 +39,9 @@ class Node(object):
 			#attribute or text node
 			res = str(self.lxmlnode)
 		res = res.replace('&#13;', '')	
-
+		if '<nothing/>' == res:
+			return DataItem()
+			
 		return DataItem(res)
 	
 	def nodevalue(self):

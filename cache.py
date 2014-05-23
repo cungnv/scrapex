@@ -1,4 +1,4 @@
-import os, md5
+import os, sys, md5
 
 import common
 
@@ -19,6 +19,13 @@ class Cache(object):
 	def read(self, url='', post='', filename= None):
 		key = filename if filename else 	self.makekey(url,post)
 		return common.getfile(os.path.join(self.location, key))
+	def remove(self, url='', post='', filename= None):
+		key = filename if filename else 	self.makekey(url,post)
+		filepath = os.path.join(self.location, key)
+		if sys.path.exists(filepath):
+			os.remove(filepath)
+
+			
 	def exists(self, url = '', post='', filename = None):
 		key = filename if filename else 	self.makekey(url,post)
 		
