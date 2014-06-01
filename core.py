@@ -1,14 +1,11 @@
 from Queue import Queue
-import threading, os, random, sys
+import threading, os, random, sys, time
 from node import Node
 from worker import Worker
 from http import Request
 import http
 from cache import Cache
 import common
-
-
-import time, os
 from urlparse import urlparse
 import requests
 
@@ -60,7 +57,11 @@ class Scraper(object):
 
 		#set flags
 		self.writingflag = False
+
+		#init the output db
+		self.outdb = {}
 	def  __del__(self):
+		
 		if self.onfinished:
 			self.onfinished()
 		elif self.donemessage:
@@ -402,8 +403,19 @@ class Scraper(object):
 		except Exception as e:
 			print e
         		
+	def push(self):
+		import excellib
+		for filepath in self.outdb.keys():
+			trackingobj = self.outdb.get(filepath)
+			if trackingobj.format == 'csv':
+				continue
+			elif trackingobj.format == 'xls':
+				excellib.savexls(filepath, trackingobj.data)
+				
+		#clear the db
+		self.outdb = {}
 
-	def save(self, record, filename = 'result.csv'):		
+	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None):		
 		#waiting while other thread writing
 		while self.writingflag:			
 			pass
@@ -411,15 +423,34 @@ class Scraper(object):
 		self.writingflag = True
 			
 		path = os.path.join(self.dir, filename)
-		
-		if not hasattr(self, path):
+		format = common.DataItem(path).subreg('\.([a-z]{2,5})$--is').lower()
+
+		if not self.outdb.get(path):
 			if os.path.exists(path):						
 				os.remove(path)		
-			setattr(self, path, '')	
-					
+			self.outdb.update({ path: common.DataObject(cnt=0, data=[], ids = [], format = format)})	
+
+		trackingobj = self.outdb.get(path)
+		if keys or id:
+			id = id or u"".join([ unicode( record[record.index(key) + 1 ] ) for key in keys])
+			if id in trackingobj.ids:
+				self.writingflag = False
+				return
+			else:
+				trackingobj.ids.append(id)
 		
-		#start writing
-		common.savecsv(path, record)
+		trackingobj.cnt += 1
+
+		if format == 'csv':				
+			#for csv format, save to file immediately	
+			common.savecsv(path, record)
+		elif format in ['xls', 'xlsx']:
+			#save for later
+			trackingobj.data.append(record)
+		if max and trackingobj.cnt == max:
+			self.push() #save output files and quit
+			os._exit(1)	
+
 		#free the flag
 		self.writingflag = False
 	def appendline(self, filename, line, dedup=False):		
