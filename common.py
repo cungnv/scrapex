@@ -1,4 +1,4 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading
+import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv
 from Queue import Queue
 from HTMLParser import HTMLParser
 import pickle
@@ -48,7 +48,7 @@ def readlines(path, removeempty = True, trim = True, encoding = 'utf-8'):
 				lines.append(line)
 
 	return lines			
-def readlinesbyrn(path, encoding = 'utf-8'):
+def readlinesbyrn(path, encoding = 'utf8'):
 	with codecs.open(path, encoding=encoding) as f:
 		buff = u''
 		for line in f:			
@@ -341,6 +341,35 @@ def startthreads(items, worker, cc=1):
 def tojsonstring(js):
 	return json.dumps(js, indent=4, sort_keys=True)
 
+def readcsv(path, restype='list', encoding='utf8'):
+	"""
+	restype: list, dict, DataObject
+	"""
+	i=-1
+	fields = None
+	for line in readlinesbyrn(path):
+		i += 1
+		r = [unicode(cell, encoding) for cell in csv.reader(StringIO.StringIO(line.encode(encoding))).next() ]
+
+		if i == 0:
+			fields = r
+			if restype == 'list':
+				yield r
+			else:	
+				continue	
+		if restype == 'list':
+			yield r
+		elif restype == 'dict':
+			res = dict()
+			for field in fields:
+				res.update({field: r[fields.index(field)] })
+			yield res
+		else:			
+			res = DataObject()
+			for field in fields:
+				setattr(res, field, r[fields.index(field)] )
+			yield res
+		
 	
 class DataItem(unicode):
 
@@ -376,6 +405,8 @@ class DataItem(unicode):
 		return DataItem(self.data.strip())
 	def urlencode(self):
 		return DataItem(urllib.quote_plus(self.data))
+	def urldecode(self):
+		return DataItem(urllib.unquote(self.data))	
 	def reg(self, regpattern):
 		return reg(self.data, regpattern)
 	def htmldecode(self):
@@ -416,6 +447,18 @@ class DataObject(object):
 			i+=2
 
 		return self
+	def tolist(self, headers = []):
+		if not headers:
+			for att in dir(self):
+				value = getattr(self, att)
+				if '__' not in att and not hasattr(value, '__call__'):
+					headers.append(att)
+		res = []
+		for att in headers:
+			res += [att, getattr(self, att)]	
+		return res	
+
+
 	def __str__(self):
 		data = []
 		for att in dir(self):

@@ -415,7 +415,7 @@ class Scraper(object):
 		#clear the db
 		self.outdb = {}
 
-	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None):		
+	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None, headers = []):		
 		#waiting while other thread writing
 		while self.writingflag:			
 			pass

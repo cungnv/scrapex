@@ -130,7 +130,7 @@ class DOM(Node):
 			html = htmlclean(html)
 
 		Node.__init__(self, html)
-		self.url = url
+		self.url = common.DataItem( url )
 		self.passdata = passdata if passdata else {}
 		self.statuscode = statuscode
 		self.ok = ok
