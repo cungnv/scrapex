@@ -355,8 +355,9 @@ def readcsv(path, restype='list', encoding='utf8'):
 			fields = r
 			if restype == 'list':
 				yield r
-			else:	
-				continue	
+			
+			continue	
+
 		if restype == 'list':
 			yield r
 		elif restype == 'dict':
@@ -369,7 +370,12 @@ def readcsv(path, restype='list', encoding='utf8'):
 			for field in fields:
 				setattr(res, field, r[fields.index(field)] )
 			yield res
-		
+def csvtoexcel(csvfile, excelfile=None):
+	import excellib
+	if not excelfile:
+		excelfile = DataItem(csvfile).rr('\.csv$--is','.xls')	
+
+	excellib.csvdatatoxls(excelfile,readcsv(csvfile))
 	
 class DataItem(unicode):
 
@@ -501,4 +507,18 @@ class MyDict(object):
 		return str(self.data)
 
 
-		
+class UList(list):
+	def __init__(self, initlist=[]):
+			
+		for item in initlist:
+			self.append(item)
+
+	def append(self, item):
+		try:
+		 	self.index(item)
+		except:
+			#not found, so add to		
+			super(UList, self).append(item)
+		return self	
+	def join(self, sep=u', '):
+		return sep.join(self)
