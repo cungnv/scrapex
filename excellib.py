@@ -28,7 +28,11 @@ def savexls(filepath, data):
 
 		rowindex += 1
 		for colindex, value in enumerate(values):
-			sheet.write(rowindex,colindex,value, style)	
+			if value is not None:			
+				sheet.write(rowindex,colindex,value, style)	
+			else:				
+				sheet.write(rowindex,colindex,'', style)	
+
 	book.save(filepath)			
 
 def csvdatatoxls(filepath, data):
@@ -46,3 +50,11 @@ def csvdatatoxls(filepath, data):
 			sheet.write(rowindex,colindex,value, style)	
 
 	book.save(filepath)				
+def readsheet(filepath, index=0):
+	book = xlrd.open_workbook(filepath)	
+	sheet1 = book.sheet_by_index(index)
+	data = []
+	for i in range(sheet1.nrows):
+		r = sheet1.row_values(i)		
+		data.append(r)
+	return data
