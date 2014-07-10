@@ -50,11 +50,34 @@ def csvdatatoxls(filepath, data):
 			sheet.write(rowindex,colindex,value, style)	
 
 	book.save(filepath)				
-def readsheet(filepath, index=0):
+def readsheet(filepath, restype='list', index=0):
+	"""
+	restype: list, dict
+	"""
 	book = xlrd.open_workbook(filepath)	
 	sheet1 = book.sheet_by_index(index)
 	data = []
 	for i in range(sheet1.nrows):
 		r = sheet1.row_values(i)		
 		data.append(r)
-	return data
+	
+	if restype == 'list':
+		return data
+	fields = data[0]	
+	rs = []
+	rowindex = 1
+	for r in data[1:]:
+		rowindex += 1
+		if len(r) != len(fields):
+			raise Exception("Inconsistent row length at row#: %s" % rowindex)
+		row = {}	
+		for i, value in enumerate(r):
+			row.update({fields[i]: value})
+		rs.append(row)	
+		
+	return rs	
+
+
+
+
+

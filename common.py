@@ -420,6 +420,8 @@ class DataItem(unicode):
 
 	def len(self):
 		return len(self.data)
+	def print_(self):
+		print self.encode('utf8')
 
 
 class Address(object):		

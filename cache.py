@@ -10,7 +10,8 @@ class Cache(object):
 			os.makedirs(location)
 
 	def makekey(self, url, post = ''):	
-		return common.md5(url + (str(post) if post else '')) + '.htm'
+		#return common.md5((url + (str(post) if post else ''))) + '.htm'
+		return common.md5((url + (unicode(post) if post else '')).encode('utf8')) + '.htm'
 
 	def write(self, url, data, post='',filename = None):
 		key = filename if filename else 	self.makekey(url,post)
