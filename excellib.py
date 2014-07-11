@@ -86,8 +86,7 @@ def csvdatatoxls(filepath, data):
 def readxlsxsheet(filepath, index=0):
 	wb = openpyxl.load_workbook(filepath)
 	
-	sheet = wb.worksheets[index]
-	print sheet.cell(row=1, column=1).value
+	sheet = wb.worksheets[index]	
 	data = []
 	for row in sheet.rows:
 		r = []
