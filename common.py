@@ -233,6 +233,12 @@ def toml(des):
 	
 	#normalize the input
 	des = DataItem(des).rr(r'\bfl\.?--is','').rr('\s+',' ')
+	#the ml already in the des
+	if des.subreg('\\b([\d\.]+)\s*ml\\b--is'):
+		return des.subreg('\\b([\d\.]+)\s*ml\\b--is') + ' ml'
+
+
+
 	ms = re.findall(r'(?:[1-9]{1}[0-9]{0,}(?:\.[0-9]{0,3})?|0(?:\.[0-9]{0,3})?|\.[0-9]{1,3}) ?oz',des, flags = re.I|re.S)
 
 	for m in ms:
@@ -376,6 +382,11 @@ def csvtoexcel(csvfile, excelfile=None):
 		excelfile = DataItem(csvfile).rr('\.csv$--is','.xls')	
 
 	excellib.csvdatatoxls(excelfile,readcsv(csvfile))
+def savejson(filepath, data):
+	putfile(filepath, tojsonstring(data))
+def loadjson(filepath):
+	return json.loads(getfile(filepath))
+
 	
 class DataItem(unicode):
 
@@ -422,7 +433,8 @@ class DataItem(unicode):
 		return len(self.data)
 	def print_(self):
 		print self.encode('utf8')
-
+	def striplinks(self):
+		return self.rr('<a [^<>].*?>(.*?)</a>--is', r'\1')
 
 class Address(object):		
 	def __init__(self, street='', street2='', city='', state='', zip ='', country = '', full=''):			

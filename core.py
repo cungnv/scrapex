@@ -72,6 +72,12 @@ class Scraper(object):
 	def readlines(self, filename):
 		return common.readlines(self.joinpath(filename))	
 
+	def savejson(self, filename, data):
+		common.savejson(self.joinpath(filename), data)
+		return self
+	def loadjson(self, filename):
+		return common.loadjson(self.joinpath(filename))
+
 	def clearcookie(self):
 		self.client = requests.Session()
 		return self
