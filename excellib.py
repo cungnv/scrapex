@@ -111,22 +111,28 @@ def readsheet(filepath, restype='list', index=0):
 			r = sheet1.row_values(i)		
 			data.append(r)
 	
-	if restype == 'list':
-		return data
-
 	fields =[]
 
 	for field in data[0]:
 		if not field: break #every fields after the first None field are ignored
 		fields.append(field)
 
+	
+	if restype == 'list':
+		if len(fields)<len(data[0]):
+			cleaneddata = [r[0:len(fields)] for r in data]
+			return cleaneddata
+		else:	
+			return data
+
+	
 	rs = []
 	rowindex = 1
 	for r in data[1:]:
 		rowindex += 1
 		if len(r) != len(data[0]):
 			raise Exception("Inconsistent row length at row#: %s" % rowindex)
-			
+
 		row = {}	
 		for i, value in enumerate(r):
 			if i== len(fields): break			
@@ -138,7 +144,7 @@ def readsheet(filepath, restype='list', index=0):
 
 if __name__ == '__main__':
 	print 'test'
-	data = readsheet('d:/scrape/inv/testingdata/7.20.14_foll_wholesale.xlsx', 'dict')
+	data = readsheet('d:/scrape/inv/testingdata/7.20.14_foll_wholesale.xlsx', 'list')
 	print data[0]
 
 
