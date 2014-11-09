@@ -1,3 +1,4 @@
+import sys
 import urlparse, requests, time, zlib
 from node import Node
 from cache import Cache
@@ -80,10 +81,11 @@ def open(req, errorhandler = None):
 		
 		else:
 			bytes = r.raw.read()	
-
+					
 		if req.get('bin') is True:
-			#download binary file
+			#download binary file			
 			if cache:
+				
 				cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = bytes) # in utf8 format
 
 			return bytes

@@ -278,6 +278,8 @@ def AtoZ():
 	return [alpha for alpha in string.uppercase]	
 def urlencode(rawstr):
 	return DataItem( urllib.quote_plus(rawstr) )
+def urldecode(rawstr):
+	return DataItem(urllib.unquote(rawstr))	
 def getdomain(url):
 	urldata = urlparse.urlparse(url)
 	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
@@ -409,7 +411,7 @@ class DataItem(unicode):
 	def replace(self, old, new=''):
 		return DataItem(self.data.replace(old, new))		
 
-	def rr(self, old, new):
+	def rr(self, old, new=''):
 		return DataItem(rr(old, new, self.data))
 		
 	def sub(self, startstr, endstr):

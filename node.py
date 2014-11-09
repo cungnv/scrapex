@@ -37,7 +37,7 @@ class Node(object):
 			
 		except Exception, e:
 			#attribute or text node
-			res = str(self.lxmlnode)
+			res = unicode(self.lxmlnode)
 		res = res.replace('&#13;', '')	
 		if '<nothing/>' == res:
 			return DataItem()
