@@ -16,7 +16,7 @@ class Cache(object):
 	def write(self, url, data, post='',filename = None):
 		key = filename if filename else 	self.makekey(url,post)
 		common.putfile(os.path.join(self.location, key), data)
-
+		
 	def read(self, url='', post='', filename= None):
 		key = filename if filename else 	self.makekey(url,post)
 		return common.getfile(os.path.join(self.location, key))
