@@ -1,7 +1,7 @@
 import sys, urlparse, requests, time, zlib, json, re
 from node import Node
 from cache import Cache
-import common
+import common, agent
 
 
 ERROR_CONNECTION = 1 # cannot connect to the server
@@ -146,11 +146,10 @@ def open(req):
 	#default headers
 	headers = {
 		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-		"User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.2) Gecko/20100101 Firefox/10.0.2",
+		"User-Agent": agent.firefox,
 		"Accept-Language": "en-us,en;q=0.5",
-		"Accept-Encoding": "gzip, deflate",	
-			
-		"Connection": "close"
+		"Accept-Encoding": "gzip, deflate",			
+		"Connection": "close" #turn off keep-alive
 	}
 	if req.post:
 		headers.update({"Content-Type": "application/x-www-form-urlencoded"})

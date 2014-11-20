@@ -409,7 +409,7 @@ class Scraper(object):
 		except Exception as e:
 			print e
         		
-	def push(self):
+	def flush(self):
 		import excellib
 		for filepath in self.outdb.keys():
 			trackingobj = self.outdb.get(filepath)
