@@ -22,7 +22,7 @@ errordesc = {
 
 }
 
-class MyStr():
+class MyStr(str):
 	pass
 class Status():
 	""" the object returned by http.open function always contains an instance of Status class"""
@@ -144,9 +144,13 @@ def open(req):
 
 	
 	#default headers
+	useragent = req.get('useragent', agent.firefox ) #default agent is firefox
+	if useragent == 'random':
+		useragent = agent.randomagent()
+
 	headers = {
 		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-		"User-Agent": agent.firefox,
+		"User-Agent": useragent,
 		"Accept-Language": "en-us,en;q=0.5",
 		"Accept-Encoding": "gzip, deflate",			
 		"Connection": "close" #turn off keep-alive
@@ -178,6 +182,7 @@ def open(req):
 	
 	statuscode = None
 	finalurl = None
+
 	try:
 		time.sleep(req.get('delay', 0.001))	
 		r = None	
@@ -200,7 +205,7 @@ def open(req):
 		
 		else:
 			bytes = r.raw.read()	
-					
+
 		if req.get('bin') is True:
 			#download binary file			
 			if cache:
@@ -213,6 +218,7 @@ def open(req):
 					}
 				}				
 				cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = ''.join([json.dumps(meta), meta_seperator, bytes]) ) # in utf8 format
+			
 			mystr = MyStr(bytes)	
 			mystr.status = Status(code=r.status_code, finalurl = r.url)
 			return mystr
@@ -242,8 +248,9 @@ def open(req):
 		
 		return DOM(html=html, url = req.url, passdata = req.get('passdata'), htmlclean = req.get('htmlclean'), status= Status(code=r.status_code, finalurl = r.url) )		
 
-	except Exception, e:
-		message = str(e.message)
+	except Exception, e:		
+		
+		message = str(e.message)		
 		print message
 		if tries > 0:
 			#try to open the request one again	
