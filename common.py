@@ -354,7 +354,7 @@ def readcsv(path, restype='list', encoding='utf8'):
 	"""
 	i=-1
 	fields = None
-	for line in readlinesbyrn(path):
+	for line in readlinesbyrn(path, encoding=encoding):
 		i += 1
 		r = [unicode(cell, encoding) for cell in csv.reader(StringIO.StringIO(line.encode(encoding))).next() ]
 

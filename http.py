@@ -1,4 +1,7 @@
-import sys, urlparse, requests, time, zlib, json, re
+import sys, urlparse, requests, time, zlib, json, re, codecs
+from cStringIO import StringIO
+from gzip import GzipFile
+
 from node import Node
 from cache import Cache
 import common, agent
@@ -37,7 +40,7 @@ class Status():
 
 	
 class DOM(Node):
-	def __init__(self, status, url='', html='<html></html>', passdata= {}, htmlclean=None):		
+	def __init__(self, status=None, url='', html='<html></html>', passdata= {}, htmlclean=None):		
 		if htmlclean:
 			html = htmlclean(html)
 
@@ -138,6 +141,10 @@ def open(req):
 
 			return DOM(url=req.url, status = status , passdata = req.get('passdata'), html= cachedhtml, htmlclean = req.get('htmlclean'))
 
+	if req.get('cache_only') is True:
+		#not cached, just return an empty doc
+		return DOM(url=req.url, passdata = req.get('passdata'), status = Status(code=-1, error=ERROR_MISC, finalurl=req.url))
+
 
 	client = req.get('client') if req.get('client') else requests
 
@@ -196,15 +203,21 @@ def open(req):
 			finalurl = r.url
 
 			raise Exception('Invalid status code: %s' % r.status_code)
+		
+		rawdata = r.raw.read()
+		
 		if 'gzip' in r.headers.get('content-encoding', ''):
-			bytes = zlib.decompress(r.raw.read(), 16+zlib.MAX_WBITS)	
-
+			
+			bytes = zlib.decompress(rawdata, 16+zlib.MAX_WBITS)
+			
 		elif 'deflate' in r.headers.get('content-encoding', ''):
 
-			bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(r.raw.read())	
+			bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata)	
 		
 		else:
-			bytes = r.raw.read()	
+			bytes = rawdata
+
+		#sys.stdout.write('bytes:%s'% len(bytes))		#test
 
 		if req.get('bin') is True:
 			#download binary file			
@@ -223,7 +236,7 @@ def open(req):
 			mystr.status = Status(code=r.status_code, finalurl = r.url)
 			return mystr
 
-		html = bytes.decode(req.get('encoding', r.encoding), 'ignore')
+		html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
 
 		#verify data
 		if req.get('contain') and req.get('contain') not in html:

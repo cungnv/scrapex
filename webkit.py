@@ -21,7 +21,13 @@ class WebView(QWebView):
 		QWebView.__init__( self )
 		self.timeout = timeout
 		
-		manager = NetworkAccessManager()		
+		proxy = options.get('proxy')
+		proxyauth = options.get('proxyauth')
+
+		manager = NetworkAccessManager()
+		if proxy:
+			manager.setProxy(proxy, proxyauth)	
+
 		page = WebPage()
 		page.setNetworkAccessManager(manager)
 		self.setPage(page)
@@ -64,6 +70,15 @@ class WebView(QWebView):
 
 		return self	
 		
+	def getcookies(self, domain=None):
+		cookies = []
+		for cookie in self.page().networkAccessManager().cookieJar().allCookies():
+			_domain = cookie.domain()
+			if domain and domain.lower() not in _domain:
+				continue
+			cookies.append('%s=%s' % (cookie.name(), cookie.value()))
+		return '; '.join(cookies)
+
 	def submit(self, css=None, **options):		
 		timeout = options.get('timeout', self.timeout)
 
@@ -102,6 +117,12 @@ class WebView(QWebView):
 		else:
 			target = eles[0]			
 		
+		#print dir(target)	
+		if target.hasAttribute('target'):
+			target.setAttribute('target','')
+		
+		print target.toOuterXml()
+
 		target.evaluateJavaScript("var ev = document.createEvent('MouseEvents'); ev.initEvent('click', true, true); this.dispatchEvent(ev);")
 
 		self.wait(1)	
@@ -178,7 +199,7 @@ class WebView(QWebView):
 	def html(self):
 		return unicode(self.page().mainFrame().toHtml())
 	def doc(self):
-		return	http.DOM(html = self.html(), url= self.url().toString())		
+		return	http.DOM(html = self.html(), url= self.url().toString(), status = http.Status(code=200, error=None, finalurl=self.url().toString()))
 
 	def findall(self, css):
 		return self.page().mainFrame().findAllElements(css).toList()	

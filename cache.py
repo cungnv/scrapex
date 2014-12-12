@@ -13,7 +13,7 @@ class Cache(object):
 		#return common.md5((url + (str(post) if post else ''))) + '.htm'
 		return common.md5((url + (unicode(post) if post else '')).encode('utf8')) + '.htm'
 
-	def write(self, url, data, post='',filename = None):
+	def write(self, url='', data='', post='',filename = None):
 		key = filename if filename else 	self.makekey(url,post)
 		common.putfile(os.path.join(self.location, key), data)
 		
@@ -23,7 +23,7 @@ class Cache(object):
 	def remove(self, url='', post='', filename= None):
 		key = filename if filename else 	self.makekey(url,post)
 		filepath = os.path.join(self.location, key)
-		if sys.path.exists(filepath):
+		if os.path.exists(filepath):
 			os.remove(filepath)
 
 			
