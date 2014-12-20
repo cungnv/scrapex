@@ -264,11 +264,14 @@ def open(req):
 	except Exception, e:		
 		
 		message = str(e.message)		
-		print message
+		
 		if tries > 0:
 			#try to open the request one again	
 			req.update({'retries': tries - 1})
 			return open(req)
+
+		print message	
+			
 		
 		error = None
 		if 'errno 11001' in message.lower():
