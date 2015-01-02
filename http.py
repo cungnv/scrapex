@@ -168,10 +168,22 @@ def open(req):
 	#update user-passed in headers
 	headers.update(req.get('headers', {})) 
 
+	proxy = ''
 
-	proxy = req.get('proxy', None)	
+	if req.get('proxy'):
+		proxy = req.get('get_proxy')(req.url)
+			
 	proxyauth = req.get('proxyauth', None)
-	if proxy:
+	
+	#support proxy in ip:port:user:pass
+	if proxy and len(proxy.split(':')) == 4:
+		proxyauth = ':'.join(proxy.split(':')[2:])
+		proxy = ':'.join(proxy.split(':')[0:2])
+	
+
+
+	if proxy and req.get('proxy_on') is not False:
+
 		if proxyauth:
 			proxies = {
 				'http': 'http://{0}@{1}'.format(proxyauth, proxy),
@@ -270,7 +282,7 @@ def open(req):
 			req.update({'retries': tries - 1})
 			return open(req)
 
-		print message	
+		print message, req.url	
 			
 		
 		error = None

@@ -1,5 +1,5 @@
 from Queue import Queue
-import threading, os, random, sys, time
+import threading, os, random, sys, time, json
 from node import Node
 from worker import Worker
 from http import Request
@@ -9,9 +9,44 @@ import common
 from urlparse import urlparse
 import requests
 
+class ProxyManager(object):
+	"""docstring for ProxyManager"""
+	def __init__(self, proxyfile, proxyauth=''):		
+		self.proxyfile = proxyfile
+		self.proxyauth = proxyauth
+		self.proxies = []
+		self.loadproxies()
+
+
+	def loadproxies(self):		
+		proxyfile = self.proxyfile
+
+		if proxyfile:
+			if not os.path.exists(proxyfile):
+				raise Exception('proxyfile not found: {0}'.format(proxyfile))
+			
+			self.proxies = common.readlines(proxyfile)
+
+		return self	
+
+	def randomproxy(self):
+		if not self.proxies:
+			return ''
+
+		proxy = self.proxies[random.randint(0, len(self.proxies)-1)]	
+		if self.proxyauth and len(proxy.split(':')) == 2:
+			proxy = '%s:%s' % (proxy, self.proxyauth)
+
+		return proxy	
+
+	def getproxy(self, url):
+
+		return self.randomproxy()
+		
 
 class Scraper(object):
 	
+
 	def __init__(self, startmessage='start', donemessage='done', **options):
 		self.startmessage = startmessage
 		self.donemessage = donemessage
@@ -23,22 +58,40 @@ class Scraper(object):
 
 
 		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else os.path.dirname( os.path.join( os.getcwd(), sys.argv[0] ) )
+		
 
 		self.config = dict(
 			dir = _dir, 
 			cc = 1, 
 			cache=True, 
 			proxy=False, 
-			proxyfile = os.path.join(_dir, 'proxy.txt'),  
+			proxyfile = os.path.join(_dir, 'proxy.txt'), 			
 			cookie = False,
 			js=False, 			
-			timeout = 5,
+			timeout = 30,
 			delay = 0.1,
 			retries = 0
 
 			)
-		#auto enable/disable features based on user-passed options
+
+
+		
 		self.config.update(options)
+
+		#expose important attributes
+		self.dir = self.config.get('dir')
+		if not os.path.exists(self.dir): os.makedirs(self.dir)			
+		self.cache = Cache(os.path.join(self.dir, 'cache')) if self.config.get('cache') else None	
+		
+		#load settings from local settings.txt
+		if os.path.exists(self.joinpath('settings.txt')):
+			self.config.update(json.loads(common.getfile(self.joinpath('settings.txt'))))
+
+
+		self.proxymanager = ProxyManager(proxyfile= self.config.get('proxyfile'), proxyauth=self.config.get('proxyauth'))
+		self.config.update({'get_proxy': self.proxymanager.getproxy})
+
+		#auto enable/disable features based on user-passed options
 		if(options.get('proxyfile') or options.get('proxyauth')):			
 			if 'proxy' not in options: 
 				self.config['proxy'] = True
@@ -46,10 +99,8 @@ class Scraper(object):
 		if not options.get('dir') and 'cache' not in options:
 			self.config['cache'] = False	
 
-		#expose important attributes
-		self.dir = self.config.get('dir')
-		if not os.path.exists(self.dir): os.makedirs(self.dir)			
-		self.cache = Cache(os.path.join(self.dir, 'cache')) if self.config.get('cache') else None	
+		
+
 		self.client = options.get('client') or  requests.Session()		
 		#self.client.config['keep_alive'] = False
 		self.proxies = []
@@ -60,6 +111,8 @@ class Scraper(object):
 
 		#init the output db
 		self.outdb = {}
+	
+	
 	def  __del__(self):
 		
 		if self.onfinished:
