@@ -169,11 +169,10 @@ def open(req):
 	headers.update(req.get('headers', {})) 
 
 	proxy = ''
+	proxyauth = ''	
+	proxy = req.get('get_proxy')(req.url)
 
-	if req.get('proxy'):
-		proxy = req.get('get_proxy')(req.url)
-			
-	proxyauth = req.get('proxyauth', None)
+	#proxyauth = req.get('proxyauth', None)
 	
 	#support proxy in ip:port:user:pass
 	if proxy and len(proxy.split(':')) == 4:
@@ -181,21 +180,20 @@ def open(req):
 		proxy = ':'.join(proxy.split(':')[0:2])
 	
 
-
-	if proxy and req.get('proxy_on') is not False:
-
-		if proxyauth:
-			proxies = {
-				'http': 'http://{0}@{1}'.format(proxyauth, proxy),
-				'https': 'http://{0}@{1}'.format(proxyauth, proxy)
-			}
-		else:
-			proxies = {
-				'http': 'http://{0}'.format(proxy),
-				'https': 'http://{0}'.format(proxy)
-			}
-	else:
-		proxies = None
+	proxies = None	
+	if req.get('proxy_on') is not False:	
+		if proxy:			
+			if proxyauth:
+				proxies = {
+					'http': 'http://{0}@{1}'.format(proxyauth, proxy),
+					'https': 'http://{0}@{1}'.format(proxyauth, proxy)
+				}
+			else:
+				proxies = {
+					'http': 'http://{0}'.format(proxy),
+					'https': 'http://{0}'.format(proxy)
+				}
+		
 
 	tries = req.get('retries', 0)	
 	
