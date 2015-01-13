@@ -80,13 +80,14 @@ class Scraper(object):
 		#expose important attributes
 		self.dir = self.config.get('dir')
 		if not os.path.exists(self.dir): os.makedirs(self.dir)			
-		self.cache = Cache(os.path.join(self.dir, 'cache')) if self.config.get('cache') else None	
 		
 		#load settings from local settings.txt
 		if os.path.exists(self.joinpath('settings.txt')):
 			self.config.update(json.loads(common.getfile(self.joinpath('settings.txt'))))
 
-
+		self.cache = Cache(os.path.join(self.dir, 'cache')) if self.config.get('cache') else None	
+			
+			
 		self.proxymanager = ProxyManager(proxyfile= self.config.get('proxyfile'), proxyauth=self.config.get('proxyauth'))
 		self.config.update({'get_proxy': self.proxymanager.getproxy})
 
