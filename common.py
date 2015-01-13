@@ -180,7 +180,7 @@ def address(full, twolines=False):
 	full = DataItem(full if full else '').trim()
 	
 
-	zip = full.subreg('(?: |,)\s*(\d{4,5} ?- ?\d{3,4})$--is').tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$--is').tostring()
+	zip = full.subreg('(?: |,)\s*(\d{4,5} ?- ?\d{3,4})$--is').tostring() or full.subreg('(?: |,)\s*(\d{9})$--is').tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$--is').tostring()
 
 	if not zip:
 		zip = full.subreg('(?: |,)\s*(\d{4,5})$--is')
@@ -537,3 +537,7 @@ class UList(list):
 		return self	
 	def join(self, sep=u', '):
 		return sep.join(self)
+
+if __name__ == '__main__':
+
+	print address('228 CURTIS AVENUE, MOUNDSVILLE, WV 26041')

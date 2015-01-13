@@ -7,6 +7,7 @@ from cache import Cache
 import common, agent
 
 
+
 ERROR_CONNECTION = 1 # cannot connect to the server
 ERROR_SERVER = 2 #internal server error
 ERROR_NOT_FOUND = 3 # the url is not found (404)
@@ -134,7 +135,7 @@ def open(req):
 
 
 		if req.get('bin'):
-			data = MyStr(cachedhtml)
+			data = MyStr(cachedhtml.encode('utf8'))
 			data.status = status
 			return data
 		else:
@@ -215,6 +216,7 @@ def open(req):
 			raise Exception('Invalid status code: %s' % r.status_code)
 		
 		rawdata = r.raw.read()
+
 		
 		if 'gzip' in r.headers.get('content-encoding', ''):
 			
@@ -240,9 +242,11 @@ def open(req):
 						'error': None
 					}
 				}				
-				cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = ''.join([json.dumps(meta), meta_seperator, bytes]) ) # in utf8 format
+				html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
+				cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = u''.join([json.dumps(meta), meta_seperator, html]) ) # in utf8 format
 			
 			mystr = MyStr(bytes)	
+
 			mystr.status = Status(code=r.status_code, finalurl = r.url)
 			return mystr
 
@@ -314,3 +318,6 @@ def getredirecturl(url):
 	res = requests.head(url=url, allow_redirects = False)
 	return res.headers.get('location') or res.headers.get('Location', '')
 
+
+
+EMPTY_DOC = DOM()
