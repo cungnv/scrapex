@@ -1,4 +1,4 @@
-import os, sys, md5
+import os, sys, md5, urllib
 
 import common
 
@@ -9,31 +9,36 @@ class Cache(object):
 		if not os.path.exists(self.location):
 			os.makedirs(location)
 
-	def makekey(self, url, post = ''):	
-		#return common.md5((url + (str(post) if post else ''))) + '.htm'
-		return common.md5((url + (unicode(post) if post else '')).encode('utf8')) + '.htm'
+	def make_key(self, url, post = ''):	
+		#normalise the post
+		if post and isinstance(post, common.MyDict):
+			post = post.dict()
+		if post and isinstance(post, dict):
+			post = urllib.urlencode(sorted(post.items()))
 
-	def write(self, url='', data='', post='',filename = None):
-		key = filename if filename else 	self.makekey(url,post)
-		common.putfile(os.path.join(self.location, key), data)
+		return common.md5((url + (post or '')).encode('utf8')) + '.htm'
+
+	def write(self, url='', data='', post='',file_name = None):
+		key = file_name if file_name else 	self.make_key(url,post)
+		common.put_file(os.path.join(self.location, key), data)
 		
-	def read(self, url='', post='', filename= None):
-		key = filename if filename else 	self.makekey(url,post)
-		return common.getfile(os.path.join(self.location, key))
-	def remove(self, url='', post='', filename= None):
-		key = filename if filename else 	self.makekey(url,post)
+	def read(self, url='', post='', file_name= None):
+		key = file_name if file_name else 	self.make_key(url,post)
+		return common.get_file(os.path.join(self.location, key))
+	def remove(self, url='', post='', file_name= None):
+		key = file_name if file_name else 	self.make_key(url,post)
 		filepath = os.path.join(self.location, key)
 		if os.path.exists(filepath):
 			os.remove(filepath)
 
 			
-	def exists(self, url = '', post='', filename = None):
-		key = filename if filename else 	self.makekey(url,post)
+	def exists(self, url = '', post='', file_name = None):
+		key = file_name if file_name else 	self.make_key(url,post)
 		
 		return os.path.exists(os.path.join(self.location, key))
 	def iterate(self):
-		for filename in os.listdir(self.location):
-			html = self.read(filename=filename)
-			yield (filename, html)
+		for file_name in os.listdir(self.location):
+			html = self.read(file_name=file_name)
+			yield (file_name, html)
 
 		

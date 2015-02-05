@@ -1,54 +1,106 @@
-import sys, urlparse, requests, time, zlib, json, re, codecs
+import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib, httplib, contextlib, cookielib, random, socket
+
 from cStringIO import StringIO
 from gzip import GzipFile
 
-from node import Node
-from cache import Cache
 import common, agent
+from node import Node
+
+meta_seperator = '=======META======'
+
+class ProxyManager(object):
+	
+	""" for proxy rotation controlling """
+
+	def __init__(self, proxy_file, proxy_auth=''):		
+		self.proxy_file = proxy_file
+		self.proxy_auth = proxy_auth
+		self.proxies = []
+		self.load_proxies()
 
 
+	def load_proxies(self):		
+		proxy_file = self.proxy_file
 
-ERROR_CONNECTION = 1 # cannot connect to the server
-ERROR_SERVER = 2 #internal server error
-ERROR_NOT_FOUND = 3 # the url is not found (404)
-ERROR_TIMEOUT = 4 # read timeouted
-ERROR_DENIED = 5 # request denied by server
-ERROR_INVALID_HTML = 6
-ERROR_MISC = 7 # the rest
-errordesc = {
-	ERROR_CONNECTION: 'cannot connect to the server',
-	ERROR_SERVER: 'internal server error',
-	ERROR_NOT_FOUND: 'url not found',
-	ERROR_TIMEOUT: 'timeout',
-	ERROR_DENIED: 'request denied/blocked',
-	ERROR_INVALID_HTML: 'invalid html',
-	ERROR_MISC: 'Mics.'
+		if proxy_file:
+			if not os.path.exists(proxy_file):
+				raise Exception('proxy_file not found: {0}'.format(proxy_file))
+			
+			self.proxies = common.read_lines(proxy_file)
 
-}
+		return self	
 
-class MyStr(str):
-	pass
+	def random_proxy(self):
+		if not self.proxies:
+			return ''
+
+		proxy = random.choice( self.proxies )	
+		if self.proxy_auth and len(proxy.split(':')) == 2:
+			proxy = '%s@%s' % (self.proxy_auth, proxy)
+
+		#support proxy in ip:port:user:pass
+		if len(proxy.split(':')) == 4:
+			proxy_auth = ':'.join(proxy.split(':')[2:])
+			proxy = ':'.join(proxy.split(':')[0:2])
+			proxy = '%s@%s' % (proxy_auth, proxy)
+			
+			
+		return proxy	
+
+	def get_proxy(self, url=None):
+
+		return self.random_proxy()
+		
+
+
 class Status():
-	""" the object returned by http.open function always contains an instance of Status class"""
-	def __init__(self, code, finalurl, error=None):
+	""" Represents a http request response status """
+
+	def __init__(self, code=0, final_url='', error=''):
 		self.code = code
-		self.finalurl = finalurl
+		self.final_url = final_url
 		self.error = error
 
 	def __str__(self):
-		print '__str__'
-		return str("code: %s, error: %s (%s), finalurl: %s" % (self.code, self.error, errordesc[self.error] ,self.finalurl))
 
-	
-class DOM(Node):
-	def __init__(self, status=None, url='', html='<html></html>', passdata= {}, htmlclean=None):		
-		if htmlclean:
-			html = htmlclean(html)
+		return str("code: %s, error: %s, final_url: %s" % (self.code, self.error, self.final_url) )
+
+class Request(object):	
+	""" Represents a http request """
+
+	def __init__(self, url, post = None, passdata={}, **options):		
+		self.url = url	
+		self.post = post
+		self.options = options
+		if passdata:
+			self.options.update(dict(passdata=passdata))
+		
+
+	def get(self, name, default = None):
+		return self.options.get(name, default)
+	def set(self, name, value):
+		return self.options.set(name, value)	
+
+	def update(self, dict2):
+		self.options.update(dict2)
+		return self
+
+class Response(object):
+	""" a wrapper for http response """
+	def __init__(self, data, status):
+		self.data = data
+		self.status = status
+
+
+class Doc(Node):
+	def __init__(self, status=None, url='', html='<html></html>', passdata= {}, html_clean=None):		
+		if html_clean:
+			html = html_clean(html)
 
 		Node.__init__(self, html)
 		self.url = common.DataItem( url )
 		self.passdata = passdata if passdata else {}
-		self.status = status
+		self.status = status or Status(final_url=url)
 		
 
 		
@@ -72,7 +124,7 @@ class DOM(Node):
 			n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))	
 		for n in self.q('//img[@src]'):					
 			n.set('src', urlparse.urljoin(baseurl, n.get('src').tostring()))		
-	def formdata(self):
+	def form_data(self):
 		data = dict()
 		for node in self.q("//input[@name and @value]"):
 			data.update(dict( ( (node.name(), node.value(),), ) ))
@@ -86,238 +138,248 @@ class DOM(Node):
 		return self.x("//input[@id='__PREVIOUSPAGE']/@value").urlencode() or self.html().sub('__PREVIOUSPAGE|','|').urlencode()	
 
 
+def create_opener(use_cookie=True, cj=None):
+	if use_cookie:
+		cj = cj or cookielib.CookieJar()
+		opener = urllib2.build_opener(urllib2.HTTPCookieProcessor( cj ))
+		opener.cj = cj
+		return opener
+	else:
+		return urllib2.build_opener()	
+
+class Client(object):
+
+	def __init__(self, scraper):
+
+		self.scraper = scraper
+		self.logger = logging.getLogger(__name__)
+		
+		self.opener = create_opener(use_cookie=True)
+
+		socket.setdefaulttimeout(self.scraper.config.get('timeout', 45) )
+
+	def load(self, req):
+		""" returns a DOM Document"""
+		html = self.load_html(req)
+		doc = Doc(html=html, url = req.url, status= html.status, passdata = req.get('passdata', {}))
+
+		return doc
+
+	def load_html(self, req):
+		""" returns a unicode html object """
+		cache = self.scraper.cache
+		accept_error_codes = req.get('accept_error_codes')
+		if accept_error_codes is None:
+			accept_error_codes = [404]
 
 
-class Request(object):	
-	def __init__(self, url, post = None, passdata={}, **options):		
-		self.url = url	
-		self.post = post
-		self.options = options
-		if passdata:
-			self.options.update(dict(passdata=passdata))
+		if cache and cache.exists(url = req.url, post=req.post, file_name=req.get('file_name')) and req.get('use_cache'):
+			return self._read_from_cache(url=req.url, post=req.post, file_name=req.get('file_name'))
+
+		if req.get('use_cache') and req.get('cache_only') and not cache.exists(url = req.url, post=req.post, file_name=req.get('file_name')):
+			html = common.DataItem('<html/>')
+			html.status = Status()
+			return html 	
+			
+		res = self.fetch_data(req)
+
+		html = common.DataItem( res.data or '')
+		status = res.status
+
+		if (status.code == 200 or status.code in accept_error_codes)  and cache and req.get('use_cache'):
+			self._write_to_cache(url=req.url, post=req.post, data=html, status=status, file_name=req.get('file_name'))
+
+		html.status = status
+
+		return html	
+
+		
+	def load_json(self, req):
+		""" returns a json object """
+		data = self.load_html(req)
+		try:
+			return json.loads(data)
+
+		except:
+			self.logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
+			return None	
+		
+	
+	def fetch_data(self, req):
+		""" processes a http request specified by the req object and returns a response object """
+
+		accept_error_codes = req.get('accept_error_codes')
+		if accept_error_codes is None:
+			accept_error_codes = [404]
+
+
+		time.sleep(self.scraper.config['delay'])
+		opener = req.get('opener')
+		if not opener:
+			opener = create_opener(use_cookie=False) if req.get('use_cookie') is False else  self.opener
+
+		#default headers
+		user_agent = req.get('user_agent', agent.firefox ) #default agent is firefox
+		
+		if user_agent == 'random':
+			user_agent = agent.random_agent()
+
+		headers = {
+			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+			"User-Agent": user_agent,
+			"Accept-Language": "en-us,en;q=0.5",
+			"Accept-Encoding": "gzip, deflate",			
+			"Connection": "close" #turn off keep-alive
+		}
+		if req.post:
+			headers.update({"Content-Type": "application/x-www-form-urlencoded"})
+			
+		#update user-passed in headers
+		headers.update(req.get('headers', {})) 
+
+			
+		proxy = req.get('proxy') or self.scraper.proxy_manager.get_proxy(req.url)
+		
+		
+		if proxy and req.get('use_proxy') is not False:
+			if req.url.lower().startswith('https://'):
+				opener.add_handler(urllib2.ProxyHandler({'https' : proxy}))
+			else:
+				opener.add_handler(urllib2.ProxyHandler({'http' : proxy}))
+		
+		#self.logger.debug('proxy: %s', proxy)
+
+		#normalise the post
+		if req.post and isinstance(req.post, common.MyDict):
+			req.post = req.post.dict()
+		if req.post and isinstance(req.post, dict):
+			req.post = urllib.urlencode(sorted(req.post.items()))
+
+		request = urllib2.Request(req.url, req.post, headers)
+			
+		tries = req.get('retries', 0)	
+		
+		status_code = 0
+		error_message = ''
+		final_url = None	
+
+		
+		self.logger.debug('loading %s %s', req.url, req.post or '')
+
+		try:
+
+			with contextlib.closing(opener.open(request, timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
+				final_url = res.url
+				status_code = res.code
+
+
+				rawdata = res.read()
+				if 'gzip' in res.headers.get('content-encoding','').lower():
+					bytes = zlib.decompress(rawdata, 16+zlib.MAX_WBITS)
+				elif 'deflate' in res.headers.get('content-encoding','').lower():	
+					bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata)	
+				else:
+					bytes = rawdata
+
+				encoding = req.get('encoding') or  common.DataItem(res.headers.get('content-type') or '').subreg('charset\s*=([^;]+)')	or 'utf8'
+				content_type = res.headers.get('content-type', '').lower()
+
+				#self.logger.debug('content type: %s, encoding: %s', content_type, encoding)
+				
+				data = ''
+
+				#default is text data
+				
+				is_binary_data = req.get('bin') or False
+				if 'image' in content_type or 'pdf' in content_type:
+					is_binary_data = True
+
+				if  not is_binary_data:
+					data = bytes.decode(encoding, 'ignore')
+
+					#verify data
+					#self.logger.debug('contain: %s', req.get('contain'))
+					if req.get('contain') and req.get('contain') not in data:
+						raise Exception("invalid html, not contain: %s" % req.get('contain'))
+
+					verify = req.get('verify')
+					
+					if verify and (not verify(data)):
+						raise Exception("invalid html")
+				else:
+					
+					#binary content
+					data = bytes		
+
+				return Response(data=data, status= Status(code=status_code, final_url=final_url))	
+
+		
+		except Exception, e:
+			if status_code == 0 and hasattr(e,'code'):
+				status_code = e.code
+			if hasattr(e, 'reason'):
+				error_message = e.reason			
+
+			elif hasattr(e, 'line'):
+				error_message = 'BadStatusLine: %s' % e.line
+
+			elif hasattr(e, 'message'):	
+				error_message =  e.message
+
+			
+
+			if not error_message and hasattr(e, 'args'):					
+				error_message = u", ".join([str(item) for item in e.args]).replace("''",'unknown')	
+				#self.logger.exception('fetch_data unknow error:') #test
+		
+			
+			if tries > 0 and status_code not in accept_error_codes:
+				#try to open the request one again	
+				self.logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
+				req.update({'retries': tries - 1})
+				return self.fetch_data(req)
+			else:
+				self.logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
+				return Response(data=None, status = Status(code = status_code, final_url=final_url, error = error_message))
+
+
+
+
+
 		
 
-	def get(self, name, default = None):
-		return self.options.get(name, default)
-	def set(self, name, value):
-		return self.options.set(name, value)	
+	def _read_from_cache(self, url, post, file_name=None):
+		cache = self.scraper.cache
 
-	def update(self, dict2):
-		self.options.update(dict2)
-		return self
-
-
-
-def open(req):
-
-	meta_seperator = '=======META======'
-	
-	#normalise the post
-	if req.post and isinstance(req.post, common.MyDict):
-		req.post = req.post.dict()
-				
-	cache = req.get('cache') if isinstance(req.get('cache'), Cache) else None
-	
-	#try read from cache first
-	if cache and cache.exists(url = req.url, post = req.post, filename = req.get('filename')):
-		cachedata = cache.read(url = req.url, post = req.post, filename = req.get('filename')).split(meta_seperator)
+		cachedata = cache.read(url = url, post = post, file_name = file_name).split(meta_seperator)
 		
 		cachedhtml = None
-		status = Status(code=200, finalurl=None, error=None)
+		status = Status(code=200, final_url=None, error=None)
 		if len(cachedata)==2:
 			cachedhtml = cachedata[1]
 			meta = json.loads( cachedata[0] )
 			#reload status
-			status = Status(code= meta['status']['code'], finalurl = meta['status']['finalurl'], error = meta['status'].get('error', None) )
+			status = Status(code= meta['status']['code'], final_url = meta['status']['final_url'], error = meta['status'].get('error', '') )
 		else:
 			#no meta data
 			cachedhtml = cachedata[0]
+		html = common.DataItem(cachedhtml)	
+		html.status = status
 
+		return html
 
-		if req.get('bin'):
-			data = MyStr(cachedhtml.encode('utf8'))
-			data.status = status
-			return data
-		else:
-
-			return DOM(url=req.url, status = status , passdata = req.get('passdata'), html= cachedhtml, htmlclean = req.get('htmlclean'))
-
-	if req.get('cache_only') is True:
-		#not cached, just return an empty doc
-		return DOM(url=req.url, passdata = req.get('passdata'), status = Status(code=-1, error=ERROR_MISC, finalurl=req.url))
-
-
-	client = req.get('client') if req.get('client') else requests
-
-
-	
-	#default headers
-	useragent = req.get('useragent', agent.firefox ) #default agent is firefox
-	if useragent == 'random':
-		useragent = agent.randomagent()
-
-	headers = {
-		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-		"User-Agent": useragent,
-		"Accept-Language": "en-us,en;q=0.5",
-		"Accept-Encoding": "gzip, deflate",			
-		"Connection": "close" #turn off keep-alive
-	}
-	if req.post:
-		headers.update({"Content-Type": "application/x-www-form-urlencoded"})
-		
-	#update user-passed in headers
-	headers.update(req.get('headers', {})) 
-
-	proxy = ''
-	proxyauth = ''	
-	proxy = req.get('get_proxy')(req.url)
-
-	#proxyauth = req.get('proxyauth', None)
-	
-	#support proxy in ip:port:user:pass
-	if proxy and len(proxy.split(':')) == 4:
-		proxyauth = ':'.join(proxy.split(':')[2:])
-		proxy = ':'.join(proxy.split(':')[0:2])
-	
-
-	proxies = None	
-	if req.get('proxy_on') is not False:	
-		if proxy:			
-			if proxyauth:
-				proxies = {
-					'http': 'http://{0}@{1}'.format(proxyauth, proxy),
-					'https': 'http://{0}@{1}'.format(proxyauth, proxy)
-				}
-			else:
-				proxies = {
-					'http': 'http://{0}'.format(proxy),
-					'https': 'http://{0}'.format(proxy)
-				}
-		
-
-	tries = req.get('retries', 0)	
-	
-	statuscode = None
-	finalurl = None
-
-	try:
-		time.sleep(req.get('delay', 0.001))	
-		r = None	
-		if req.post:
-			r = client.post(req.url, data = req.post, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True, cookies= req.get('cookies', None))
-		else:	
-			r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True, cookies= req.get('cookies', None))
-		
-		if r.status_code != 200:
-			statuscode = r.status_code
-			finalurl = r.url
-
-			raise Exception('Invalid status code: %s' % r.status_code)
-		
-		rawdata = r.raw.read()
-
-		
-		if 'gzip' in r.headers.get('content-encoding', ''):
-			
-			bytes = zlib.decompress(rawdata, 16+zlib.MAX_WBITS)
-			
-		elif 'deflate' in r.headers.get('content-encoding', ''):
-
-			bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata)	
-		
-		else:
-			bytes = rawdata
-
-		#sys.stdout.write('bytes:%s'% len(bytes))		#test
-
-		if req.get('bin') is True:
-			#download binary file			
-			if cache:
-				meta = {
-					'url': req.url,
-					'status': {
-						'code': r.status_code,
-						'finalurl': r.url,
-						'error': None
-					}
-				}				
-				html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
-				cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = u''.join([json.dumps(meta), meta_seperator, html]) ) # in utf8 format
-			
-			mystr = MyStr(bytes)	
-
-			mystr.status = Status(code=r.status_code, finalurl = r.url)
-			return mystr
-
-		html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
-
-		#verify data
-		if req.get('contain') and req.get('contain') not in html:
-			raise Exception("invalid html, not contain: {0}".format(req.get('contain')))
-		verify = req.get('verify')
-		
-		if verify and (not verify(html)):
-			raise Exception("invalid html")
-		
-		#write html to cache
-		if cache:
-			meta = {
-				'url': req.url,
+	def _write_to_cache(self, url, post, data, status, file_name=None):
+		meta = {
+				'url': url,
 				'status': {
-					'code': r.status_code,
-					'finalurl': r.url,
-					'error': None
+					'code': status.code,
+					'final_url': status.final_url,
+					'error': status.error
 				}
 			}
-
-			cache.write(url= req.url, post=req.post, filename = req.get('filename'), data = ''.join( [json.dumps(meta), meta_seperator, html.encode('utf8') ] ).decode('utf8') )
 		
-		return DOM(html=html, url = req.url, passdata = req.get('passdata'), htmlclean = req.get('htmlclean'), status= Status(code=r.status_code, finalurl = r.url) )		
+		self.scraper.cache.write(url=url, post=post, file_name=file_name, data=u''.join([json.dumps(meta), meta_seperator, data]) )	
+	
 
-	except Exception, e:		
 		
-		message = str(e.message)		
-		
-		if tries > 0:
-			#try to open the request one again	
-			req.update({'retries': tries - 1})
-			return open(req)
 
-		print message, req.url	
-			
-		
-		error = None
-		if 'errno 11001' in message.lower():
-			error = ERROR_CONNECTION
-		elif statuscode in [404]:
-			error = ERROR_NOT_FOUND
-		elif statuscode in [403]:
-			error = ERROR_DENIED
-		elif statuscode in [500]:
-			error = ERROR_SERVER
-		elif 'timeout' in message.lower():
-			error = ERROR_TIMEOUT
-		elif 'invalid html' in message.lower():
-			error = ERROR_INVALID_HTML	
-		else:
-			error = ERROR_MISC
-
-
-		status = Status(code = statuscode, finalurl = finalurl or req.url, error = error )
-
-		if req.get('bin') is True:
-			mystr = MyStr()
-			mystr.status = status
-			return mystr
-
-		else:		
-			return DOM(url=req.url, passdata = req.get('passdata'), status = status)
-
-def getredirecturl(url):
-	res = requests.head(url=url, allow_redirects = False)
-	return res.headers.get('location') or res.headers.get('Location', '')
-
-
-
-EMPTY_DOC = DOM()

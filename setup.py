@@ -3,7 +3,7 @@ from distutils.core import setup
 
 setup(
     name='scrapex', 
-    version='0.1',
+    version='0.1.1',
     packages=['scrapex'],
     package_dir={'scrapex':'.'},
     author='Cung Nguyen',
@@ -12,5 +12,12 @@ setup(
     long_description= 'You can also install by download the package here:\n https://github.com/cungnv/scrapex/archive/master.zip',
     url='https://github.com/cungnv/scrapex',   
     download_url = 'https://github.com/cungnv/scrapex/archive/master.zip', 
+    install_requires = [
+        'lxml',
+        'xlwt',
+        'xlrd',
+        'openpyxl'
+    ]
     license='LGPL',
+
 )

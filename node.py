@@ -1,8 +1,8 @@
+import re, HTMLParser, copy, sys
 from lxml import etree
 import lxml.html
 from StringIO import StringIO
-import re, HTMLParser, copy
-import sys
+
 from common import DataItem
 import common
 

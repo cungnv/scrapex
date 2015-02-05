@@ -1,12 +1,10 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv
+import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv, logging, pickle
 from Queue import Queue
 from HTMLParser import HTMLParser
-import pickle
-
 
 def md5(text):
 	return hashlib.md5(text).hexdigest()
-def putbin(path, data):	
+def put_bin(path, data):	
 	if not data: return False
 	try:		
 		f = codecs.open(path, 'wb')
@@ -17,23 +15,23 @@ def putbin(path, data):
 		print e	
 		return False
 
-def putfile(path, data, encoding = 'utf-8'):
+def put_file(path, data, encoding = 'utf-8'):
 	#f = open(path, 'w')	
 	f = codecs.open(path, 'w', encoding)
 	f.write(data)
 	f.close()
 
-def getfile(path, encoding = 'utf-8'):	
+def get_file(path, encoding = 'utf-8'):	
 	with codecs.open(path, encoding=encoding) as f: 
 		data = f.read(); 
 	return data	
 
-def appendfile(path, data, encoding='utf-8'):
+def append_file(path, data, encoding='utf-8'):
 	with codecs.open(path, 'a', encoding=encoding) as f: 		
 		f.write(data)
 
 	
-def readlines(path, removeempty = True, trim = True, encoding = 'utf-8'):
+def read_lines(path, removeempty = True, trim = True, encoding = 'utf-8'):
 	
 	lines = []
 	with codecs.open(path, encoding=encoding) as f:
@@ -47,7 +45,7 @@ def readlines(path, removeempty = True, trim = True, encoding = 'utf-8'):
 				lines.append(line)
 
 	return lines			
-def readlinesbyrn(path, encoding = 'utf8'):
+def read_lines_byrn(path, encoding = 'utf8'):
 	with codecs.open(path, encoding=encoding) as f:
 		buff = u''
 		for line in f:			
@@ -61,11 +59,11 @@ def readlinesbyrn(path, encoding = 'utf8'):
 																
 
 
-def combinedicts(basedict, dict2):
+def combine_dicts(basedict, dict2):
 	newdict = copy.deepcopy(basedict)
 	newdict.update(dict2)
 	return newdict
-def parsereflags(reg):
+def parse_re_flags(reg):
 	#parse flags
 	_flags = []
 	flags = None
@@ -88,7 +86,7 @@ def parsereflags(reg):
 	
 def subreg(s, reg):
 	
-	redata = parsereflags(reg)
+	redata = parse_re_flags(reg)
 	reg = redata['reg']
 	flags = redata['flags'] or re.S
 	m = re.search(reg, s, flags = flags)
@@ -96,7 +94,7 @@ def subreg(s, reg):
 
 def reg(s, reg):
 	
-	redata = parsereflags(reg)
+	redata = parse_re_flags(reg)
 	reg = redata['reg']
 	flags = redata['flags'] or re.S
 	m = re.search(reg, s, flags = flags)
@@ -125,12 +123,12 @@ def sub(s, startstr, endstr):
 	if to == -1: return '' #not found
 	return DataItem( s[start:to] )
 def rr(pt, to, s):
-	redata = parsereflags(pt)
+	redata = parse_re_flags(pt)
 	reg = redata['reg']
 	flags = redata['flags'] or re.S	
 	return DataItem( re.sub(reg, to, s, flags = flags) )
 
-def savecsv(path, record, sep=',', quote='"', escape = '"'):		
+def save_csv(path, record, sep=',', quote='"', escape = '"'):		
 	values = []
 	keys = []
 	# for k in record:		
@@ -154,21 +152,21 @@ def savecsv(path, record, sep=',', quote='"', escape = '"'):
 				
 
 	# if not os.path.exists(path):
-	# 	appendfile(path, sep.join(keys)+'\r\n')
+	# 	append_file(path, sep.join(keys)+'\r\n')
 
-	# appendfile(path, sep.join(values)+'\r\n')	
+	# append_file(path, sep.join(values)+'\r\n')	
 
 	if not os.path.exists(path):
-		appendfile(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
+		append_file(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
 	else:		
-		appendfile(path, sep.join(values)+'\r\n')	
+		append_file(path, sep.join(values)+'\r\n')	
 
-def filename(path):
+def file_name(path):
 	return subreg(path, '/([^/\?\$]+\.[a-z]{2,4})$--is')
 
 		
 
-def address(full, twolines=False):	
+def address(full, two_lines=False):	
 
 	full = DataItem(full).replace(u'\u00A0',' ').rr('\s+',' ').trim()
 	bkfull = full
@@ -193,7 +191,7 @@ def address(full, twolines=False):
 	street = full.tostring().replace('__nostreet123', '')
 
 	street2 = ''
-	if twolines and ',' in street:
+	if two_lines and ',' in street:
 		street2 = subreg(street,',([^\,]+)$')
 		street = subreg(street,'^(.*?),(?:[^\,]+)$')
 
@@ -203,13 +201,13 @@ def address(full, twolines=False):
 
 
 
-def splitcsv(path, maxlines):
+def split_csv(path, maxlines):
 	dir = os.path.join(path,'..')
-	_filename = filename(path)
+	_file_name = file_name(path)
 	fno =1
 	cnt=0
 	headline = None
-	for line in readlinesbyrn(path):		
+	for line in read_lines_byrn(path):		
 		if headline is None:
 			headline = line
 			continue #don't treat this line as data line
@@ -221,11 +219,11 @@ def splitcsv(path, maxlines):
 			cnt = 1
 		#add headline for new file	
 		if cnt==1:
-			appendfile(os.path.join(dir, _filename.replace('.csv','-%s.csv'%fno)), headline)		
+			append_file(os.path.join(dir, _file_name.replace('.csv','-%s.csv'%fno)), headline)		
 
 		#add data line	
-		appendfile(os.path.join(dir, _filename.replace('.csv','-%s.csv'%fno)), line)
-def getemail(txt):
+		append_file(os.path.join(dir, _file_name.replace('.csv','-%s.csv'%fno)), line)
+def get_email(txt):
 	return subreg(txt, r'\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b--is')
 
 def toml(des):
@@ -254,7 +252,7 @@ def toml(des):
 			return des
 
 	return des.subreg('([\d\.]+)\s*ml--is')	+ ' ml' if des.subreg('([\d\.]+)\s*ml--is') else des
-def htmldecode(encodedstr):
+def html_decode(encodedstr):
 	parser = HTMLParser()
 	return parser.unescape(encodedstr)
 def parsecookies(cookiestr):
@@ -264,11 +262,11 @@ def parsecookies(cookiestr):
 		cookie = DataItem(cookie).trim().reg('^(?P<name>[^=]+)=(?P<value>.*?)$');
 		cookies.append((cookie.name, cookie.value,))
 	return dict(cookies)		
-def saveobject(fullpath, obj):
+def save_object(fullpath, obj):
 	with open(fullpath,'wb') as f:
 		pickle.dump(obj, f)
 		
-def loadobject(fullpath):
+def load_object(fullpath):
 	with open(fullpath,'rb') as f:
 		return pickle.load(f)
 def atoz():
@@ -279,10 +277,10 @@ def urlencode(rawstr):
 	return DataItem( urllib.quote_plus(rawstr) )
 def urldecode(rawstr):
 	return DataItem(urllib.unquote(rawstr))	
-def getdomain(url):
+def get_domain(url):
 	urldata = urlparse.urlparse(url)
 	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
-def getemails(doc):
+def get_emails(doc):
 	doc = DataItem(doc)
 	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] --is", '@')
 	
@@ -296,7 +294,7 @@ def getemails(doc):
 			res.append(email)	
 	return res		
 
-def parsename(full):
+def parse_name(full):
 	
 	item = DataItem(full).trim()
 	first = item.subreg('^(.*?)\s+(?:[^\s]+)$')
@@ -304,7 +302,7 @@ def parsename(full):
 	return DataObject(first=first, last=last, full=full)
 
 def readconfig(path):
-	configstr = DataItem(getfile(path) + '\n')
+	configstr = DataItem(get_file(path) + '\n')
 	configstr = configstr.rr(r'^\s*\#.*?$--m','')
 	
 	config = DataObject()
@@ -314,7 +312,8 @@ def readconfig(path):
 		config.set( name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
 	
 	return config
-def startthreads(items, worker, cc=1):
+def start_threads(items, worker, cc=1):
+	logger = logging.getLogger(__name__)
 	class Worker(threading.Thread):	
 		def __init__(self, queue, func):
 			threading.Thread.__init__(self)		
@@ -328,10 +327,11 @@ def startthreads(items, worker, cc=1):
 					try:										
 						self.func(item)
 					except Exception, e:
-						print e						
+						logger.exception('thread item error')
+
 					self.queue.task_done()
-			except:			
-				pass
+			except Exception:			
+				logger.debug('thread done')
 				
 
 	queue = Queue()
@@ -345,16 +345,16 @@ def startthreads(items, worker, cc=1):
 
 	queue.join()	
 
-def tojsonstring(js):
+def to_json_string(js):
 	return json.dumps(js, indent=4, sort_keys=True)
 
-def readcsv(path, restype='list', encoding='utf8'):
+def read_csv(path, restype='list', encoding='utf8'):
 	"""
 	restype: list, dict, DataObject
 	"""
 	i=-1
 	fields = None
-	for line in readlinesbyrn(path, encoding=encoding):
+	for line in read_lines_byrn(path, encoding=encoding):
 		i += 1
 		r = [unicode(cell, encoding) for cell in csv.reader(StringIO.StringIO(line.encode(encoding))).next() ]
 
@@ -377,16 +377,16 @@ def readcsv(path, restype='list', encoding='utf8'):
 			for field in fields:
 				setattr(res, field, r[fields.index(field)] )
 			yield res
-def csvtoexcel(csvfile, excelfile=None):
+def csv_to_excel(csvfile, excelfile=None):
 	import excellib
 	if not excelfile:
 		excelfile = DataItem(csvfile).rr('\.csv$--is','.xls')	
 
-	excellib.csvdatatoxls(excelfile,readcsv(csvfile))
-def savejson(filepath, data):
-	putfile(filepath, tojsonstring(data))
-def loadjson(filepath):
-	return json.loads(getfile(filepath))
+	excellib.csvdatatoxls(excelfile,read_csv(csvfile))
+def write_json(filepath, data):
+	put_file(filepath, to_json_string(data))
+def read_json(filepath):
+	return json.loads(get_file(filepath))
 
 	
 class DataItem(unicode):
@@ -427,14 +427,14 @@ class DataItem(unicode):
 		return DataItem(urllib.unquote(self.data))	
 	def reg(self, regpattern):
 		return reg(self.data, regpattern)
-	def htmldecode(self):
-		return DataItem(htmldecode(self.data))
+	def html_decode(self):
+		return DataItem(html_decode(self.data))
 
 	def len(self):
 		return len(self.data)
 	def print_(self):
 		print self.encode('utf8')
-	def striplinks(self):
+	def strip_links(self):
 		return self.rr('<a [^<>].*?>(.*?)</a>--is', r'\1')
 
 class Address(object):		
@@ -456,7 +456,7 @@ class DataObject(object):
 	def set(self, key, value):
 		setattr(self,key,value)
 		return self
-	def fromlist(self, arr, trim=True):
+	def from_list(self, arr, trim=True):
 		i=0
 		while i< len(arr) - 1:
 			value = arr[i+1]
@@ -468,7 +468,7 @@ class DataObject(object):
 			i+=2
 
 		return self
-	def tolist(self, headers = []):
+	def to_list(self, headers = []):
 		if not headers:
 			for att in dir(self):
 				value = getattr(self, att)
@@ -496,10 +496,10 @@ class MyDict(object):
 		self.data.update(data)
 		self.data.update(dict)
 		return self
-	def frompoststring(self, post):
+	def from_post_string(self, post):
 		self.update(dict(urlparse.parse_qsl(post)))
 		return self
-	def updatefromdoc(self, doc,keys=[], exceptkeys=[]):
+	def update_from_doc(self, doc,keys=[], exceptkeys=[]):
 		for name, value in doc.formdata().iteritems():
 			if name in exceptkeys:
 				continue

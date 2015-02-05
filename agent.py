@@ -4,7 +4,7 @@ firefox = "Mozilla/5.0 (Windows NT 5.1; rv:10.0.2) Gecko/20100101 Firefox/10.0.2
 chrome = "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.65 Safari/537.36"
 
 
-allagents =[ agent.strip() for agent in \
+all_agents =[ agent.strip() for agent in \
 """
 Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/527  (KHTML, like Gecko, Safari/419.3) Arora/0.6 (Change: )
 Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/532.5 (KHTML, like Gecko) Chrome/4.0.249.0 Safari/532.5
@@ -393,8 +393,8 @@ Opera/9.30 (Nintendo Wii; U; ; 2047-7; en)
 """.strip().split('\n')
 ]
 
-def randomagent():
-	return allagents[random.randint(0, len(allagents)-1)]
+def random_agent():
+	return random.choice( all_agents )
 
 if __name__ == '__main__':
 	print randomagent()

@@ -1,6 +1,5 @@
-import sys
-import signal
-import sip
+import sys, time, signal, sip
+
 sip.setapi('QString', 2)
  
 from optparse import OptionParser
@@ -8,8 +7,6 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtWebKit import *
 from PyQt4.QtNetwork import *
-
-import time
 
 import common, http
 
@@ -199,7 +196,7 @@ class WebView(QWebView):
 	def html(self):
 		return unicode(self.page().mainFrame().toHtml())
 	def doc(self):
-		return	http.DOM(html = self.html(), url= self.url().toString(), status = http.Status(code=200, error=None, finalurl=self.url().toString()))
+		return	http.Doc(html = self.html(), url= self.url().toString(), status = http.Status(code=200, error=None, final_url=self.url().toString()))
 
 	def findall(self, css):
 		return self.page().mainFrame().findAllElements(css).toList()	

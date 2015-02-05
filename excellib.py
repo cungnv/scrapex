@@ -1,14 +1,9 @@
 import sys, os, threading
 from xlwt import *
 import xlrd
+import openpyxl
 
-try:
-	import openpyxl
-		
-except:
-	raise	
-
-def savexlsx(filepath, data):
+def save_xlsx(file_path, data):
 	book = openpyxl.Workbook()
 	sheet = book.active
 	sheet.title = 'Sheet1'
@@ -33,9 +28,9 @@ def savexlsx(filepath, data):
 		for colindex, value in enumerate(values):
 			sheet.cell(row=rowindex,column=colindex).value = value if value is not None else ''
 
-	book.save(filepath)		
+	book.save(file_path)		
 
-def savexls(filepath, data):
+def save_xls(file_path, data):
 	
 	book = Workbook(encoding="utf-8")
 	
@@ -65,9 +60,9 @@ def savexls(filepath, data):
 			else:				
 				sheet.write(rowindex,colindex,'', style)	
 
-	book.save(filepath)			
+	book.save(file_path)			
 
-def csvdatatoxls(filepath, data):
+def csv_data_to_xls(file_path, data):
 	
 	book = Workbook(encoding="utf-8")
 	
@@ -81,10 +76,10 @@ def csvdatatoxls(filepath, data):
 		for colindex, value in enumerate(r):
 			sheet.write(rowindex,colindex,value, style)	
 
-	book.save(filepath)			
+	book.save(file_path)			
 
-def readxlsxsheet(filepath, index=0):
-	wb = openpyxl.load_workbook(filepath)
+def read_xlsx_sheet(file_path, index=0):
+	wb = openpyxl.load_workbook(file_path)
 	
 	sheet = wb.worksheets[index]	
 	data = []
@@ -96,15 +91,15 @@ def readxlsxsheet(filepath, index=0):
 
 	return data	
 
-def readsheet(filepath, restype='list', index=0):
+def read_sheet(file_path, return_type='list', index=0):
 	"""
-	restype: list, dict
+	return_type: list, dict
 	"""
 	data = []
-	if filepath.lower().endswith('.xlsx'):
-		data = readxlsxsheet(filepath)
+	if file_path.lower().endswith('.xlsx'):
+		data = read_xlsx_sheet(file_path)
 	else:	
-		book = xlrd.open_workbook(filepath)	
+		book = xlrd.open_workbook(file_path)	
 		sheet1 = book.sheet_by_index(index)
 
 		for i in range(sheet1.nrows):
@@ -118,7 +113,7 @@ def readsheet(filepath, restype='list', index=0):
 		fields.append(field)
 
 	
-	if restype == 'list':
+	if return_type == 'list':
 		if len(fields)<len(data[0]):
 			cleaneddata = [r[0:len(fields)] for r in data]
 			return cleaneddata
@@ -144,7 +139,7 @@ def readsheet(filepath, restype='list', index=0):
 
 if __name__ == '__main__':
 	print 'test'
-	data = readsheet('d:/scrape/inv/testingdata/7.20.14_foll_wholesale.xlsx', 'list')
+	data = read_sheet('d:/scrape/inv/testingdata/7.20.14_foll_wholesale.xlsx', 'list')
 	print data[0]
 
 
