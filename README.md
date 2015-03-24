@@ -10,9 +10,9 @@ or
 - pip install https://github.com/cungnv/scrapex/archive/master.zip
 
 #Install dependencies:
-easy_install xlwt
-easy_install xlrd
-easy_install openpyxl
+- easy_install xlwt
+- easy_install xlrd
+- easy_install openpyxl
 
 #Install lxml
 - For windows: download and install lxml from http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
