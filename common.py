@@ -1,4 +1,4 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv, logging, pickle
+import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv, logging, pickle, random
 from Queue import Queue
 from HTMLParser import HTMLParser
 
@@ -312,6 +312,20 @@ def readconfig(path):
 		config.set( name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
 	
 	return config
+def normalize_url(url):
+	url = urllib.quote(url, safe="%/:=&?~#+!$,;'@()*[]")
+	return url
+def rand_sort(input_list):
+	items = []
+	for item in input_list:
+		_item = (random.randint(0, 10000), item)
+		items.append(_item)
+	
+	items = sorted(items, key= lambda item: item[0])
+
+	return [item[1] for item in items]
+		
+
 def start_threads(items, worker, cc=1):
 	logger = logging.getLogger(__name__)
 	class Worker(threading.Thread):	

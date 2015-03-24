@@ -126,7 +126,7 @@ class Node(object):
 	def contains(self, something):
 		return something in self.html()
 
-	def insertlinebreaks(self):
+	def insert_line_breaks(self):
 		for _node in self.q(".//*"):
 			node = _node.lxmlnode
 			if node.tag.lower() in ['p','li','br']:

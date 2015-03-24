@@ -49,10 +49,17 @@ class Scraper(object):
 			if os.path.exists(self.join_path('logging.config')):
 				logging.config.dictConfig(json.loads(common.get_file(self.join_path('logging.config'))))
 			else:
-				logging.config.dictConfig(logging_config.default_settings)	
+				default_log_settings = logging_config.default_settings
+				default_log_settings['handlers']['file_handler']['filename'] = self.join_path('log.txt')
+				if self.config.get('debug') is True:
+					default_log_settings['handlers']['console']['level'] = 'DEBUG'
+
+				logging.config.dictConfig(default_log_settings)	
 
 			#clear the log	
-			self.put_file('log.txt', '')		
+			if not self.config.get('preserve_log'):
+				self.put_file(self.join_path('log.txt'), '')		
+
 
 		self.logger = logging.getLogger(__name__)
 
@@ -175,13 +182,14 @@ class Scraper(object):
  
 
 		def handler(doc):
+			doc.page = pages[0]
 			if verify:				
 				if not verify(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)):
 					doc.ok = False
 					self.logger.warn("invalid doc at page {0}".format(pages[0]))
 			
 			
-			self.logger.debug('done page %s', pages[0])
+			self.logger.info('page %s', pages[0])
 			
 			
 			#download and parse details	
@@ -189,7 +197,7 @@ class Scraper(object):
 				
 				listings = detail(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(detail, '__call__') else doc.q(detail)
 				
-				self.logger.debug('details: %s', len(listings) )
+				self.logger.info('details: %s', len(listings) )
 
 				for listing in listings:
 					queue.put({'req':Request(url= listing if isinstance(listing, basestring) else listing.nodevalue(), **options) , 'cb': parse_detail})
@@ -222,7 +230,7 @@ class Scraper(object):
 			#if (next and _nexturl ) or (next_post and _next_post):
 			if not done:
 				
-				self.logger.debug('next_post: %s, _nexturl: %s', _next_post,  _nexturl)
+				#self.logger.debug('next_post: %s, _nexturl: %s', _next_post,  _nexturl)
 
 				pages[0] += 1
 				page = pages[0]
@@ -358,13 +366,13 @@ class Scraper(object):
 		common.put_file(self.join_path(file_name), data)	
 		return self
 
-	def loop(self, url, next, post=None, cb=None, cc = None, deep=2, debug=0, allow_external = False, link_filter=None,  **_options):
+	def loop(self, url, next, post=None, cb=None, cc = 1, deep=2, debug=0, allow_external = False, link_filter=None,  **_options):
 		options = common.combine_dicts(self.config, _options)
 
 		doneurls = [common.md5(url)]
 		queue = Queue()
 		
-		domain = common.getdomain(url).lower()
+		domain = common.get_domain(url).lower()
 
 
 
@@ -374,7 +382,7 @@ class Scraper(object):
 				for n in doc.q(next):
 					nexturl = n.nodevalue()
 
-					if domain != common.getdomain(nexturl):
+					if domain != common.get_domain(nexturl):
 						continue
 					if link_filter and not link_filter(url=nexturl):
 						continue

@@ -3,22 +3,25 @@ scrapex
 
 A simple web scraping lib for Python
 
-#Install
+#Install the framework:
 
-easy_install https://github.com/cungnv/scrapex/archive/master.zip
-Or
-pip install https://github.com/cungnv/scrapex/archive/master.zip
+- easy_install https://github.com/cungnv/scrapex/archive/master.zip
+or
+- pip install https://github.com/cungnv/scrapex/archive/master.zip
 
+#Install dependencies:
+easy_install xlwt
+easy_install xlrd
+easy_install openpyxl
 
-** Some notes for Windows users
-- Download and install lxml from:
-http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
+#Install lxml
+- For windows: download and install lxml from http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
 
-- to use easy_install command, please download and run this python script:
+* Note: to use easy_install command, please download and run this python script:
 
 	https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py
 
-	...then make sure to add C:\Python27\Scripts to your system path
+	...then make sure to add C:\Python27\Scripts to your system path (on Windows)
 
 #How to Use
 

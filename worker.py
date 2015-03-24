@@ -1,4 +1,4 @@
-import threading, random
+import threading, random, logging
 import http
 
 
@@ -13,6 +13,7 @@ class Worker(threading.Thread):
 		self.client = client
 
 	def run(self):
+		logger = logging.getLogger(__name__)
 		try:
 			while True:					
 				if not self.done:
@@ -24,7 +25,8 @@ class Worker(threading.Thread):
 					if item['cb']:
 						item['cb'](doc)						
 				except Exception, e:
-					print e						
+					logger.exception(e)
+
 				self.queue.task_done()
 		except Exception, e2:
 			#thread exited due to queue empty, nothing special			
