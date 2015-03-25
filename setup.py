@@ -17,7 +17,8 @@ setup(
         'xlwt',
         'xlrd',
         'openpyxl'
-    ]
+    ],
+    
     license='LGPL',
 
 )
