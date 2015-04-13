@@ -68,7 +68,7 @@ class Scraper(object):
 
 			
 			
-		self.proxy_manager = http.ProxyManager(proxy_file= self.config.get('proxy_file'), proxy_auth=self.config.get('proxy_auth'))
+		self.proxy_manager = http.ProxyManager(proxy_file= self.join_path( self.config.get('proxy_file') ) if self.config.get('proxy_file') else None, proxy_auth=self.config.get('proxy_auth'))
 		
 		self.client = http.Client(scraper=self)
 		

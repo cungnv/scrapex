@@ -79,6 +79,8 @@ def parse_re_flags(reg):
 			if option == 'i': _flags.append(re.I)
 			elif option == 's': _flags.append(re.S)
 			elif option == 'm': _flags.append(re.M)
+			elif option == 'u': _flags.append(re.U)
+
 		for flag in _flags:
 			flags = flags | flag if flags is not None else flag	
 
