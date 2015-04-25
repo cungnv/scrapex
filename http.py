@@ -346,10 +346,11 @@ class Client(object):
 
 			
 
-			if not error_message and hasattr(e, 'args'):					
-				error_message = u", ".join([str(item) for item in e.args]).replace("''",'unknown')	
-				#self.logger.exception('fetch_data unknow error:') #test
-		
+			if not error_message and hasattr(e, 'args'):
+				try:				
+					error_message = u", ".join([unicode(item) for item in e.args]).replace("''",'unknown')	
+				except:
+					pass
 			
 			if tries > 0 and status_code not in accept_error_codes:
 				#try to open the request one again	

@@ -98,7 +98,7 @@ class Scraper(object):
 		return common.read_json(self.join_path(file_name))
 
 	def clear_cookies(self):
-		self.client = http.Client()
+		self.client = http.Client(scraper=self)
 		return self
 
 	
