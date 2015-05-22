@@ -310,6 +310,7 @@ class Client(object):
 					is_binary_data = True
 
 				if  not is_binary_data:
+					
 					data = bytes.decode(encoding, 'ignore')
 
 					#verify data
@@ -422,7 +423,11 @@ class Client(object):
 			else:
 				bytes = rawdata
 
+			is_binary_data = req.get('bin') or False
 			
+			if is_binary_data:
+				return Response(data=bytes, status= Status(code=status_code, final_url=final_url))
+
 
 			html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
 

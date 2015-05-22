@@ -151,7 +151,8 @@ class Scraper(object):
 			#start downloading the file
 			options = common.combine_dicts(self.config, _options)		
 			
-			res = self.client.fetch_data(http.Request(url=url, bin = True, **options))				
+			res = self.client.fetch_data(http.Request(url=url, bin = True, **options))	
+					
 			if res.status.code == 200 and res.data:
 				common.put_bin(path, res.data)
 				return fn

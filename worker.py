@@ -30,6 +30,6 @@ class Worker(threading.Thread):
 				self.queue.task_done()
 		except Exception, e2:
 			#thread exited due to queue empty, nothing special		
-			logger.exception(e2)	
+			pass
 			
 

@@ -2,17 +2,20 @@ import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, 
 from Queue import Queue
 from HTMLParser import HTMLParser
 
+logger = logging.getLogger()
+
 def md5(text):
 	return hashlib.md5(text).hexdigest()
 def put_bin(path, data):	
-	if not data: return False
+	if not data:
+		return False
 	try:		
 		f = codecs.open(path, 'wb')
 		f.write(data)
 		f.close()
 		return True
 	except Exception, e:
-		print e	
+		logger.exception(e)
 		return False
 
 def put_file(path, data, encoding = 'utf-8'):
