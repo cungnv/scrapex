@@ -472,9 +472,20 @@ class DataObject(object):
 	def __init__(self, **data):
 		for key, value in data.iteritems():
 			setattr(self,key,value)
+
 	def set(self, key, value):
 		setattr(self,key,value)
 		return self
+	def __setitem__(self, key, value):
+		self.set(key, value)
+		return self
+	def __getitem__(self, key):
+		if hasattr(self, key):
+			return getattr(self, key)
+		else:
+			raise Exception('DataObject key error: %s', key)
+				
+
 	def from_list(self, arr, trim=True):
 		i=0
 		while i< len(arr) - 1:
