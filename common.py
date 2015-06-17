@@ -530,7 +530,7 @@ class MyDict(object):
 		self.update(dict(urlparse.parse_qsl(post)))
 		return self
 	def update_from_doc(self, doc,keys=[], exceptkeys=[]):
-		for name, value in doc.formdata().iteritems():
+		for name, value in doc.form_data().iteritems():
 			if name in exceptkeys:
 				continue
 			if keys and name not in keys:
