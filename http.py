@@ -175,7 +175,7 @@ class Client(object):
 		cache = self.scraper.cache
 		accept_error_codes = req.get('accept_error_codes')
 		if accept_error_codes is None:
-			accept_error_codes = [404]
+			accept_error_codes = []
 
 
 		if cache and cache.exists(url = req.url, post=req.post, file_name=req.get('file_name')) and req.get('use_cache'):
@@ -215,7 +215,7 @@ class Client(object):
 		
 		accept_error_codes = req.get('accept_error_codes')
 		if accept_error_codes is None:
-			accept_error_codes = [404]
+			accept_error_codes = []
 
 
 		time.sleep(self.scraper.config['delay'])
@@ -381,7 +381,7 @@ class Client(object):
 
 		accept_error_codes = req.get('accept_error_codes')
 		if accept_error_codes is None:
-			accept_error_codes = [404]
+			accept_error_codes = []
 
 			
 		
