@@ -299,6 +299,10 @@ class Scraper(object):
 			elif trackingobj.format == 'xls':
 				import excellib
 				excellib.save_xls(filepath, trackingobj.data)
+			elif trackingobj.format == 'xlsx':
+				import excellib
+				excellib.save_xlsx(filepath, trackingobj.data)	
+
 				
 		#clear the db
 		self.outdb = {}
@@ -336,7 +340,7 @@ class Scraper(object):
 			#save for later
 			trackingobj.data.append(record)
 		if max and trackingobj.cnt == max:
-			self.push() #save output files and quit
+			self.flush() #save output files and quit
 			os._exit(1)	
 
 		#free the flag

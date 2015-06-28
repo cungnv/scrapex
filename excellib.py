@@ -8,25 +8,26 @@ def save_xlsx(file_path, data):
 	sheet = book.active
 	sheet.title = 'Sheet1'
 		
-	rowindex = 0
+	rowindex = 1
 	for i, r in enumerate (data):
-		heahers = []
+		headers = []
 		values = []
 		for j, col in enumerate(r):
 			if j % 2 == 0:
-				heahers.append(col)
+				headers.append(col)
 			else:			
 				if isinstance(col, basestring):
 					col = col.strip()			
 				values.append(col)
 		if i==0:
 			#write headers
-			for colindex, h in enumerate(heahers):
-				sheet.cell(row=0,column=colindex).value = h
+			
+			for colindex, h in enumerate(headers):
+				sheet.cell(row=1,column=colindex+1).value = h
 
 		rowindex += 1
 		for colindex, value in enumerate(values):
-			sheet.cell(row=rowindex,column=colindex).value = value if value is not None else ''
+			sheet.cell(row=rowindex,column=colindex+1).value = value if value is not None else ''
 
 	book.save(file_path)		
 
@@ -39,18 +40,18 @@ def save_xls(file_path, data):
 	style.num_format_str = '0.00'
 	rowindex = 0
 	for i, r in enumerate (data):
-		heahers = []
+		headers = []
 		values = []
 		for j, col in enumerate(r):
 			if j % 2 == 0:
-				heahers.append(col)
+				headers.append(col)
 			else:			
 				if isinstance(col, basestring):
 					col = col.strip()			
 				values.append(col)
 		if i==0:
 			#write headers
-			for colindex, h in enumerate(heahers):
+			for colindex, h in enumerate(headers):
 				sheet.write(0,colindex,h)
 
 		rowindex += 1
@@ -139,8 +140,8 @@ def read_sheet(file_path, return_type='list', index=0):
 
 if __name__ == '__main__':
 	print 'test'
-	data = read_sheet('d:/scrape/inv/testingdata/7.20.14_foll_wholesale.xlsx', 'list')
-	print data[0]
+	data = [['Cung', 'Nguyen']]
+	save_xlsx('/Users/cung/test.xlsx', data)
 
 
 
