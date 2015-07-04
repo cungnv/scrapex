@@ -69,6 +69,16 @@ class Request(object):
 	""" Represents a http request """
 
 	def __init__(self, url, post = None, passdata={}, **options):		
+		#to avoid using invalid option names
+		logger = logging.getLogger('__name__')
+		allowed_option_names = 'use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log'.replace(' ','').split(',')
+
+		for o in options.keys():
+			if o not in allowed_option_names:
+				logger.warn('invalid option name: %s', o)
+
+
+
 		self.url = url.replace(' ', '%20')
 		self.post = post
 		self.options = options

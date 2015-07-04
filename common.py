@@ -407,6 +407,13 @@ def write_json(filepath, data):
 def read_json(filepath):
 	return json.loads(get_file(filepath))
 
+def parse_log(filepath):
+	logdata = get_file(filepath)
+	warnings = len( re.compile('WARNING:').findall( logdata) )
+	errors = len( re.compile('ERROR:').findall(logdata) )
+	
+	return {'warnings': warnings, 'errors': errors}
+
 	
 class DataItem(unicode):
 
@@ -570,4 +577,4 @@ class UList(list):
 
 if __name__ == '__main__':
 
-	print address('228 CURTIS AVENUE, MOUNDSVILLE, WV 26041')
+	print	parse_log('log.txt')

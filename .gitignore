@@ -1,1 +1,4 @@
 *.pyc
+log.txt
+cache/
+.DS_Store

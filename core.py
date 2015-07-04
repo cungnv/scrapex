@@ -24,7 +24,8 @@ class Scraper(object):
 			use_cookie = True,						
 			timeout = 45,
 			delay = 0.1,
-			retries = 0
+			retries = 0,
+			parse_log = True
 
 			)
 
@@ -78,12 +79,35 @@ class Scraper(object):
 		#init the output db
 		self.outdb = {}
 	
+	def get_log_stats(self):
+		log_file = self.join_path('log.txt')
+		if not os.path.exists(log_file):
+			return ''
+		else:
+			logdata = common.parse_log(log_file)
+			if logdata['errors'] == 0 and logdata['warnings'] == 0:
+				return 'no warnings, no errors'
+			else:
+				return '%s warning(s) and %s error(s)' % ( logdata['warnings'], logdata['errors'] )
+
 	
 	def  __del__(self):
 		
 		self.flush()
 
-		self.logger.info('done')
+		#parse log
+		log_file = self.join_path('log.txt')
+		
+		if not os.path.exists(log_file) or self.config['parse_log'] is False:
+			self.logger.info('Completed')
+		else:
+			logdata = common.parse_log(log_file)
+			if logdata['errors'] == 0 and logdata['warnings'] == 0:
+				self.logger.info('Completed successfully')
+			else:
+				self.logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
+
+
 
 	
 	def join_path(self, file_name):
@@ -291,7 +315,10 @@ class Scraper(object):
 	
         		
 	def flush(self):
-		
+		if not hasattr(self, 'outdb'):
+			#nothing to flush out
+			return
+
 		for filepath in self.outdb.keys():
 			trackingobj = self.outdb.get(filepath)
 			if trackingobj.format == 'csv':
