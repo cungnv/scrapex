@@ -25,7 +25,8 @@ class Scraper(object):
 			timeout = 45,
 			delay = 0.1,
 			retries = 0,
-			parse_log = True
+			parse_log = True,
+			show_status_message = True
 
 			)
 
@@ -64,7 +65,10 @@ class Scraper(object):
 
 		self.logger = logging.getLogger(__name__)
 
-		self.logger.info('start')
+		if self.config['show_status_message']:
+
+			self.logger.info('start')
+		
 		atexit.register(self.__del__)
 
 			
@@ -94,18 +98,18 @@ class Scraper(object):
 	def  __del__(self):
 		
 		self.flush()
-
-		#parse log
-		log_file = self.join_path('log.txt')
-		
-		if not os.path.exists(log_file) or self.config['parse_log'] is False:
-			self.logger.info('Completed')
-		else:
-			logdata = common.parse_log(log_file)
-			if logdata['errors'] == 0 and logdata['warnings'] == 0:
-				self.logger.info('Completed successfully')
+		if self.config['show_status_message']:
+			#parse log
+			log_file = self.join_path('log.txt')
+			
+			if not os.path.exists(log_file) or self.config['parse_log'] is False:
+				self.logger.info('Completed')
 			else:
-				self.logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
+				logdata = common.parse_log(log_file)
+				if logdata['errors'] == 0 and logdata['warnings'] == 0:
+					self.logger.info('Completed successfully')
+				else:
+					self.logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
 
 
 
