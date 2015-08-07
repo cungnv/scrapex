@@ -20,6 +20,7 @@ class Scraper(object):
 		self.config = dict(
 			dir = _dir,			
 			use_cache = True, 
+			cache_path = "cache",
 			use_proxy = True, 			
 			use_cookie = True,						
 			timeout = 45,
@@ -42,7 +43,12 @@ class Scraper(object):
 		if os.path.exists(self.join_path('settings.txt')):
 			self.config.update(json.loads(common.get_file(self.join_path('settings.txt'))))
 
-		self.cache = Cache(os.path.join(self.dir, 'cache')) if self.config.get('use_cache') else None	
+		if self.config['use_cache']:
+			cache_path = os.path.join(self.dir, self.config['cache_path'])	
+
+			self.cache = Cache(cache_path)
+		else:
+			self.cache = None	
 		
 
 		""" logging settings """

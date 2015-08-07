@@ -71,7 +71,7 @@ class Request(object):
 	def __init__(self, url, post = None, passdata={}, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -84,6 +84,16 @@ class Request(object):
 		self.options = options
 		if passdata:
 			self.options.update(dict(passdata=passdata))
+
+		#update headers
+		if 'headers' not in self.options:
+			self.options['headers'] = {}
+
+		if 'ref' in self.options:
+			self.options['headers']['Referer'] = self.options['ref']
+		if self.options.get('ajax') is True:
+			self.options['headers']['X-Requested-With'] = 'XMLHttpRequest'
+
 		
 
 	def get(self, name, default = None):
