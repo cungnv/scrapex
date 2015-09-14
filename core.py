@@ -469,17 +469,17 @@ class Scraper(object):
 		if not common.subreg(url, '^(http)'):
 			url = 'http://'+url
 		if '@' in url:
-			return common.find_emails(url)	
+			return common.get_emails(url)	
 
 		res = []		
 		def link_filter(url):
-			keywords = ["contact","contact us","about","info","imprint","kontakt","uber","wir","impressum","contacter","representatives"]
+			keywords = ["contact","about","info","imprint","kontakt","uber","wir","impressum","contacter","representatives"]
 			for kw in keywords:
 				if kw.lower() in url:
 					return True
 			return False		
 		def parse(doc):
-			for email in common.getemails(doc.html()):
+			for email in common.get_emails(doc.html()):
 				if email not in res:
 					res.append(email)
 

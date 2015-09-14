@@ -98,7 +98,7 @@ def read_sheet(file_path, return_type='list', index=0):
 	"""
 	data = []
 	if file_path.lower().endswith('.xlsx'):
-		data = read_xlsx_sheet(file_path)
+		data = read_xlsx_sheet(file_path, index)
 	else:	
 		book = xlrd.open_workbook(file_path)	
 		sheet1 = book.sheet_by_index(index)

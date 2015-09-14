@@ -121,11 +121,11 @@ def reg(s, reg):
 	
 def sub(s, startstr, endstr):
 	start = s.find(startstr) if startstr else 0
-	if start == -1: return '' #not found
+	if start == -1: return DataItem('') #not found
 	start += len(startstr) # step over the startstr
 
-	to = s.find(endstr, start)
-	if to == -1: return '' #not found
+	to = s.find(endstr, start) if endstr else len(s) #get to the end of string s if no end point provided
+	if to == -1: return DataItem('') #not found
 	return DataItem( s[start:to] )
 def rr(pt, to, s):
 	redata = parse_re_flags(pt)
@@ -133,7 +133,7 @@ def rr(pt, to, s):
 	flags = redata['flags'] or re.S	
 	return DataItem( re.sub(reg, to, s, flags = flags) )
 
-def save_csv(path, record, sep=',', quote='"', escape = '"'):		
+def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):		
 	values = []
 	keys = []
 	# for k in record:		
@@ -161,7 +161,7 @@ def save_csv(path, record, sep=',', quote='"', escape = '"'):
 
 	# append_file(path, sep.join(values)+'\r\n')	
 
-	if not os.path.exists(path):
+	if not os.path.exists(path) and write_header:
 		append_file(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
 	else:		
 		append_file(path, sep.join(values)+'\r\n')	
