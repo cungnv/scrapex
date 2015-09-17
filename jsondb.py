@@ -1,4 +1,4 @@
-import sys, os, time, json
+import sys, os, time, json, shutil
 import common
 
 class JsonDB(object):
@@ -65,7 +65,7 @@ class JsonDB(object):
 		for r in self.rows:
 			matched = True
 			for k,v in criteria.iteritems():
-				if r[k] != v: 
+				if k not in r or r[k] != v: 
 					#failed
 					matched = False
 					break
@@ -86,6 +86,8 @@ class JsonDB(object):
 
 	def save(self):
 		data = {'keyname': self.keyname, 'rows': self.rows}
+		#backup the existing file
+		shutil.copy2(self.file_path, self.file_path+'.bk')
 		common.write_json(self.file_path, data)
 
 		

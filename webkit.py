@@ -7,7 +7,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtWebKit import *
 from PyQt4.QtNetwork import *
-
+from PyQt4.QtCore import QUrl
 import common, http
 
 app = QApplication(sys.argv)
@@ -67,12 +67,15 @@ class WebView(QWebView):
 
 		return self	
 		
-	def getcookies(self, domain=None):
+	def getcookies(self, url=None):
+
 		cookies = []
-		for cookie in self.page().networkAccessManager().cookieJar().allCookies():
-			_domain = cookie.domain()
-			if domain and domain.lower() not in _domain:
-				continue
+		
+		for cookie in self.page().networkAccessManager().cookieJar().cookiesForUrl(QUrl(url)):
+
+			# _domain = cookie.domain()
+			# if domain and domain.lower() not in _domain:
+			# 	continue
 			cookies.append('%s=%s' % (cookie.name(), cookie.value()))
 		return '; '.join(cookies)
 
@@ -232,8 +235,8 @@ class WebPage(QWebPage):
         print 'js prompt:%s%s' % (message, default)
 
     def javaScriptConsoleMessage(self, message, linenumber, sourceid):
-        
-        print 'console:%s%s%s' % (message, linenumber, sourceid)
+        pass
+        # print 'console:%s%s%s' % (message, linenumber, sourceid)
 
     def shouldInterruptJavaScript(self):        
         return True	
