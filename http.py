@@ -71,7 +71,7 @@ class Request(object):
 	def __init__(self, url, post = None, passdata={}, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -180,6 +180,7 @@ class Client(object):
 
 		if scraper.config.get('use_requests') is True:
 			import requests
+			# print 'create new requests Session'
 			self.requests_client = requests.Session()
 
 
@@ -260,7 +261,14 @@ class Client(object):
 			headers.update({"Content-Type": "application/x-www-form-urlencoded"})
 			
 		#update user-passed in headers
-		headers.update(req.get('headers', {})) 
+		if req.get('headers'):
+			if req.get('merge_headers') is not False:
+				#merge user defined headers with default headers
+				headers.update(req.get('headers')) 
+			else:
+				#only use user defined headers
+				headers = req.get('headers')	
+
 
 		if self.scraper.config.get('use_requests') is True:
 			#use requests module instead of urllib2
@@ -403,11 +411,8 @@ class Client(object):
 		if accept_error_codes is None:
 			accept_error_codes = []
 
-			
-		
 
 		client = self.requests_client
-
 
 		status_code = 0
 		error_message = ''

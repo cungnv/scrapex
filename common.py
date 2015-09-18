@@ -413,7 +413,13 @@ def parse_log(filepath):
 	errors = len( re.compile('ERROR:').findall(logdata) )
 	
 	return {'warnings': warnings, 'errors': errors}
-
+def parse_headers(headers_text):
+	headers_text = headers_text.strip()
+	headers = {}
+	hs = re.compile(r'([^\n\:]+):([^\n]+)').findall(headers_text)
+	for name, value in hs:
+		headers[name.strip()] = value.strip()
+	return headers
 	
 class DataItem(unicode):
 
