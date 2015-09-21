@@ -1,6 +1,6 @@
 import sys, time, signal, sip
 
-sip.setapi('QString', 2)
+# sip.setapi('QString', 2)
  
 from optparse import OptionParser
 from PyQt4.QtCore import *
