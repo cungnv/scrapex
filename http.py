@@ -297,7 +297,7 @@ class Client(object):
 
 		
 
-		request = urllib2.Request(req.url, req.post, headers, context = context)
+		request = urllib2.Request(req.url, req.post, headers)
 			
 		tries = req.get('retries', 0)	
 		
