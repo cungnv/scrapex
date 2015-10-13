@@ -309,7 +309,9 @@ class Client(object):
 		self.logger.debug('loading %s %s', req.url, req.post or '')
 
 		try:
-			context = ssl.SSLContext(ssl.PROTOCOL_TLSv1) #to not verify certicate
+			context = None
+			if hasattr(ssl,'create_unverified_context'):
+				context = ssl.create_unverified_context()
 
 			with contextlib.closing(opener.open(request, context=context, timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
 				final_url = res.url
