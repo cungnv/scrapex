@@ -310,8 +310,8 @@ class Client(object):
 
 		try:
 			context = None
-			if hasattr(ssl,'create_unverified_context'):
-				context = ssl.create_unverified_context()
+			if hasattr(ssl,'_create_unverified_context'):
+				context = ssl._create_unverified_context()
 			
 			with ( contextlib.closing(opener.open(request,context =context,  timeout= req.get('timeout', self.scraper.config['timeout']))) if context else  contextlib.closing(opener.open(request,  timeout= req.get('timeout', self.scraper.config['timeout']))) ) as res:
 				final_url = res.url
