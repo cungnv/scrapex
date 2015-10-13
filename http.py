@@ -295,9 +295,11 @@ class Client(object):
 		if req.post and isinstance(req.post, dict):
 			req.post = urllib.urlencode(sorted(req.post.items()))
 
+		context = None
+		if hasattr(ssl,'create_unverified_context'):
+			context = ssl.create_unverified_context()
 
-
-		request = urllib2.Request(req.url, req.post, headers)
+		request = urllib2.Request(req.url, req.post, headers, context = context)
 			
 		tries = req.get('retries', 0)	
 		
@@ -309,11 +311,8 @@ class Client(object):
 		self.logger.debug('loading %s %s', req.url, req.post or '')
 
 		try:
-			context = None
-			if hasattr(ssl,'create_unverified_context'):
-				context = ssl.create_unverified_context()
-
-			with contextlib.closing(opener.open(request, context=context, timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
+			
+			with contextlib.closing(opener.open(request, timeout= req.get('timeout', self.scraper.config['timeout'])))  as res:
 				final_url = res.url
 				status_code = res.code
 
@@ -522,3 +521,9 @@ class Client(object):
 
 		
 
+if __name__ == '__main__':
+	import core
+	s = core.Scraper(use_cache=False)
+	
+	doc = s.load('https://librivox.org/what-i-believe-by-leo-tolstoy/')
+	print doc.x("//title")
