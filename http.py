@@ -6,6 +6,15 @@ from gzip import GzipFile
 import common, agent
 from node import Node
 
+try:
+	_create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+	# Legacy Python that doesn't verify HTTPS certificates by default
+	pass
+else:
+	# Handle target environment that doesn't support HTTPS verification
+	ssl._create_default_https_context = _create_unverified_https_context
+
 meta_seperator = '=======META======'
 
 class ProxyManager(object):
@@ -309,11 +318,9 @@ class Client(object):
 		self.logger.debug('loading %s %s', req.url, req.post or '')
 
 		try:
-			context = None
-			if hasattr(ssl,'_create_unverified_context'):
-				context = ssl._create_unverified_context()
 			
-			with ( contextlib.closing(opener.open(request,context =context,  timeout= req.get('timeout', self.scraper.config['timeout']))) if context else  contextlib.closing(opener.open(request,  timeout= req.get('timeout', self.scraper.config['timeout']))) ) as res:
+			
+			with contextlib.closing(opener.open(request,  timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
 				final_url = res.url
 				status_code = res.code
 
