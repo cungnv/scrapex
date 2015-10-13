@@ -1,4 +1,4 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv, logging, pickle, random
+import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv, logging, pickle, random,time
 from Queue import Queue
 from HTMLParser import HTMLParser
 
@@ -331,7 +331,7 @@ def rand_sort(input_list):
 	return [item[1] for item in items]
 		
 
-def start_threads(items, worker, cc=1):
+def start_threads(items, worker, cc=1, timeout=None):
 	logger = logging.getLogger(__name__)
 	class Worker(threading.Thread):	
 		def __init__(self, queue, func):
@@ -347,8 +347,8 @@ def start_threads(items, worker, cc=1):
 						self.func(item)
 					except Exception, e:
 						logger.exception('thread item error')
-
-					self.queue.task_done()
+					finally:	
+						self.queue.task_done()
 			except Exception:			
 				logger.debug('thread done')
 				
@@ -361,8 +361,18 @@ def start_threads(items, worker, cc=1):
 		t = Worker(queue = queue, func=worker)			
 		t.setDaemon(True)				
 		t.start()	
+	if not timeout:	
+		queue.join()	
+	else:
+		#join with timeout
+		stop_time = time.time() + timeout
+		while queue.unfinished_tasks and time.time() < stop_time:
+			time.sleep(0.3)
+	
+	if queue.unfinished_tasks:
+		#not all tasks done yet
+		logger.warn('pending tasks in queue: %s', len(queue.unfinished_tasks))		
 
-	queue.join()	
 
 def to_json_string(js):
 	return json.dumps(js, indent=4, sort_keys=True)
@@ -420,6 +430,55 @@ def parse_headers(headers_text):
 	for name, value in hs:
 		headers[name.strip()] = value.strip()
 	return headers
+
+def parse_table(table_node, cols=None):
+	""" parse a html table node into list of dict """
+	all_rows = table_node.q("thead/tr") + table_node.q("tbody/tr") + table_node.q("tr")
+	rs = []
+	for r in all_rows:
+		if cols and r.q("th | td").len() != cols:
+			continue
+		rs.append(r)	
+
+
+	if len(rs) == 0:
+		logger.warn('no rows found on table')
+		return []
+	
+
+	headers = []
+	
+	col_index = 0
+	#capture headers
+	for td in rs[0].q("td | th"):
+		col_index += 1
+		header = td.nodevalue().trim()
+		if header:
+			header.col_index = col_index
+			headers.append(header)
+	# logger.info('headers: %s', headers)
+	#capture data rows
+	dataset = []
+	for r in rs[1:]:
+		datarow = []
+		for header in headers:
+			
+			td = r.node("td[%s]"%header.col_index)
+			value = ''
+			if 'website' in header.lower():
+				value = td.x(".//a/@href") or td.nodevalue().trim()
+			else:
+				value = td.nodevalue().trim()	
+
+			datarow += [
+			header, value
+			]	
+		dataset.append(datarow)
+	return dataset						
+
+
+
+
 	
 class DataItem(unicode):
 

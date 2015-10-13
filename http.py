@@ -1,4 +1,4 @@
-import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib, httplib, contextlib, cookielib, random, socket
+import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib, httplib, contextlib, cookielib, random, socket, ssl
 
 from cStringIO import StringIO
 from gzip import GzipFile
@@ -309,8 +309,9 @@ class Client(object):
 		self.logger.debug('loading %s %s', req.url, req.post or '')
 
 		try:
+			context = ssl.SSLContext(ssl.PROTOCOL_TLSv1) #to not verify certicate
 
-			with contextlib.closing(opener.open(request, timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
+			with contextlib.closing(opener.open(request, context=context, timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
 				final_url = res.url
 				status_code = res.code
 

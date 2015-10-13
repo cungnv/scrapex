@@ -87,7 +87,8 @@ class JsonDB(object):
 	def save(self):
 		data = {'keyname': self.keyname, 'rows': self.rows}
 		#backup the existing file
-		shutil.copy2(self.file_path, self.file_path+'.bk')
+		if os.path.exists(self.file_path):
+			shutil.copy2(self.file_path, self.file_path+'.bk')
 		common.write_json(self.file_path, data)
 
 		
