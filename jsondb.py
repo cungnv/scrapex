@@ -9,6 +9,9 @@ class JsonDB(object):
 		self.file_path = file_path
 		self.keyname = keyname
 
+		self.update_count = 0
+		self.save_after = 10
+
 		if not os.path.exists(self.file_path):
 			#new database
 			self.rows = []
@@ -25,16 +28,23 @@ class JsonDB(object):
 
 
 
-
+	def auto_save(self):
+		if self.update_count % 	self.save_after == 0:
+			self.save()
 
 
 	def insert(self, r):
+		self.update_count +=1
+
+
 		if self.exists(r[self.keyname]):
 			return
 
 		#ready to insert
 		self.rows.append(r)
 
+
+		self.auto_save()
 
 
 	def get(self, keyvalue):
@@ -45,18 +55,25 @@ class JsonDB(object):
 		return None #not found		
 
 	def update(self, keyvalue, updatedata):
+		self.update_count +=1
 		i = 0
 		for r in self.rows:
 			if r[self.keyname] == keyvalue:
 				#found row
 				self.rows[i].update(updatedata)
 			i+=1	
-
+		self.auto_save()
+			
 	def delete(self, keyvalue):
+		self.update_count +=1
+		
 		i = 0
 		for r in self.rows:
 			if r[self.keyname] == keyvalue:
 				del self.rows[i] #found
+				
+				self.auto_save()
+
 				return
 			i +=1
 					
