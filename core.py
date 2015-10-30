@@ -344,7 +344,7 @@ class Scraper(object):
 		#clear the db
 		self.outdb = {}
 
-	def save(self, record, file_name = 'result.csv', max=None, keys=[], id = None, headers = []):		
+	def save(self, record, file_name = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True):		
 		#waiting while other thread writing
 		while self.writingflag:			
 			pass
@@ -355,8 +355,10 @@ class Scraper(object):
 		format = common.DataItem(path).subreg('\.([a-z]{2,5})$--is').lower()
 
 		if not self.outdb.get(path):
-			if os.path.exists(path):						
-				os.remove(path)		
+			if os.path.exists(path):
+				if remove_existing_file:						
+					os.remove(path)		
+					
 			self.outdb.update({ path: common.DataObject(cnt=0, data=[], ids = [], format = format)})	
 
 		trackingobj = self.outdb.get(path)
