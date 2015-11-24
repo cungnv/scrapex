@@ -431,8 +431,14 @@ def parse_headers(headers_text):
 		headers[name.strip()] = value.strip()
 	return headers
 
-def parse_table(table_node, cols=None):
-	""" parse a html table node into list of dict """
+def parse_table(table_node, restype='dict', more_xpath=None, cols=None):
+	""" 
+		parse a html table node into list of dict or list
+
+		@restyp: dict or list
+		@more_xpath: to parse more detail within each td tag
+
+	"""
 	all_rows = table_node.q("thead/tr") + table_node.q("tbody/tr") + table_node.q("tr")
 	rs = []
 	for r in all_rows:
@@ -460,7 +466,7 @@ def parse_table(table_node, cols=None):
 	#capture data rows
 	dataset = []
 	for r in rs[1:]:
-		datarow = []
+		datarow = [] if restype=='list' else {}
 		for header in headers:
 			
 			td = r.node("td[%s]"%header.col_index)
@@ -470,10 +476,21 @@ def parse_table(table_node, cols=None):
 			else:
 				value = td.nodevalue().trim()	
 
-			datarow += [
-			header, value
-			]	
+			if more_xpath:
+				value.more_data = td.x(more_xpath).trim()
+				
+
+
+			if restype == 'list':	
+
+				datarow += [
+				header, value
+				]	
+			else:
+				datarow[header] = value
+
 		dataset.append(datarow)
+
 	return dataset						
 
 

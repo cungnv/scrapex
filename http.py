@@ -25,6 +25,7 @@ class ProxyManager(object):
 		self.proxy_file = proxy_file
 		self.proxy_auth = proxy_auth
 		self.proxies = []
+
 		self.load_proxies()
 
 
@@ -35,7 +36,16 @@ class ProxyManager(object):
 			if not os.path.exists(proxy_file):
 				raise Exception('proxy_file not found: {0}'.format(proxy_file))
 			
-			self.proxies = common.read_lines(proxy_file)
+
+			for line in common.read_lines(proxy_file):
+				if 'proxy_auth' in line:
+					self.proxy_auth = common.DataItem(line).rr('proxy_auth\s*=\s*').trim()
+					continue
+
+				#support tab, commas separator as well
+				line = line.replace('\t',':').replace(',',':')	
+				self.proxies.append(line)		
+
 
 		return self	
 
@@ -80,7 +90,7 @@ class Request(object):
 	def __init__(self, url, post = None, passdata={}, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -285,10 +295,14 @@ class Client(object):
 
 			
 		proxy = req.get('proxy') or self.scraper.proxy_manager.get_proxy(req.url)
-		
-		
+		if proxy and req.get('proxy_url_filter'):
+			#check if this url is qualified for using proxy
+			if not re.compile(req.get('proxy_url_filter')).findall(req.url):
+				#failed
+				proxy = ''
+				logger.debug('proxy not used for url: %s', req.url)
 
-
+		
 		
 		if proxy and req.get('use_proxy') is not False:
 			if req.url.lower().startswith('https://'):
@@ -407,6 +421,12 @@ class Client(object):
 		logger = logging.getLogger(__name__)
 		
 		proxy = req.get('proxy') or self.scraper.proxy_manager.get_proxy(req.url)
+		if proxy and req.get('proxy_url_filter'):
+			#check if this url is qualified for using proxy
+			if not re.compile(req.get('proxy_url_filter')).findall(req.url):
+				#failed
+				proxy = ''
+
 		proxies = None
 		if proxy and req.get('use_proxy') is not False:
 				

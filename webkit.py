@@ -111,7 +111,7 @@ class WebView(QWebView):
 		target = None	
 		if	text is not None:
 			for ele in eles:
-				if ele.toPlainText() == unicode(text):
+				if unicode(ele.toPlainText()).strip() == unicode(text):
 					target = ele
 					break
 		else:
@@ -121,7 +121,7 @@ class WebView(QWebView):
 		if target.hasAttribute('target'):
 			target.setAttribute('target','')
 		
-		print target.toOuterXml()
+		# print target.toOuterXml()
 
 		target.evaluateJavaScript("var ev = document.createEvent('MouseEvents'); ev.initEvent('click', true, true); this.dispatchEvent(ev);")
 
@@ -143,12 +143,15 @@ class WebView(QWebView):
 	def wait(self, timeout):
 		return self.waitfor(timeout=timeout)
 
-	def fill(self, css, value):
+	def fill(self, css, value, append=False):
 		ele = self.findone(css)
 		if not ele:
 			raise Exception('no element found to fill:', css)
-		if ele.tagName().lower() in ['input', 'option']:				
-			ele.evaluateJavaScript("this.value = '%s'" % value )
+		if unicode(ele.tagName()).lower() in ['input', 'option']:				
+			if not append:
+				ele.evaluateJavaScript("this.value = '%s'" % value )
+			else:
+				ele.evaluateJavaScript("this.value = this.value + '%s'" % value )	
 		else:
 			ele.setPlainText(value)	
 
