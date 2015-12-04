@@ -8,13 +8,29 @@ from PyQt4.QtGui import *
 from PyQt4.QtWebKit import *
 from PyQt4.QtNetwork import *
 from PyQt4.QtCore import QUrl
+
+#prevent qt messages from the Terminal screen
+from PyQt4.QtCore import qInstallMsgHandler
+from PyQt4.Qt import QtMsgType
+
+def myQtMsgHandler( msg_type, msg_string ) :
+	pass
+
+qInstallMsgHandler(myQtMsgHandler)
+	
+
 import common, http
+
+
 
 app = QApplication(sys.argv)
 
 
+
 class WebView(QWebView):
 	def __init__(self, show = False, timeout=30, image=False, js=True, **options):				
+		
+
 		QWebView.__init__( self )
 		self.timeout = timeout
 		
@@ -30,6 +46,8 @@ class WebView(QWebView):
 		self.setPage(page)
 		
 		self.setHtml('<html><body>Nothing</body></html>', QUrl('http://localhost'))
+
+		
 
 		self.loop = QEventLoop()
 		self.timer = QTimer()
@@ -79,6 +97,9 @@ class WebView(QWebView):
 			cookies.append('%s=%s' % (cookie.name(), cookie.value()))
 		return '; '.join(cookies)
 
+	def clear_cookies(self):
+		self.page().networkAccessManager().setCookieJar(QNetworkCookieJar())
+		return self
 	def submit(self, css=None, **options):		
 		timeout = options.get('timeout', self.timeout)
 
