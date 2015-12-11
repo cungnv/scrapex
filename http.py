@@ -90,7 +90,7 @@ class Request(object):
 	def __init__(self, url, post = None, passdata={}, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -382,6 +382,13 @@ class Client(object):
 					#binary content
 					data = bytes		
 
+				
+				#log proxy and timestamp into the html file if asked
+				if req.get('log_time_and_proxy'):
+					
+					data += '\n<log id="time_proxy"><time>{time}</time><proxy>{proxy}</proxy></log>'.format(time=time.time(), proxy=proxy if (proxy and req.get('use_proxy') is not False) else '')
+	
+
 				return Response(data=data, status= Status(code=status_code, final_url=final_url))	
 
 		
@@ -493,6 +500,10 @@ class Client(object):
 			
 			if verify and (not verify(html)):
 				raise Exception("invalid html")
+
+			#log proxy and timestamp into the html file if asked
+			if req.get('log_time_and_proxy'):
+				html += u'\n<log id="time_proxy"><time>{time}</time><proxy>{proxy}</proxy></log>'.format(time=time.time(), proxy=proxy if proxies else '')
 
 			return Response(data=html, status= Status(code=status_code, final_url=final_url))	
 			
