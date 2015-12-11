@@ -233,7 +233,6 @@ class WebView(QWebView):
 		return all[0] if all else None
 
 	def __del__(self):					
-		print 'closing...'
 		self.setPage(None)
 
 
