@@ -1,3 +1,4 @@
+
 import sys, time, signal, sip
 
 # sip.setapi('QString', 2)
@@ -282,6 +283,19 @@ class NetworkAccessManager(QNetworkAccessManager):
 		QNetworkAccessManager.setProxy(self, proxy)
 
 		return self
+
+	# def createRequest(self, operation, request, data):
+	# 	""" testing """	
+	# 	# print 'making request...'
+	# 	request = QNetworkAccessManager.createRequest(self, operation, request, data)
+
+	# 	#apply ssl protocol
+	# 	sslconf = QSslConfiguration.defaultConfiguration()
+	# 	sslconf.setProtocol(QSsl.TlsV1)
+	# 	request.setSslConfiguration(sslconf)
+
+	# 	return request
+
 
 
 

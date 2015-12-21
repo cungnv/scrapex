@@ -191,11 +191,14 @@ class Client(object):
 	def __init__(self, scraper):
 
 		self.scraper = scraper
+		
+		socket.setdefaulttimeout(self.scraper.config.get('timeout', 45) )
+
 		self.logger = logging.getLogger(__name__)
 		
 		self.opener = create_opener(use_cookie=True)
 
-		socket.setdefaulttimeout(self.scraper.config.get('timeout', 45) )
+		
 
 		if scraper.config.get('use_requests') is True:
 			import requests

@@ -48,7 +48,7 @@ class Scraper(object):
 
 			self.cache = Cache(cache_path)
 		else:
-			self.cache = None	
+			self.cache = Cache('')
 		
 
 		""" logging settings """

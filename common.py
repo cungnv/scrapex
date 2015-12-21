@@ -332,7 +332,9 @@ def rand_sort(input_list):
 		
 
 def start_threads(items, worker, cc=1, timeout=None):
+	
 	logger = logging.getLogger(__name__)
+
 	class Worker(threading.Thread):	
 		def __init__(self, queue, func):
 			threading.Thread.__init__(self)		
@@ -342,11 +344,12 @@ def start_threads(items, worker, cc=1, timeout=None):
 		def run(self):
 			try:
 				while True:					
-					item = self.queue.get(block=False)
+					item = self.queue.get(block=False) #get immediately or raise exception
 					try:										
 						self.func(item)
 					except Exception, e:
 						logger.exception('thread item error')
+						
 					finally:	
 						self.queue.task_done()
 			except Exception:			
@@ -605,7 +608,8 @@ class DataObject(object):
 			value = getattr(self, att)
 			if '__' not in att and not hasattr(value, '__call__'):
 				data.append(u'{0}: {1}'.format(att, value))
-		return '{<DataObject> ' + ', '.join(data)	+ ' }'	
+		
+		return '\n'.join(data)	
 
 
 class MyDict(object):
