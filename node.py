@@ -136,8 +136,11 @@ class Node(object):
 					newline.text = '\n'
 					node.append(newline)
 				else:
-					newline = etree.SubElement(node, 'newline')
-					newline.text = '\n'		
+					# newline = etree.SubElement(node, 'newline')
+					# newline.text = '\n'		
+					newline = etree.Element('newline')
+					newline.text = '\n'
+					node.append(newline)
 		return self		
 	
 

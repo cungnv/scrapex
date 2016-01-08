@@ -133,15 +133,21 @@ def rr(pt, to, s):
 	flags = redata['flags'] or re.S	
 	return DataItem( re.sub(reg, to, s, flags = flags) )
 
-def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):		
+def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):
+
+	#normalize the record to list
+	if isinstance(record, dict):
+		_record = []
+		for key in sorted(record.keys()):
+			_record += [key, record[key]]
+
+		record = _record	
+
+
+
 	values = []
 	keys = []
-	# for k in record:		
-	# 	value = record[k].trim().replace(quote, escape + quote).replace('r','')
-	# 	key = k.strip().replace(quote, escape + quote).replace('r','')
-	# 	keys.append(quote + key + quote)
-	# 	values.append(quote + value + quote)
-
+	
 	for i, item in enumerate(record):
 		if i % 2 == 0:
 			#get key
@@ -156,11 +162,7 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):
 			values.append(quote + value + quote)
 				
 
-	# if not os.path.exists(path):
-	# 	append_file(path, sep.join(keys)+'\r\n')
-
-	# append_file(path, sep.join(values)+'\r\n')	
-
+	
 	if not os.path.exists(path) and write_header:
 		append_file(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
 	else:		
@@ -380,13 +382,14 @@ def start_threads(items, worker, cc=1, timeout=None):
 def to_json_string(js):
 	return json.dumps(js, indent=4, sort_keys=True)
 
-def read_csv(path, restype='list', encoding='utf8'):
+def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	"""
 	restype: list, dict, DataObject
 	"""
 	i=-1
 	fields = None
-	for line in read_lines_byrn(path, encoding=encoding):
+	lines = read_lines_byrn(path, encoding=encoding) if line_sep == '\r\n' else read_lines(path)
+	for line in lines:
 		i += 1
 		r = [unicode(cell, encoding) for cell in csv.reader(StringIO.StringIO(line.encode(encoding))).next() ]
 

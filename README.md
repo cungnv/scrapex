@@ -9,14 +9,6 @@ A simple web scraping lib for Python
 or
 - pip install https://github.com/cungnv/scrapex/archive/master.zip
 
-#Install dependencies:
-
-Use easy_install or pip command
-
-- easy_install xlwt
-- easy_install xlrd
-- easy_install openpyxl
-
 #Install lxml
 - For windows: download and install lxml from http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
 

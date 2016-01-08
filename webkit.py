@@ -279,22 +279,29 @@ class NetworkAccessManager(QNetworkAccessManager):
 		password = userpass.split(':')[1] if userpass else None
 
 		proxy = QNetworkProxy(QNetworkProxy.HttpProxy, host, int(port), user, password)
-
-		QNetworkAccessManager.setProxy(self, proxy)
+		print 'set application proxy...'
+		# QNetworkAccessManager.setProxy(self, proxy)
+		QNetworkProxy.setApplicationProxy(proxy) #to let https requests use proxy
 
 		return self
 
-	# def createRequest(self, operation, request, data):
-	# 	""" testing """	
-	# 	# print 'making request...'
-	# 	request = QNetworkAccessManager.createRequest(self, operation, request, data)
+	def createRequest(self, operation, request, data):
+		""" testing """	
+		# print 'making request...'
+		# print dir(request)
 
-	# 	#apply ssl protocol
-	# 	sslconf = QSslConfiguration.defaultConfiguration()
-	# 	sslconf.setProtocol(QSsl.TlsV1)
-	# 	request.setSslConfiguration(sslconf)
+		request = QNetworkAccessManager.createRequest(self, operation, request, data)
 
-	# 	return request
+		header = request.header(QNetworkRequest.LocationHeader)
+		print header.value()
+		#apply ssl protocol
+		# sslconf = QSslConfiguration.defaultConfiguration()
+		# sslconf.setProtocol(QSsl.TlsV1)
+		# request.setSslConfiguration(sslconf)
+
+		# print dir(request)
+
+		return request
 
 
 

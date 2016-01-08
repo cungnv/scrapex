@@ -154,22 +154,18 @@ class Scraper(object):
 
 	def save_link(self, url, dir='images', file_name='auto', format='jpg', prefix='', **_options):
 		fn = ''
+
 		if file_name == 'auto':			
 			#special name
-			fn = common.subreg(url, '/([^/\?\$]+\.[a-z]{2,4})$--is')			
+			fn = common.DataItem(url).rr('\?.*?$').subreg('/([^/\?\$]+\.[a-z]{2,4})$--is')			
 			if not fn:
 				self.logger.warn( 'failed to parse file_name from url: %s', url )
 				return None
-
-		elif not common.subreg(file_name, '(\.[a-z]{2,4})$--is'):			
-			#file_name is a regex
-			fn = common.subreg(url, file_name)
-			if not fn:
-				self.logger.warn( 'failed to parse file_name from url: %s', url)
-				return None		
+			
 		else:
 			#file_name is a fixed name
 			fn = file_name
+		
 		if not common.subreg(fn, '(\.[a-z]{2,5}$)--is'):
 			fn += '.'+format
 		fn = prefix + fn
@@ -409,6 +405,22 @@ class Scraper(object):
 	def put_file(self, file_name, data):
 		common.put_file(self.join_path(file_name), data)	
 		return self
+
+	def read_csv(self, path, restype='list', encoding='utf8', line_sep='\r\n'):
+		"""
+		read a csv file into a list
+
+		@restype: list or dict
+
+		"""	
+		res = []
+		
+		for r in common.read_csv(path=self.join_path(path),restype=restype, encoding=encoding, line_sep=line_sep):
+			res.append(r)
+
+		return res	
+
+
 
 	def loop(self, url, next, post=None, cb=None, cc = 1, deep=2, debug=0, allow_external = False, link_filter=None,  **_options):
 		options = common.combine_dicts(self.config, _options)

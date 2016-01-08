@@ -94,7 +94,8 @@ class Request(object):
 
 		for o in options.keys():
 			if o not in allowed_option_names:
-				logger.warn('invalid option name: %s', o)
+				if not options.get('disable_option_name_warning'):
+					logger.warn('invalid option name: %s', o)
 
 
 
