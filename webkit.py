@@ -285,23 +285,22 @@ class NetworkAccessManager(QNetworkAccessManager):
 
 		return self
 
-	def createRequest(self, operation, request, data):
-		""" testing """	
-		# print 'making request...'
-		# print dir(request)
+	# def createRequest(self, operation, request, data):
+	# 	""" testing """	
+	# 	# print 'making request...'
+	# 	# print dir(request)
 
-		request = QNetworkAccessManager.createRequest(self, operation, request, data)
+	# 	request = QNetworkAccessManager.createRequest(self, operation, request, data)
 
-		header = request.header(QNetworkRequest.LocationHeader)
-		print header.value()
-		#apply ssl protocol
-		# sslconf = QSslConfiguration.defaultConfiguration()
-		# sslconf.setProtocol(QSsl.TlsV1)
-		# request.setSslConfiguration(sslconf)
+	# 	header = request.header(QNetworkRequest.LocationHeader)
+	# 	#apply ssl protocol
+	# 	# sslconf = QSslConfiguration.defaultConfiguration()
+	# 	# sslconf.setProtocol(QSsl.TlsV1)
+	# 	# request.setSslConfiguration(sslconf)
 
-		# print dir(request)
+	# 	# print dir(request)
 
-		return request
+	# 	return request
 
 
 

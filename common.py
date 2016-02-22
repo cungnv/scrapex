@@ -169,9 +169,17 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):
 		append_file(path, sep.join(values)+'\r\n')	
 
 def file_name(path):
-	return subreg(path, '/([^/\?\$]+\.[a-z]{2,4})$--is')
+	path = DataItem(path).rr('\?.*?$')
+	return path.subreg('/([^/\?\$]+\.[a-z]{2,4})$--is')
 
-		
+def file_ext(path):
+	""" extract file extension from the path or url """
+	path = DataItem(path).rr('\?.*?$').split('.')
+	ext = path[-1].lower() if len(path)>1  else None
+
+	return ext
+
+
 
 def address(full, two_lines=False):	
 
@@ -320,8 +328,15 @@ def readconfig(path):
 	
 	return config
 def normalize_url(url):
-	url = urllib.quote(url, safe="%/:=&?~#+!$,;'@()*[]")
-	return url
+	try:
+		return str(url)
+	except:
+		try:
+			return str( urllib.quote(url.encode('utf8'), safe="%/:=&?~#+!$,;'@()*[]") )
+		except:
+			return str( urllib.quote(url.encode('latin1'), safe="%/:=&?~#+!$,;'@()*[]") )
+			
+	
 def rand_sort(input_list):
 	items = []
 	for item in input_list:
@@ -498,8 +513,6 @@ def parse_table(table_node, restype='dict', more_xpath=None, cols=None):
 		dataset.append(datarow)
 
 	return dataset						
-
-
 
 
 	

@@ -7,7 +7,7 @@ from worker import Worker
 import http, common, logging_config
 from http import Request
 from cache import Cache
-
+from .async import Downloader
 
 class Scraper(object):
 	
@@ -82,6 +82,9 @@ class Scraper(object):
 		self.proxy_manager = http.ProxyManager(proxy_file= self.join_path( self.config.get('proxy_file') ) if self.config.get('proxy_file') else None, proxy_auth=self.config.get('proxy_auth'))
 		
 		self.client = http.Client(scraper=self)
+
+		#create an async downloader for this scraper
+		self.downloader = Downloader(scraper=self, cc=3)
 		
 		#set flags
 		self.writingflag = False
@@ -191,132 +194,6 @@ class Scraper(object):
 
 
 	
-
-		
-
-
-
-
-	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = None, max_pages = 0, debug=True, verify=None,  **_options):
-
-		options = common.combine_dicts(self.config, _options)
-		if not cc: 
-			cc = self.config.get('cc', 1)
-		
-		queue = Queue()
-		pages = [1]
-
-
-		#apply scraper-level options
-		
-		threads = []	
- 
-
-		def handler(doc):
-			doc.page = pages[0]
-			if verify:				
-				if not verify(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)):
-					doc.ok = False
-					self.logger.warn("invalid doc at page {0}".format(pages[0]))
-			
-			
-			self.logger.info('page %s', pages[0])
-			
-			
-			#download and parse details	
-			if detail:
-				
-				listings = detail(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(detail, '__call__') else doc.q(detail)
-				
-				self.logger.info('details: %s', len(listings) )
-
-				for listing in listings:
-					queue.put({'req':Request(url= listing if isinstance(listing, basestring) else listing.nodevalue(), **options) , 'cb': parse_detail})
-					
-			done = False
-
-			_nexturl = None
-			_next_post = None
-
-			if next:
-				_nexturl = next(common.DataObject(starturl=common.DataItem(url), page= pages[0], doc=doc)) if hasattr(next, '__call__') else ( next if next.startswith('http') else doc.x(next) )
-			if next_post:
-				if not next: 
-					#next is not provided, use the original url
-					_nexturl = doc.url								
-				_next_post = next_post(common.DataObject(doc=doc, page=pages[0], starturl=common.DataItem(url))) if hasattr(next_post, '__call__') else next_post
-			
-			if next_post:
-				if _next_post:
-					done = False
-				else:
-					done = True
-			else:
-				if not _nexturl:
-					done = True
-				else:
-					done = False				
-
-			
-			#if (next and _nexturl ) or (next_post and _next_post):
-			if not done:
-				
-				#self.logger.debug('next_post: %s, _nexturl: %s', _next_post,  _nexturl)
-
-				pages[0] += 1
-				page = pages[0]
-
-				if max_pages != 0 and page > max_pages:
-					done = True
-				else:	
-					queue.put({'req':Request(_nexturl, _next_post, **options), 'cb': handler})
-			else:
-				done = True
-
-			if done:
-				#'tell worker pagin is done'
-				for worker in threads:
-					worker.done = True		
-
-
-			if parse_list:
-				parse_list(doc)
-
-			
-					
-
-		##### end of the handler function ##################################################				
-
-			
-		#start workers		
-		
-		for i in range(cc):
-			#print 'start threads'
-			t = Worker(queue = queue, client= self.client, timeout=0.1)			
-			t.setDaemon(True)
-			threads.append(t)
-			t.start()		
-
-		#print url
-		queue.put({'req':Request(url, post, **options), 'cb': handler})
-		
-		queue.join() #wait until this loop done	
-
-		#waiting for all the threads exit
-		try:
-			while len(threads) > 0:
-				time.sleep(0.01)
-				#count = len(threads)
-				for i, t in enumerate(threads):
-					#t = threads[i]
-					if not t.isAlive():
-						del threads[i]
-			
-		except Exception as e:
-			# print 'error while wating for threads stop'
-			print e
-			pass
-
 
 	
         		
@@ -511,4 +388,89 @@ class Scraper(object):
 
 
 
+	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=True, debug=True, verify=None,  **_options):
+		
+		if cc != self.downloader.cc:
+			self.downloader.set_cc(cc)
 
+		options = common.combine_dicts(self.config, _options)
+
+		stats = common.DataObject(page=1)
+
+		#apply scraper-level options
+
+		def handler(doc):
+			page = stats.page
+			doc.page = page
+
+			if verify:				
+				if not verify(common.DataObject(starturl=common.DataItem(url), page= page, doc=doc)):
+					doc.ok = False
+					self.logger.warn("invalid doc at page {0}".format(page))
+			
+			self.logger.info('page %s', page)
+			
+			
+			#download and parse details	
+			if detail:
+				
+				listings = detail(common.DataObject(starturl=common.DataItem(url), page= page, doc=doc)) if hasattr(detail, '__call__') else doc.q(detail)
+				
+				self.logger.info('details: %s', len(listings) )
+
+				for listing in listings:
+					self.downloader.put(Request(url= listing if isinstance(listing, basestring) else listing.nodevalue(), cb = parse_detail, **options), onhold=list_pages_first)
+					
+			done = False
+
+			_nexturl = None
+			_next_post = None
+
+			if next:
+				_nexturl = next(common.DataObject(starturl=common.DataItem(url), page= page, doc=doc)) if hasattr(next, '__call__') else ( next if next.startswith('http') else doc.x(next) )
+			if next_post:
+				if not next: 
+					#next is not provided, use the original url
+					_nexturl = doc.url								
+				_next_post = next_post(common.DataObject(doc=doc, page=page, starturl=common.DataItem(url))) if hasattr(next_post, '__call__') else next_post
+			
+			if next_post:
+				if _next_post:
+					done = False
+				else:
+					done = True
+			else:
+				if not _nexturl:
+					done = True
+				else:
+					done = False				
+
+			
+			#if (next and _nexturl ) or (next_post and _next_post):
+			if not done:
+				
+				#self.logger.debug('next_post: %s, _nexturl: %s', _next_post,  _nexturl)
+
+				stats.page += 1
+
+				if max_pages != 0 and stats.page > max_pages:
+					done = True
+				else:	
+					self.downloader.put(Request(_nexturl, _next_post, cb= handler, **options))
+			else:
+				done = True
+
+			
+			if parse_list:
+				parse_list(doc)
+
+			
+					
+
+		##### end of the handler function ##################################################				
+
+
+		#start the initial url
+		self.downloader.put(Request(url, post, cb= handler, **options))
+		if start_now:
+			self.downloader.start()

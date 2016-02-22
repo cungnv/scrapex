@@ -3,7 +3,7 @@ from scrapex.core import Scraper
 from scrapex import common
 from scrapex.node import Node
 from scrapex.excellib import *
-s = Scraper(cache=True, retries = 3, timeout=10, cookie=False)
+s = Scraper(use_cache=True, retries = 3, timeout=30, use_cookie=False)
 
 
 def start():
@@ -45,7 +45,7 @@ def start():
 									'Part Number', itemno,
 									'MSRP', r.x("td[3]").trim(),
 									'Fitment', r.x("./following-sibling::tr[1]/td[@class='yearsCol']").rr('\s+',' ').trim(),
-									'Image', s.savelink(imageurl, filename='{0}.jpg'.format(itemno), dir='gm_images') if imageurl else ''
+									'Image', s.save_link(imageurl, file_name='{0}.jpg'.format(itemno), dir='gm_images') if imageurl else ''
 
 								]
 

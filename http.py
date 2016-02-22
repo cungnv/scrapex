@@ -1,4 +1,4 @@
-import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib, httplib, contextlib, cookielib, random, socket, ssl
+import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib, httplib, contextlib, cookielib, random, socket, ssl, base64
 
 from cStringIO import StringIO
 from gzip import GzipFile
@@ -16,6 +16,17 @@ else:
 	ssl._create_default_https_context = _create_unverified_https_context
 
 meta_seperator = '=======META======'
+class Proxy(object):
+	def __init__(self, host, port, proxy_auth = None):
+		self.host = host
+		self.port = int(port)
+		self.proxy_auth = proxy_auth
+		
+		self.auth_header = 'Basic ' + base64.b64encode(self.proxy_auth) if self.proxy_auth else None
+
+		self.full_address = ( '%s@%s:%s' % (self.proxy_auth, self.host, self.port) ) if self.proxy_auth else ('%s:%s' % (self.host, self.port))
+
+
 
 class ProxyManager(object):
 	
@@ -51,20 +62,19 @@ class ProxyManager(object):
 
 	def random_proxy(self):
 		if not self.proxies:
-			return ''
+			return None
 
 		proxy = random.choice( self.proxies )	
 		if self.proxy_auth and len(proxy.split(':')) == 2:
-			proxy = '%s@%s' % (self.proxy_auth, proxy)
-
+			return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth=self.proxy_auth)
+			
 		#support proxy in ip:port:user:pass
 		if len(proxy.split(':')) == 4:
-			proxy_auth = ':'.join(proxy.split(':')[2:])
-			proxy = ':'.join(proxy.split(':')[0:2])
-			proxy = '%s@%s' % (proxy_auth, proxy)
+			proxy = proxy.split(':')
+			return Proxy(host=proxy[0], port=proxy[1], proxy_auth='%s:%s' % (proxy[2], proxy[3]))
 			
 			
-		return proxy	
+		return None
 
 	def get_proxy(self, url=None):
 
@@ -90,7 +100,7 @@ class Request(object):
 	def __init__(self, url, post = None, passdata={}, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -114,16 +124,79 @@ class Request(object):
 		if self.options.get('ajax') is True:
 			self.options['headers']['X-Requested-With'] = 'XMLHttpRequest'
 
-		
+	
+	def __getitem__(self, key):
+		return self.get(key)
 
 	def get(self, name, default = None):
 		return self.options.get(name, default)
 	def set(self, name, value):
-		return self.options.set(name, value)	
+		self.options[name]= value
+		return self
 
 	def update(self, dict2):
 		self.options.update(dict2)
 		return self
+
+	def normalize(self, scraper):
+		""" normalize this req with using the provided scraper's config """
+
+		req = self
+
+		self.url = common.normalize_url(self.url)
+		# self.url = str(self.url)
+
+		accept_error_codes = req.get('accept_error_codes')
+		if accept_error_codes is None:
+			accept_error_codes = []
+			req.set('accept_error_codes', accept_error_codes)
+
+		#default headers
+		user_agent = req.get('user_agent', agent.firefox ) #default agent is firefox
+		
+		if user_agent == 'random':
+			user_agent = agent.random_agent()
+
+		headers = {
+			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+			"User-Agent": user_agent,
+			"Accept-Language": "en-us,en;q=0.5",
+			"Accept-Encoding": "gzip, deflate",			
+			"Connection": "close" #turn off keep-alive
+		}
+		if req.post:
+			headers.update({"Content-Type": "application/x-www-form-urlencoded"})
+			
+		#update user-passed in headers
+		if req.get('headers'):
+			if req.get('merge_headers') is not False:
+				#merge user defined headers with default headers
+				headers.update(req.get('headers')) 
+			else:
+				#only use user defined headers
+				headers = req.get('headers')	
+
+
+		req.set('headers', headers)
+			
+		proxy = req.get('proxy') or scraper.proxy_manager.get_proxy(req.url)
+		if proxy and req.get('proxy_url_filter'):
+			#check if this url is qualified for using proxy
+			if not re.compile(req.get('proxy_url_filter')).findall(req.url):
+				#failed
+				proxy = ''
+				logger.debug('proxy not used for url: %s', req.url)
+
+		req.set('proxy', proxy)
+		
+		
+		#normalise the post
+		if req.post and isinstance(req.post, common.MyDict):
+			req.post = req.post.dict()
+		if req.post and isinstance(req.post, dict):
+			req.post = urllib.urlencode(sorted(req.post.items()))
+
+		return self	
 
 class Response(object):
 	""" a wrapper for http response """
@@ -256,72 +329,29 @@ class Client(object):
 	
 	def fetch_data(self, req):
 		""" processes a http request specified by the req object and returns a response object """
-		
+		req.normalize(self.scraper)
+
 		accept_error_codes = req.get('accept_error_codes')
-		if accept_error_codes is None:
-			accept_error_codes = []
-
-
+		
 		time.sleep(self.scraper.config['delay'])
 		opener = req.get('opener')
 		if not opener:
 			opener = create_opener(use_cookie=False) if req.get('use_cookie') is False else  self.opener
 
-		#default headers
-		user_agent = req.get('user_agent', agent.firefox ) #default agent is firefox
+
+		headers = req.get('headers')
 		
-		if user_agent == 'random':
-			user_agent = agent.random_agent()
-
-		headers = {
-			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-			"User-Agent": user_agent,
-			"Accept-Language": "en-us,en;q=0.5",
-			"Accept-Encoding": "gzip, deflate",			
-			"Connection": "close" #turn off keep-alive
-		}
-		if req.post:
-			headers.update({"Content-Type": "application/x-www-form-urlencoded"})
-			
-		#update user-passed in headers
-		if req.get('headers'):
-			if req.get('merge_headers') is not False:
-				#merge user defined headers with default headers
-				headers.update(req.get('headers')) 
-			else:
-				#only use user defined headers
-				headers = req.get('headers')	
-
-
 		if self.scraper.config.get('use_requests') is True:
 			#use requests module instead of urllib2
 			return self.requests_fetch_data(req,headers)
 
-			
-		proxy = req.get('proxy') or self.scraper.proxy_manager.get_proxy(req.url)
-		if proxy and req.get('proxy_url_filter'):
-			#check if this url is qualified for using proxy
-			if not re.compile(req.get('proxy_url_filter')).findall(req.url):
-				#failed
-				proxy = ''
-				logger.debug('proxy not used for url: %s', req.url)
-
-		
+		proxy = req.get('proxy')
 		
 		if proxy and req.get('use_proxy') is not False:
 			if req.url.lower().startswith('https://'):
-				opener.add_handler(urllib2.ProxyHandler({'https' : proxy}))
+				opener.add_handler(urllib2.ProxyHandler({'https' : proxy.full_address }))
 			else:
-				opener.add_handler(urllib2.ProxyHandler({'http' : proxy}))
-		
-		#self.logger.debug('proxy: %s', proxy)
-
-		#normalise the post
-		if req.post and isinstance(req.post, common.MyDict):
-			req.post = req.post.dict()
-		if req.post and isinstance(req.post, dict):
-			req.post = urllib.urlencode(sorted(req.post.items()))
-
+				opener.add_handler(urllib2.ProxyHandler({'http' : proxy.full_address }))
 		
 
 		request = urllib2.Request(req.url, req.post, headers)
@@ -431,12 +461,7 @@ class Client(object):
 	def requests_fetch_data(self, req, headers):
 		logger = logging.getLogger(__name__)
 		
-		proxy = req.get('proxy') or self.scraper.proxy_manager.get_proxy(req.url)
-		if proxy and req.get('proxy_url_filter'):
-			#check if this url is qualified for using proxy
-			if not re.compile(req.get('proxy_url_filter')).findall(req.url):
-				#failed
-				proxy = ''
+		proxy = req.get('proxy')
 
 		proxies = None
 		if proxy and req.get('use_proxy') is not False:
@@ -449,10 +474,7 @@ class Client(object):
 		logger.debug('loading %s %s', req.url, req.post or '')
 
 		accept_error_codes = req.get('accept_error_codes')
-		if accept_error_codes is None:
-			accept_error_codes = []
-
-
+		
 		client = self.requests_client
 
 		status_code = 0

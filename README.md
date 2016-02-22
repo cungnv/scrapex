@@ -10,13 +10,7 @@ or
 - pip install https://github.com/cungnv/scrapex/archive/master.zip
 
 #Install lxml
-- For windows: download and install lxml from http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
-
-	*Note: to use easy_install command, please download and run this python script:
-
-	https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py
-
-	...then make sure to add C:\Python27\Scripts to your system path (on Windows)
+Checkout the [guidelines](http://lxml.de/installation.html)
 
 #How to Use
 
@@ -24,16 +18,16 @@ or
 - Scraper: the main class to manage a scraping project. Something like project directory, input/output, cache, cookies, making http requests, proxies, etc.
 - Node: a wrap up around Lxmlnode object, to provide some convenient functions to query data from a node using xpath.
 - DOM (extends Node): this one is normally created when the scraper loads a html page, -- all relative links within the page are resolved to absolute.
-- DataItem (extens unicode): another convenient object to help manipulate a string easily, including extract data using regex.
+- DataItem (an unicode wraper): another convenient object to help manipulate a string easily, including extract data using regex.
 
 ##Code example:
 Please checkout [sample project](https://github.com/cungnv/scrapex/blob/master/sample/gm.py)
 
 A simple usage
 ```
-from scrapex import core, common
+from scrapex import *
 #create a scraper object
-s = core.Scraper(dir='c:/jobs/test')
+s = Scraper(dir='c:/jobs/test')
 
 #load a page
 doc = s.load('https://www.google.com/search?q=scraping')
@@ -54,11 +48,11 @@ for node in nodes:
 
 ```
 
-Common use cases
+Common usages
 
 ```
 # create a scraper with cookies, proxies enabled and cache disabled
-s = core.Scraper(cache=False, cookie=True, proxyfile='proxy.txt', proxyauth='username:password')
+s = Scraper(use_cache=False, use_cookie=True, proxy_file='proxy.txt', proxy_auth='username:password')
 
 # make a get request
 doc = s.load(url)
@@ -67,13 +61,13 @@ doc = s.load(url)
 doc = s.load(url, post="email=test%40gmail.com&pass=password") # or doc = s.load(url, post = {"email":test@gmail.com", "pass":"password"} )
 
 # make a request with plain text result (instead of DOM object as result)
-html = s.load(url)
+html = s.load_html(url)
 
 # extract all required items from result page
 listings = doc.q("//div[@id='results']//h3[@class='product-name']/a")
 for node in listings:
 	title = node.nodevalue().trim()
-	detailurl = node.href() # or node.x("@href")
+	detailurl = node.href()
 	
 
 # extract some data point from html page
@@ -84,7 +78,7 @@ id = doc.url.subreg('/product/(\d+)/')
 
 
 # save an image to disk
-success = s.savelink(imageurl, dir = 'images', filename = common.DataItem(imageurl).subreg('/([^/]+)$') )
+success = s.save_link(image_url, dir = 'images', file_name = common.DataItem(image_url).subreg('/([^/]+)$') )
 
 
 ```
