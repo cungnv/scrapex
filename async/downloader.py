@@ -7,6 +7,8 @@ from twisted.internet.fdesc import readFromFD, writeToFD, setNonBlocking
 
 from .client import Client
 from .. import http, common
+import logging
+logger = logging.getLogger(__name__)
 
 
 def _readFromFD(fd, callback):
@@ -53,6 +55,8 @@ class Downloader():
 
 		# self._input_count = 0
 		self._done_count = 0
+
+		self._prev_stats = None
 
 	def set_cc(self, cc):
 		self.cc = cc
@@ -134,8 +138,19 @@ class Downloader():
 
 	
 	def progress(self):
+		stats = dict(
+			pending = len(self.q),
+			onhold = len(self.onhold),
+			done = int(self._done_count)
+			)
+		self.scraper.logger.info('pending: %s, done: %s, onhold: %s', stats['pending'], stats['done'], stats['onhold'])
 
-		self.scraper.logger.info('pending: %s, done: %s, onhold: %s', len(self.q), self._done_count, len(self.onhold))
+		if self._prev_stats == stats:
+			#for some reason the downloader made no progress, try to stop it manually
+			self.scraper.logger.warn('downloader stopped uncleanly')
+			reactor.stop()
+		else:
+			self._prev_stats = stats
 
 	
 
@@ -169,17 +184,24 @@ class Downloader():
 	def _build_response_data(self, req, response):
 		
 		encoding = 'utf8'
+		unicode_html = u''
+
+		try:
+			unicode_html = response['data'].decode(encoding, 'ignore')
+		except Exception as e:
+			logger.warn('failed to decode bytes from url: %s', req.url)
+
 		
 		return_type = req.get('return_type') or 'doc'
 
 		if return_type == 'doc':
-			doc = http.Doc(url=req.url, html=response['data'].decode(encoding))
+			doc = http.Doc(url=req.url, html=unicode_html)
 			doc.req = req
 			doc.status.code = response['code']
 			doc.status.message = response['message']
 			return doc
 		elif return_type == 'html':
-			html = common.DataItem( response['data'].decode(encoding) )
+			html = common.DataItem( unicode_html )
 			html.req = req
 			html.status = common.DataObject()
 			html.status.code = response['code']
@@ -199,8 +221,20 @@ class Downloader():
 			if self.scraper.config['use_cache']:
 				self._write_to_cache(req.url, req.post, data=response['data'], file_name = req.get('file_name'))
 		else:
-			self.scraper.logger.warn('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
-
+			#untested code
+			if req.get('retries'):
+				req.update({'retries': req['retries'] - 1})
+				
+				self.scraper.logger.debug('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
+				self.scraper.logger.debug('retry: %s %s', req.url, req.post)
+				# self._request(req)
+				#put back the request into the queue
+				self.put(req)
+				return
+			else:	
+				self.scraper.logger.warn('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
+			#end of untested code
+				
 		if req.get('cb'):
 			cb_data = self._build_response_data(req, response)
 			req.get('cb')(cb_data)
@@ -209,7 +243,6 @@ class Downloader():
 
 
 	def _request(self, req):
-
 		if self.scraper.config['use_cache']:
 			if self.scraper.cache.exists(url=req.url, post=req.post, file_name = req.get('file_name')):
 
@@ -229,6 +262,9 @@ class Downloader():
 
 
 					return deferred
+				else:
+					#no need to return a deffered
+					return None	
 
 		
 		deferred = self.client.fetch(req)
@@ -242,6 +278,15 @@ class Downloader():
 		if response['success']:
 
 			self._write_file(file_path, response['data'])
+		else:
+			if req.get('retries'):
+				req.update({'retries': req['retries'] - 1})
+				self.scraper.logger.debug('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
+				self.scraper.logger.debug('retry: %s %s', req.url, req.post)
+				#put back the request into the queue
+				self.put(req)
+				return	
+
 		
 		if cb:
 			cb(FileDownloadResponse(req=req, success=response['success'], message=response['message']))

@@ -50,17 +50,14 @@ class _ReadBodyProtocol(protocol.Protocol):
 		if reason.check(ResponseDone):
 			self.deferred.callback(b''.join(self.dataBuffer))
 		elif reason.check(PotentialDataLoss):
-			print 'data lost'
 			try:
 				self.deferred.errback(
 					PartialDownloadError(self.status, self.message,
 										 b''.join(self.dataBuffer)))
-				print 'errback called'
 			except Exception as ex:
 				print ex
 				self.deferred.errback(PartialDownloadError(0, 'PartialDownloadError', ''))	
 		else:
-			print reason
 			self.deferred.errback(reason)
 
 

@@ -1,6 +1,6 @@
 from time import time
 from twisted.internet import reactor
-from twisted.web.client import HTTPClientFactory, URI, HTTPPageGetter, Agent, ProxyAgent, RedirectAgent, ContentDecoderAgent, GzipDecoder, CookieAgent
+from twisted.web.client import HTTPClientFactory, URI, HTTPPageGetter, Agent, ProxyAgent, RedirectAgent, BrowserLikeRedirectAgent, ContentDecoderAgent, GzipDecoder, CookieAgent
 from twisted.internet.endpoints import HostnameEndpoint, TCP4ClientEndpoint
 from twisted.internet.defer import Deferred
 from twisted.internet import ssl
@@ -25,11 +25,11 @@ def _to_utf8encoded_bytes(bytes, charset):
 
 	unicode_string = None	
 	try:
-		unicode_string = bytes.decode(charset)
+		unicode_string = bytes.decode(charset, 'ignore')
 	except:
 		#try with latin1
 		try:
-			unicode_string = bytes.decode('latin1')
+			unicode_string = bytes.decode('latin1', 'ignore')
 		except:
 			logger.warn('failed to decode bytes from url: %s', req.url)
 
@@ -70,6 +70,7 @@ def _handle_response(response, req, output_deferred):
 			content_type = response.headers.getRawHeaders('content-type')
 			if not content_type:
 				logger.warn('no content-type header found: %s', req.url)
+				content_type = ''
 			else:
 				content_type = content_type[0].lower()
 
@@ -96,21 +97,20 @@ def _handle_response(response, req, output_deferred):
 					'message': 'ok'
 
 				}	
+
 		output_deferred.callback(result)
 			
 	def body_err(err):
-		try:
-			result = {
-					'success': False,
-					'data': '',
-					'req': req,
-					'code': getattr(response, 'code', 0),
-					'message': 'error while reading response body'
+		result = {
+				'success': False,
+				'data': '',
+				'req': req,
+				'code': 0, #getattr(response, 'code', 0),
+				'message': 'error while reading response body'
 
-				}
-			output_deferred.callback(result)
-		except Exception as e:
-			print e	
+			}
+		output_deferred.callback(result)
+
 
 	d = readBody(response)
 	d.addCallbacks(body_ready, body_err)	
@@ -152,7 +152,7 @@ class Client(object):
 
 		#create an agent for direct requests
 		self._direct_agent = Agent(reactor)
-		self._direct_agent = RedirectAgent(self._direct_agent, redirectLimit=3)
+		self._direct_agent = BrowserLikeRedirectAgent(self._direct_agent, redirectLimit=3)
 		self._direct_agent = ContentDecoderAgent(self._direct_agent, [('gzip', GzipDecoder)])
 		self.cj = self.scraper.client.opener.cj
 		
@@ -163,7 +163,7 @@ class Client(object):
 
 		#create an agent for http-proxy requests
 		self.__http_proxy_agent = ProxyAgent(None) #no endpoint yet
-		self._http_proxy_agent = RedirectAgent(self.__http_proxy_agent, redirectLimit=3)
+		self._http_proxy_agent = BrowserLikeRedirectAgent(self.__http_proxy_agent, redirectLimit=3)
 		self._http_proxy_agent = ContentDecoderAgent(self._http_proxy_agent, [('gzip', GzipDecoder)])
 
 		if self.cj is not None:
@@ -171,7 +171,7 @@ class Client(object):
 
 		#create an agent for https-proxy requests
 		self.__https_proxy_agent = TunnelingAgent(reactor=reactor, proxy=None, contextFactory=ScrapexClientContextFactory(), connectTimeout=30) #no proxy yet
-		self._https_proxy_agent = RedirectAgent(self.__https_proxy_agent, redirectLimit=3)
+		self._https_proxy_agent = BrowserLikeRedirectAgent(self.__https_proxy_agent, redirectLimit=3)
 		self._https_proxy_agent = ContentDecoderAgent(self._https_proxy_agent, [('gzip', GzipDecoder)])
 		if self.cj is not None:
 			self._https_proxy_agent = CookieAgent(self._https_proxy_agent, self.cj)

@@ -16,7 +16,8 @@ setup(
         'lxml',
         'xlwt',
         'xlrd',
-        'openpyxl'
+        'openpyxl',
+        'twisted'
     ],
     
     license='LGPL',

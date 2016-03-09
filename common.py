@@ -257,11 +257,14 @@ def toml(des):
 		try:
 			bk_m = m			
 			m = DataItem(m).rr('oz--is','').rr('fl--is','').trim()
-
 			value = float(m)
-			size_ml = round(value * 29.5735296875, 0) # Convert.ToInt32(Math.Round((29.5735296875) * value, 0));
+			size_ml = value * 29.5735296875
+			if size_ml > 5:
+				size_ml =  round(size_ml, 0)
+			else:
+				size_ml = round(size_ml, 2)
 
-			newsize = '%d ml' % size_ml
+			newsize = ('%d ml' % size_ml) if size_ml>5 else ('%s ml' % size_ml)
 			des = des.replace(bk_m, newsize)
 		except Exception:
 			return des
@@ -513,6 +516,16 @@ def parse_table(table_node, restype='dict', more_xpath=None, cols=None):
 		dataset.append(datarow)
 
 	return dataset						
+
+def list_to_dict(l):
+	"""
+	convert a list of key,value pair into dict """
+	res = {}
+	for i in range(0, len(l)):
+		if i % 2 == 0:
+			res[l[i]] = l[i+1]
+
+	return res		
 
 
 	
