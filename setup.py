@@ -3,11 +3,12 @@ try:
 	from setuptools import setup, find_packages
 except ImportError:
 	from distutils.core import setup, find_packages
+	
 setup(
 	name='scrapex', 
 	version='0.1.1',
-	packages=find_packages(),
-	# package_dir={'scrapex':'.'},
+	packages=['scrapex','async'],
+	package_dir={'scrapex':'.','async':'./async'},
 	author='Cung Nguyen',
 	author_email='cungjava2000@gmail.com',
 	description='A simple web scraping lib for Python',    
