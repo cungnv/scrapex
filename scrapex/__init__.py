@@ -1,6 +1,6 @@
-from core import Scraper
-import common
-from common import DataItem, DataObject
-from http import Doc, Request
-from node import Node
-from async import Downloader
+from scrapex.core import Scraper
+from scrapex import common
+from scrapex.common import DataItem, DataObject
+from scrapex.http import Doc, Request
+from scrapex.node import Node
+from scrapex.async import Downloader
