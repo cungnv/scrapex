@@ -7,7 +7,7 @@ from worker import Worker
 import http, common, logging_config
 from http import Request
 from cache import Cache
-from .async import Downloader
+from async import Downloader
 
 class Scraper(object):
 	
