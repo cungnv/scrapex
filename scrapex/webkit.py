@@ -20,7 +20,7 @@ def myQtMsgHandler( msg_type, msg_string ) :
 qInstallMsgHandler(myQtMsgHandler)
 	
 
-import common, http
+from scrapex import common, http
 
 
 

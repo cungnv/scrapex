@@ -7,8 +7,7 @@ except ImportError:
 setup(
 	name='scrapex', 
 	version='0.1.1',
-	packages=['scrapex','async'],
-	package_dir={'scrapex':'.','async':'./async'},
+	packages=find_packages(),
 	author='Cung Nguyen',
 	author_email='cungjava2000@gmail.com',
 	description='A simple web scraping lib for Python',    

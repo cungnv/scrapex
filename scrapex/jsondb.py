@@ -1,5 +1,5 @@
 import sys, os, time, json, shutil
-import common
+from scrapex import common
 
 class JsonDB(object):
 	""" a simple database based on json format """

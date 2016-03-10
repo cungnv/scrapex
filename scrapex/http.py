@@ -3,8 +3,8 @@ import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib
 from cStringIO import StringIO
 from gzip import GzipFile
 
-import common, agent
-from node import Node
+from scrapex import common, agent
+from scrapex.node import Node
 
 try:
 	_create_unverified_https_context = ssl._create_unverified_context

@@ -3,8 +3,8 @@ from lxml import etree
 import lxml.html
 from StringIO import StringIO
 
-from common import DataItem
-import common
+from scrapex.common import DataItem
+from scrapex import common
 
 class Node(object):
 	lxmlnode = None

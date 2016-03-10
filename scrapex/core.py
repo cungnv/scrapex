@@ -2,12 +2,12 @@ import threading, os, random, sys, time, json, logging, logging.config, atexit
 from Queue import Queue
 from urlparse import urlparse
 
-from node import Node
-from worker import Worker
-import http, common, logging_config
-from http import Request
-from cache import Cache
-from async import Downloader
+from scrapex.node import Node
+from scrapex.worker import Worker
+from scrapex.http import Request
+from scrapex.cache import Cache
+from scrapex.async import Downloader
+from scrapex import http, common, logging_config
 
 class Scraper(object):
 	

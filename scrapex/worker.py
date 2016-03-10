@@ -1,5 +1,5 @@
 import threading, random, logging
-import http
+from scrapex import http
 
 
 class Worker(threading.Thread):	

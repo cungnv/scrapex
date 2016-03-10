@@ -1,6 +1,6 @@
 import os, sys, md5, urllib, logging
 
-import common
+from scrapex import common
 
 class Cache(object):
 	"""docstring for Cache"""
