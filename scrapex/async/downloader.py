@@ -40,12 +40,13 @@ class Downloader():
 
 
 
-	def __init__(self, scraper, cc=3, progress_check_interval=60):
+	def __init__(self, scraper, cc=3, progress_check_interval=60, stop_when_no_progress_made=True):
 		
 		self.scraper = scraper
 		self.client = Client(scraper)
 		self.cc = cc
 		self.progress_check_interval = progress_check_interval
+		self.stop_when_no_progress_made = stop_when_no_progress_made
 
 		self.q = deque() #working queue
 		
@@ -73,6 +74,8 @@ class Downloader():
 		while True:
 			try:
 				req = self.q.popleft()
+				self._done_count +=1
+
 				if req.get('bin') is True:
 					d = self._download_file(req)
 				else:	
@@ -147,10 +150,11 @@ class Downloader():
 
 		if self._prev_stats == stats:
 			#for some reason the downloader made no progress, try to stop it manually
-			self.scraper.logger.warn('downloader stopped uncleanly')
-			reactor.stop()
-		else:
-			self._prev_stats = stats
+			if self.stop_when_no_progress_made:
+				self.scraper.logger.warn('downloader stopped uncleanly')
+				reactor.stop()
+		
+		self._prev_stats = stats
 
 	
 
@@ -215,7 +219,6 @@ class Downloader():
 
 	def _cb_fetch_finished(self, response):
 		
-		self._done_count += 1
 		req = response['req']
 		if response['success'] == True:
 			if self.scraper.config['use_cache']:
@@ -272,7 +275,6 @@ class Downloader():
 		return deferred
 		
 	def _cb_file_downloaded(self, response, req, file_path):
-		self._done_count += 1
 
 		cb = req.get('cb')
 		if response['success']:
