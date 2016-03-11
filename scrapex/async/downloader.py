@@ -52,8 +52,6 @@ class Downloader():
 		
 		self.onhold = deque() #waiting queue
 
-		self._sem = defer.DeferredSemaphore(self.cc)
-
 		# self._input_count = 0
 		self._done_count = 0
 
@@ -61,7 +59,6 @@ class Downloader():
 
 	def set_cc(self, cc):
 		self.cc = cc
-		self._sem = defer.DeferredSemaphore(self.cc)
 
 	def put(self, req, onhold = False):
 		if not onhold:
@@ -151,8 +148,9 @@ class Downloader():
 		if self._prev_stats == stats:
 			#for some reason the downloader made no progress, try to stop it manually
 			if self.stop_when_no_progress_made:
-				self.scraper.logger.warn('downloader stopped uncleanly')
-				reactor.stop()
+				if reactor.running:
+					self.scraper.logger.warn('downloader stopped uncleanly')
+					reactor.stop()
 		
 		self._prev_stats = stats
 
