@@ -86,7 +86,9 @@ class Downloader():
 
 	def start(self):
 		
-		# self.scraper.logger.info('downloader start')
+		if len(self.q)==0 and len(self.onhold)==0:
+			#nothing on queues
+			return
 
 		coop = task.Cooperator(started=True)
 		generator = self.process()
@@ -134,7 +136,12 @@ class Downloader():
 			#all items in both queues processed
 			self.progress()
 			self.scraper.logger.info('download finished')
-			reactor.stop()
+			try:
+				
+				reactor.stop()
+			except Exception:
+				pass
+			
 
 	
 	def progress(self):
@@ -145,13 +152,16 @@ class Downloader():
 			)
 		self.scraper.logger.info('pending: %s, done: %s, onhold: %s', stats['pending'], stats['done'], stats['onhold'])
 
-		if self._prev_stats == stats:
+		if self._prev_stats == stats and (stats.pending>0 or stats.onhold>0):
 			#for some reason the downloader made no progress, try to stop it manually
 			if self.stop_when_no_progress_made:
 				if reactor.running:
-					self.scraper.logger.warn('downloader stopped uncleanly')
-					reactor.stop()
-		
+					try:
+						self.scraper.logger.warn('downloader stopped uncleanly')
+						reactor.stop()
+					except Exception:
+						pass
+
 		self._prev_stats = stats
 
 	
