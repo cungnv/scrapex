@@ -4,7 +4,7 @@ from twisted.internet import reactor
 from twisted.internet import task
 from twisted.internet import defer
 from twisted.internet.fdesc import readFromFD, writeToFD, setNonBlocking
-
+from twisted.python.failure import Failure
 from .client import Client
 from .. import http, common
 import logging
@@ -77,6 +77,12 @@ class Downloader():
 					d = self._download_file(req)
 				else:	
 					d = self._request(req)
+				if d is not None:
+					#add a timeout call on the deferred to prevent downloader hangout
+					timeout = req.get('timeout') or 45
+					timeout += 10
+					reactor.callLater(timeout, d.cancel)
+
 				yield d
 
 			except Exception as e:
@@ -96,9 +102,11 @@ class Downloader():
 		deferreds = []
 
 		for i in xrange(self.cc):
+			
 			d = coop.coiterate(generator)
-			if d is not None:
-				deferreds.append(d)
+			
+			deferreds.append(d)
+				
 
 		dl = defer.DeferredList(deferreds)	
 
@@ -152,7 +160,7 @@ class Downloader():
 			)
 		self.scraper.logger.info('pending: %s, done: %s, onhold: %s', stats['pending'], stats['done'], stats['onhold'])
 
-		if self._prev_stats == stats and (stats.pending>0 or stats.onhold>0):
+		if self._prev_stats == stats and (stats['pending']>0 or stats['onhold']>0):
 			#for some reason the downloader made no progress, try to stop it manually
 			if self.stop_when_no_progress_made:
 				if reactor.running:
@@ -226,7 +234,10 @@ class Downloader():
 
 
 	def _cb_fetch_finished(self, response):
-		
+		if isinstance(response, Failure):
+			self.scraper.logger.warn('request cancelled: %s', req.url)
+			return
+
 		req = response['req']
 		if response['success'] == True:
 			if self.scraper.config['use_cache']:
@@ -283,8 +294,24 @@ class Downloader():
 		return deferred
 		
 	def _cb_file_downloaded(self, response, req, file_path):
-
+		
 		cb = req.get('cb')
+		
+		if isinstance(response, Failure):
+			self.scraper.logger.warn('request cancelled: %s', req.url)
+			if req.get('retries'):
+				req.update({'retries': req['retries'] - 1})
+				self.scraper.logger.debug('retry: %s %s', req.url, req.post)
+				#put back the request into the queue
+				self.put(req)
+				return	
+
+			if cb:
+				cb(FileDownloadResponse(req=req, success=False, message='request cancelled'))
+
+			return
+				
+		
 		if response['success']:
 
 			self._write_file(file_path, response['data'])
