@@ -235,12 +235,12 @@ class Downloader():
 
 	def _cb_fetch_finished(self, response):
 		if isinstance(response, Failure):
-			self.scraper.logger.warn('request cancelled: %s', req.url)
+			self.scraper.logger.warn('request cancelled')
 			return
 
 		req = response['req']
 		if response['success'] == True:
-			if self.scraper.config['use_cache']:
+			if req['use_cache']:
 				self._write_to_cache(req.url, req.post, data=response['data'], file_name = req.get('file_name'))
 		else:
 			#untested code
@@ -265,7 +265,7 @@ class Downloader():
 
 
 	def _request(self, req):
-		if self.scraper.config['use_cache']:
+		if req['use_cache']:
 			if self.scraper.cache.exists(url=req.url, post=req.post, file_name = req.get('file_name')):
 
 				if req.get('cb'):
