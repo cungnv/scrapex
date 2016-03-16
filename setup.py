@@ -19,7 +19,9 @@ setup(
 		'xlwt',
 		'xlrd',
 		'openpyxl',
-		'twisted'
+		'twisted',
+		'pyOpenSSL',
+		'service_identity'
 	],
 	
 	license='LGPL',

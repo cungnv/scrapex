@@ -80,12 +80,10 @@ def _handle_response(response, req, output_deferred):
 
 			if not is_binary_data:
 				charset = common.DataItem(content_type).subreg('charset\s*=\s*([^\s]+)')
-				if not charset and content_type.lower() == 'application/json':
+				if not charset:
+					logger.warn('no charset parsed from content_type: %s, assumed utf8, url: %s', content_type, req.url)
 					charset = 'utf8'
 					
-				if not charset:
-					logger.warn('no charset parsed from content_type: %s, in url: %s', content_type, req.url)
-				
 				body = _to_utf8encoded_bytes(body, charset=charset)				
 
 
