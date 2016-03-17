@@ -178,10 +178,11 @@ class Client(object):
 
 
 	def fetch(self, req):
-		
+
 		req.normalize(self.scraper)
-		
+
 		""" select agent and install proxy if required """
+		
 		agent = None
 
 		uri = URI.fromBytes(req.url)

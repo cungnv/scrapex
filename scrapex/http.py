@@ -97,7 +97,7 @@ class Status():
 class Request(object):	
 	""" Represents a http request """
 
-	def __init__(self, url, post = None, passdata={}, **options):		
+	def __init__(self, url, post = None, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
 		allowed_option_names = 'return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
@@ -112,9 +112,7 @@ class Request(object):
 		self.url = url.replace(' ', '%20')
 		self.post = post
 		self.options = options
-		if passdata:
-			self.options.update(dict(passdata=passdata))
-
+		
 		#update headers
 		if 'headers' not in self.options:
 			self.options['headers'] = {}
@@ -124,6 +122,7 @@ class Request(object):
 		if self.options.get('ajax') is True:
 			self.options['headers']['X-Requested-With'] = 'XMLHttpRequest'
 
+		self.is_normalized = False	
 	
 	def __getitem__(self, key):
 		return self.get(key)
@@ -140,6 +139,11 @@ class Request(object):
 
 	def normalize(self, scraper):
 		""" normalize this req with using the provided scraper's config """
+		if self.is_normalized:
+			return self
+
+		#copy scraper-wide options if not set yet	
+		self.options = common.combine_dicts(scraper.config, self.options)
 
 		req = self
 
@@ -196,6 +200,8 @@ class Request(object):
 		if req.post and isinstance(req.post, dict):
 			req.post = urllib.urlencode(sorted(req.post.items()))
 
+		self.is_normalized = True	
+		
 		return self	
 
 class Response(object):
@@ -206,13 +212,12 @@ class Response(object):
 
 
 class Doc(Node):
-	def __init__(self, status=None, url='', html='<html></html>', passdata= {}, html_clean=None):		
+	def __init__(self, url='', html='<html></html>', html_clean=None, status=None):		
 		if html_clean:
 			html = html_clean(html)
 
 		Node.__init__(self, html)
 		self.url = common.DataItem( url )
-		self.passdata = passdata if passdata else {}
 		self.status = status or Status(final_url=url)
 		
 
@@ -283,7 +288,7 @@ class Client(object):
 	def load(self, req):
 		""" returns a DOM Document"""
 		html = self.load_html(req)
-		doc = Doc(html=html, url = req.url, status= html.status, passdata = req.get('passdata', {}))
+		doc = Doc(html=html, url = req.url, status= html.status)
 
 		return doc
 
