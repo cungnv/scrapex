@@ -20,8 +20,7 @@ import base64
 from zope.interface import implementer
 from twisted.internet import interfaces
 
-from .. import common
-from .tunnel import Tunnel
+from scrapex import common
 
 class TunnelError(Exception):
 	"""An HTTP CONNECT tunnel could not be established by the proxy."""

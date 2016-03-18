@@ -299,19 +299,17 @@ class Scraper(object):
 
 
 
-	def loop(self, url, next, post=None, cb=None, cc = 1, deep=2, debug=0, allow_external = False, link_filter=None,  **_options):
-		options = common.combine_dicts(self.config, _options)
+	def loop(self, url, next, post=None, cb=None, cc = 1, deep=2, debug=0, allow_external = False, link_filter=None, start_now=True,  **options):
 
 		doneurls = [common.md5(url)]
-		queue = Queue()
 		
 		domain = common.get_domain(url).lower()
 
 
 
-		def handler(doc):
+		def page_loaded(doc):
 
-			if doc.passdata.get('deep')<deep:
+			if doc.req['meta']['deep']<deep:
 				for n in doc.q(next):
 					nexturl = n.nodevalue()
 
@@ -322,71 +320,51 @@ class Scraper(object):
 
 					if common.md5(nexturl) not in doneurls:					
 						doneurls.append(common.md5(nexturl))
-						queue.put({'req':Request(url=nexturl,passdata=dict(deep=doc.passdata.get('deep')+1), **options), 'cb': handler})					
+						req = Request(url=nexturl, meta=dict(deep=doc.req['meta']['deep']+1),use_cache=True,  cb = page_loaded, **options)
+						self.downloader.put(req)
 			
-			self.logger.debug( 'deep: %s', doc.passdata.get('deep') )
-			self.logger.debug( doc.url )
-
+			#allow the loop caller proccessing each loaded page			
 			if cb:
 				cb(doc)
 		
 		
-		queue.put({'req':Request(url, post, passdata=dict(deep=1), **options), 'cb': handler})			
-		#start workers					
-		threads = []
-		for i in range(cc if cc else self.config['cc']):
-			t = Worker(queue = queue, client=self.client, timeout=0.01)
-			t.setDaemon(True)
-			threads.append(t)
-			t.start()		
+		self.downloader.put(Request(url=url, post=post, meta=dict(deep=1), use_cache=True, cb = page_loaded, **options))			
 
-		
-		queue.join() #wait until this loop done
-		#waiting for all the threads exit
-		try:
-			while len(threads) > 0:
-				time.sleep(0.1)
-				#count = len(threads)
-				for i, t in enumerate(threads):
-					t = threads[i]
-					if not t.isAlive():
-						del threads[i]
-			
-		except Exception as e:
-			print e	
+		self.downloader.cc = cc
+		if start_now:
+			self.downloader.start()
 
-	def find_emails(self, url):
+	def find_emails(self, url, emails_dict, deep=2, link_filter=None):
 		if not url: return []
 		if not common.subreg(url, '^(http)'):
 			url = 'http://'+url
 		if '@' in url:
 			return common.get_emails(url)	
+		if url not in emails_dict:
+			emails_dict[url] = []
 
-		res = []		
-		def link_filter(url):
-			keywords = ["contact","about","info","imprint","kontakt","uber","wir","impressum","contacter","representatives"]
-			for kw in keywords:
-				if kw.lower() in url:
-					return True
-			return False		
+		if not link_filter:		
+			def link_filter(url):
+				keywords = ["contact","about","agent","info","imprint","kontakt","uber","wir","impressum","contacter","representatives"]
+				for kw in keywords:
+					if kw.lower() in url:
+						return True
+				return False		
+
 		def parse(doc):
 			for email in common.get_emails(doc.html()):
-				if email not in res:
-					res.append(email)
+				if email not in emails_dict[url]:
+					emails_dict[url].append(email)
 
 		self.loop(url=url,
 			next="//a/@href | //iframe/@src",			
-			deep=2,
+			deep=deep,
 			link_filter = link_filter,
 			cb = parse,
 			cc=10,
-			debug=0
+			start_now = False
 
-			)		
-		return res		
-			
-
-
+			)
 
 	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=True, debug=True, verify=None,  **_options):
 		

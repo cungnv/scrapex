@@ -1,5 +1,6 @@
 from time import time
 from twisted.internet import reactor
+from twisted.internet import task
 from twisted.web.client import HTTPClientFactory, URI, HTTPPageGetter, Agent, ProxyAgent, RedirectAgent, BrowserLikeRedirectAgent, ContentDecoderAgent, GzipDecoder, CookieAgent
 from twisted.internet.endpoints import HostnameEndpoint, TCP4ClientEndpoint
 from twisted.internet.defer import Deferred
@@ -8,10 +9,10 @@ from twisted.web.http_headers import Headers
 from zope.interface import implements
 from twisted.internet.defer import succeed
 from twisted.web.iweb import IBodyProducer
-
-from .. import common
-from .agents import TunnelingAgent, ScrapexClientContextFactory
-from .body_reader import readBody
+import random
+from scrapex import common
+from scrapex.async.agents import TunnelingAgent, ScrapexClientContextFactory
+from scrapex.async.body_reader import readBody
 
 import logging
 logger = logging.getLogger(__name__)
@@ -145,11 +146,12 @@ class StringProducer(object):
 		pass
 
 class Client(object):
-	def __init__(self, scraper):
+	def __init__(self, scraper, pool=None):
 		self.scraper = scraper
+		self._pool = pool
 
 		#create an agent for direct requests
-		self._direct_agent = Agent(reactor)
+		self._direct_agent = Agent(reactor, pool=self._pool, connectTimeout=scraper.config.get('timeout') or 30)
 		self._direct_agent = BrowserLikeRedirectAgent(self._direct_agent, redirectLimit=3)
 		self._direct_agent = ContentDecoderAgent(self._direct_agent, [('gzip', GzipDecoder)])
 		self.cj = self.scraper.client.opener.cj
@@ -160,7 +162,7 @@ class Client(object):
 			self._direct_agent = CookieAgent(self._direct_agent, self.cj)
 
 		#create an agent for http-proxy requests
-		self.__http_proxy_agent = ProxyAgent(None) #no endpoint yet
+		self.__http_proxy_agent = ProxyAgent(None, pool=self._pool) #no endpoint yet
 		self._http_proxy_agent = BrowserLikeRedirectAgent(self.__http_proxy_agent, redirectLimit=3)
 		self._http_proxy_agent = ContentDecoderAgent(self._http_proxy_agent, [('gzip', GzipDecoder)])
 
@@ -168,7 +170,7 @@ class Client(object):
 			self._http_proxy_agent = CookieAgent(self._http_proxy_agent, self.cj)
 
 		#create an agent for https-proxy requests
-		self.__https_proxy_agent = TunnelingAgent(reactor=reactor, proxy=None, contextFactory=ScrapexClientContextFactory(), connectTimeout=30) #no proxy yet
+		self.__https_proxy_agent = TunnelingAgent(reactor=reactor, proxy=None, contextFactory=ScrapexClientContextFactory(), connectTimeout=30, pool=self._pool) #no proxy yet
 		self._https_proxy_agent = BrowserLikeRedirectAgent(self.__https_proxy_agent, redirectLimit=3)
 		self._https_proxy_agent = ContentDecoderAgent(self._https_proxy_agent, [('gzip', GzipDecoder)])
 		if self.cj is not None:
@@ -215,8 +217,9 @@ class Client(object):
 		self.scraper.logger.debug('to fetch: %s %s', req.url, req.post)
 		
 		bodyProducer = StringProducer(req.post) if req.post else None
-
-		deferred = agent.request(uri= req.url, method='POST' if req.post else 'GET', bodyProducer=bodyProducer,  headers=_headers)
+		delay =  req['delay'] + random.random()
+		deferred = task.deferLater(reactor, delay, agent.request, uri= req.url, method='POST' if req.post else 'GET', bodyProducer=bodyProducer,  headers=_headers)
+		# deferred = agent.request(uri= req.url, method='POST' if req.post else 'GET', bodyProducer=bodyProducer,  headers=_headers)
 
 		output_deferred = Deferred()
 

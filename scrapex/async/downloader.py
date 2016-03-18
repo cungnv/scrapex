@@ -3,11 +3,13 @@ from collections import deque
 from twisted.internet import reactor
 from twisted.internet import task
 from twisted.internet import defer
+from twisted.web.client import HTTPConnectionPool
 from twisted.internet.fdesc import readFromFD, writeToFD, setNonBlocking
 from twisted.python.failure import Failure
-from .client import Client
-from .. import http, common
+from scrapex.async.client import Client
+from scrapex import http, common
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,7 +45,7 @@ class Downloader():
 	def __init__(self, scraper, cc=3, progress_check_interval=60, stop_when_no_progress_made=True):
 		
 		self.scraper = scraper
-		self.client = Client(scraper)
+		
 		self.cc = cc
 		self.progress_check_interval = progress_check_interval
 		self.stop_when_no_progress_made = stop_when_no_progress_made
@@ -52,13 +54,19 @@ class Downloader():
 		
 		self.onhold = deque() #waiting queue
 
-		# self._input_count = 0
+		
 		self._done_count = 0
 
 		self._prev_stats = None
 
+		self._pool = HTTPConnectionPool(reactor, persistent=True)
+		self._pool.maxPersistentPerHost = max(self.cc, 10)
+		self._pool._factory.noisy = False
+		self.client = Client(scraper, pool = self._pool)
+
 	def set_cc(self, cc):
 		self.cc = cc
+		self._pool.maxPersistentPerHost = max(self.cc, 10)
 
 	def put(self, req, onhold = False):
 		if not onhold:
@@ -71,6 +79,8 @@ class Downloader():
 		while True:
 			try:
 				req = self.q.popleft()
+				req.normalize(self.scraper)
+
 				self._done_count +=1
 
 				if req.get('bin') is True:
@@ -79,8 +89,10 @@ class Downloader():
 					d = self._request(req)
 				if d is not None:
 					#add a timeout call on the deferred to prevent downloader hangout
-					timeout = req.get('timeout') or 45
-					timeout += 10
+					timeout = req.get('timeout') or 60
+
+					timeout += 1
+
 					reactor.callLater(timeout, d.cancel)
 
 				yield d
@@ -145,12 +157,34 @@ class Downloader():
 			self.progress()
 			self.scraper.logger.info('download finished')
 			try:
-				
-				reactor.stop()
+				d = self._close_connection_pool()
+
+				d.addBoth(lambda param: reactor.stop())
+
+				# reactor.stop()
 			except Exception:
 				pass
 			
+	def _close_connection_pool(self):
+		d = self._pool.closeCachedConnections()
+		# closeCachedConnections will hang on network or server issues, so
+		# we'll manually timeout the deferred.
+		#
+		# Twisted issue addressing this problem can be found here:
+		# https://twistedmatrix.com/trac/ticket/7738.
+		#
+		# closeCachedConnections doesn't handle external errbacks, so we'll
+		# issue a callback after `_disconnect_timeout` seconds.
+		delayed_call = reactor.callLater(1, d.callback, [])
 
+		def cancel_delayed_call(result):
+			if delayed_call.active():
+				delayed_call.cancel()
+			return result
+
+		d.addBoth(cancel_delayed_call)
+		return d
+			
 	
 	def progress(self):
 		stats = dict(
