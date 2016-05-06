@@ -1,5 +1,5 @@
 
-import sys, time, signal, sip
+import sys, time, signal, sip, random
 
 # sip.setapi('QString', 2)
  
@@ -20,7 +20,7 @@ def myQtMsgHandler( msg_type, msg_string ) :
 qInstallMsgHandler(myQtMsgHandler)
 	
 
-from scrapex import common, http
+from scrapex import common, http, agent
 
 
 
@@ -133,12 +133,14 @@ class WebView(QWebView):
 		target = None	
 		if	text is not None:
 			for ele in eles:
-				if unicode(ele.toPlainText()).strip() == unicode(text):
+				if unicode(ele.toPlainText()).strip().lower() == unicode(text).lower():
 					target = ele
 					break
 		else:
 			target = eles[0]			
-		
+		if not target:
+			print 'failed to click: the target object not fould'
+
 		#print dir(target)	
 		if target.hasAttribute('target'):
 			target.setAttribute('target','')
@@ -249,21 +251,27 @@ class WebView(QWebView):
 
 class WebPage(QWebPage):	
 	
-    def javaScriptAlert(self, frame, message):
-        print 'js alert: ', message
+	def javaScriptAlert(self, frame, message):
+		print 'js alert: ', message
 
-    def javaScriptConfirm(self, frame, message):
-        return True
+	def javaScriptConfirm(self, frame, message):
+		return True
 
-    def javaScriptPrompt(self, frame, message, default):
-        print 'js prompt:%s%s' % (message, default)
+	def javaScriptPrompt(self, frame, message, default):
+		print 'js prompt:%s%s' % (message, default)
 
-    def javaScriptConsoleMessage(self, message, linenumber, sourceid):
-        pass
-        # print 'console:%s%s%s' % (message, linenumber, sourceid)
+	def javaScriptConsoleMessage(self, message, linenumber, sourceid):
+		pass
+		# print 'console:%s%s%s' % (message, linenumber, sourceid)
 
-    def shouldInterruptJavaScript(self):        
-        return True	
+	def shouldInterruptJavaScript(self):        
+		return True	
+
+	def userAgentForUrl(self, url):
+		all_agents = [agent.firefox, agent.chrome]
+		useragent = random.choice(all_agents)
+		return useragent
+	
 
 class NetworkAccessManager(QNetworkAccessManager):
 	def __init__(self):
