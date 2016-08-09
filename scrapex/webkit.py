@@ -14,6 +14,7 @@ from PyQt4.QtCore import QUrl
 from PyQt4.QtCore import qInstallMsgHandler
 from PyQt4.Qt import QtMsgType
 
+
 def myQtMsgHandler( msg_type, msg_string ) :
 	pass
 
@@ -127,6 +128,7 @@ class WebView(QWebView):
 
 		return self	
 	def click(self, css, text=None):
+
 		eles = self.findall(css)
 		if not eles:
 			raise Exception('no element found to click:', css)
@@ -146,8 +148,9 @@ class WebView(QWebView):
 			target.setAttribute('target','')
 		
 		# print target.toOuterXml()
+		
+		target.evaluateJavaScript("var ev = document.createEvent('MouseEvents'); ev.initEvent('click123', true, true); this.dispatchEvent(ev);")
 
-		target.evaluateJavaScript("var ev = document.createEvent('MouseEvents'); ev.initEvent('click', true, true); this.dispatchEvent(ev);")
 
 		self.wait(1)	
 
@@ -287,7 +290,7 @@ class NetworkAccessManager(QNetworkAccessManager):
 		password = userpass.split(':')[1] if userpass else None
 
 		proxy = QNetworkProxy(QNetworkProxy.HttpProxy, host, int(port), user, password)
-		print 'set application proxy...'
+		# print 'set application proxy...'
 		# QNetworkAccessManager.setProxy(self, proxy)
 		QNetworkProxy.setApplicationProxy(proxy) #to let https requests use proxy
 

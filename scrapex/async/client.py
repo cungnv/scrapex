@@ -82,7 +82,7 @@ def _handle_response(response, req, output_deferred):
 			if not is_binary_data:
 				charset = common.DataItem(content_type).subreg('charset\s*=\s*([^\s]+)')
 				if not charset:
-					logger.warn('no charset parsed from content_type: %s, assumed utf8, url: %s', content_type, req.url)
+					# logger.warn('no charset parsed from content_type: %s, assumed utf8, url: %s', content_type, req.url)
 					charset = 'utf8'
 					
 				body = _to_utf8encoded_bytes(body, charset=charset)				
@@ -100,6 +100,7 @@ def _handle_response(response, req, output_deferred):
 		output_deferred.callback(result)
 			
 	def body_err(err):
+		logger.debug(err)
 		result = {
 				'success': False,
 				'data': '',

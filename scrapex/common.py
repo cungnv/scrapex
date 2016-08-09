@@ -463,6 +463,7 @@ def parse_table(table_node, restype='dict', more_xpath=None, cols=None):
 		@more_xpath: to parse more detail within each td tag
 
 	"""
+	
 	all_rows = table_node.q("thead/tr") + table_node.q("tbody/tr") + table_node.q("tr")
 	rs = []
 	for r in all_rows:

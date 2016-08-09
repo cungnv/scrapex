@@ -3,6 +3,8 @@ from xlwt import *
 import xlrd
 import openpyxl
 
+from scrapex.common import DataObject
+
 def save_xlsx(file_path, data):
 	book = openpyxl.Workbook()
 	sheet = book.active
@@ -94,7 +96,7 @@ def read_xlsx_sheet(file_path, index=0):
 
 def read_sheet(file_path, return_type='list', index=0):
 	"""
-	return_type: list, dict
+	return_type: list, dict, DataObject
 	"""
 	data = []
 	if file_path.lower().endswith('.xlsx'):
@@ -128,13 +130,22 @@ def read_sheet(file_path, return_type='list', index=0):
 		rowindex += 1
 		if len(r) != len(data[0]):
 			raise Exception("Inconsistent row length at row#: %s" % rowindex)
+		if return_type == 'dict':	
+			row = {}	
+			for i, value in enumerate(r):
+				if i== len(fields): break			
+				row.update({fields[i]: value})
+			rs.append(row)	
+		else:
+			#DataObject
 
-		row = {}	
-		for i, value in enumerate(r):
-			if i== len(fields): break			
-			row.update({fields[i]: value})
-		rs.append(row)	
-		
+			row = DataObject()
+			for i, value in enumerate(r):
+				if i== len(fields): break			
+				setattr(row, fields[i], value)
+				
+				rs.append(row)	
+			
 	return rs	
 
 

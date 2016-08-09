@@ -366,7 +366,7 @@ class Scraper(object):
 
 			)
 
-	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=True, debug=True, verify=None,  **_options):
+	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=True, debug=True, verify=None, meta={},  **_options):
 		
 		if cc != self.downloader.cc:
 			self.downloader.set_cc(cc)
@@ -397,7 +397,8 @@ class Scraper(object):
 				self.logger.info('details: %s', len(listings) )
 
 				for listing in listings:
-					self.downloader.put(Request(url= listing if isinstance(listing, basestring) else listing.nodevalue(), cb = parse_detail, **options), onhold=list_pages_first)
+					
+					self.downloader.put(Request(url= listing if isinstance(listing, basestring) else listing.nodevalue(), cb = parse_detail, meta=meta, **options), onhold=list_pages_first)
 					
 			done = False
 

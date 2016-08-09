@@ -100,7 +100,7 @@ class Request(object):
 	def __init__(self, url, post = None, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'accept_error_codes, return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -342,6 +342,7 @@ class Client(object):
 		req.normalize(self.scraper)
 
 		accept_error_codes = req.get('accept_error_codes')
+
 		
 		time.sleep(self.scraper.config['delay'])
 		opener = req.get('opener')
@@ -505,7 +506,8 @@ class Client(object):
 			status_code = r.status_code
 			final_url = r.url
 			if status_code != 200:
-				raise Exception('Invalid status code: %s' % r.status_code)
+				if status_code not in accept_error_codes:
+					raise Exception('Invalid status code: %s' % r.status_code)
 			
 			rawdata = r.raw.read()
 
