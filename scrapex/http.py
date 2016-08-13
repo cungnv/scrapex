@@ -478,8 +478,8 @@ class Client(object):
 		if proxy and req.get('use_proxy') is not False:
 				
 			proxies = {
-						'http': 'http://{0}'.format(proxy),
-						'https': 'http://{0}'.format(proxy)
+						'http': 'http://{0}'.format(proxy.full_address),
+						'https': 'http://{0}'.format(proxy.full_address)
 					}
 
 		logger.debug('loading %s %s', req.url, req.post or '')
