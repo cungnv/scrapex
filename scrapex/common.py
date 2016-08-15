@@ -19,12 +19,19 @@ def put_bin(path, data):
 		return False
 
 def put_file(path, data, encoding = 'utf-8'):
-	#f = open(path, 'w')	
+	#f = open(path, 'w')
+	#convert backslash to forthslash
+	path = path.replace('\\','/')
+	
+
 	f = codecs.open(path, 'w', encoding)
 	f.write(data)
 	f.close()
 
 def get_file(path, encoding = 'utf-8'):	
+	
+	path = path.replace('\\','/')
+
 	with codecs.open(path, encoding=encoding) as f: 
 		data = f.read(); 
 	return data	
