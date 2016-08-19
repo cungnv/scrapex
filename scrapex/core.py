@@ -27,7 +27,8 @@ class Scraper(object):
 			delay = 0.1,
 			retries = 0,
 			parse_log = True,
-			show_status_message = True
+			show_status_message = True,
+			max_redirects = 3
 
 			)
 

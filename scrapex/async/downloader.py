@@ -76,6 +76,8 @@ class Downloader():
 
 	def process(self):
 		""" a generator used by Cooperator """
+
+
 		while True:
 			try:
 				req = self.q.popleft()
@@ -87,13 +89,15 @@ class Downloader():
 					d = self._download_file(req)
 				else:	
 					d = self._request(req)
+
 				if d is not None:
 					#add a timeout call on the deferred to prevent downloader hangout
 					timeout = req.get('timeout') or 60
 
-					timeout += 1
+					timeout += 3 #wait an extra time compared to the timeout set by the request
 
 					reactor.callLater(timeout, d.cancel)
+					
 
 				yield d
 
@@ -266,13 +270,13 @@ class Downloader():
 			self.scraper.logger.warn('unsupported return_type: %s', return_type)
 			return None
 
+	def _cb_request_cancelled(self, err):
+		pass
 
 	def _cb_fetch_finished(self, response):
-		if isinstance(response, Failure):
-			self.scraper.logger.warn('request cancelled')
-			return
 
 		req = response['req']
+		
 		if response['success'] == True:
 			if req['use_cache']:
 				self._write_to_cache(req.url, req.post, data=response['data'], file_name = req.get('file_name'))
@@ -293,6 +297,7 @@ class Downloader():
 				
 		if req.get('cb'):
 			cb_data = self._build_response_data(req, response)
+			
 			req.get('cb')(cb_data)
 
 	
@@ -324,7 +329,12 @@ class Downloader():
 
 		
 		deferred = self.client.fetch(req)
-		deferred.addBoth(self._cb_fetch_finished)
+
+		# deferred.addBoth(self._cb_fetch_finished)
+
+		deferred.addCallback(self._cb_fetch_finished) #handle both good and bad result, as long as the request finished
+		deferred.addErrback(self._cb_request_cancelled) #when request cancelled due to timeout error
+
 		return deferred
 		
 	def _cb_file_downloaded(self, response, req, file_path):

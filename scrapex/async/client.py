@@ -43,8 +43,10 @@ def _to_utf8encoded_bytes(bytes, charset):
 
 
 def _handle_response(response, req, output_deferred):
+	accept_error_codes = req.get('accept_error_codes') or []
 
-	if response.code != 200:
+	
+	if response.code != 200 and response.code not in accept_error_codes:
 		result = {
 				'success': False,
 				'data': '',
@@ -53,7 +55,11 @@ def _handle_response(response, req, output_deferred):
 				'message': 'error'
 
 			}
-		output_deferred.callback(result)
+		try:	
+			output_deferred.callback(result)
+		except Exception as e:
+			logger.exception(e)
+
 		return
 	
 	def body_ready(body):
@@ -97,7 +103,13 @@ def _handle_response(response, req, output_deferred):
 
 				}	
 
-		output_deferred.callback(result)
+		try:	
+			
+			output_deferred.callback(result)
+
+		except Exception as e:
+			logger.exception(e)
+		
 			
 	def body_err(err):
 		logger.debug(err)
@@ -109,7 +121,11 @@ def _handle_response(response, req, output_deferred):
 				'message': 'error while reading response body'
 
 			}
-		output_deferred.callback(result)
+		try:	
+			output_deferred.callback(result)
+		except Exception as e:
+			logger.exception(e)
+		
 
 
 	d = readBody(response)
@@ -117,6 +133,7 @@ def _handle_response(response, req, output_deferred):
 	
 	
 def _handle_err(err, req, output_deferred):
+
 	result = {
 				'success': False,
 				'data': '',
@@ -126,7 +143,11 @@ def _handle_err(err, req, output_deferred):
 
 			}
 
-	output_deferred.callback(result)		
+	try:	
+		output_deferred.callback(result)
+	except Exception as e:
+		logger.exception(e)
+	
 
 
 class StringProducer(object):
@@ -150,10 +171,15 @@ class Client(object):
 	def __init__(self, scraper, pool=None):
 		self.scraper = scraper
 		self._pool = pool
+		redirectLimit = scraper.config.get('max_redirects')
+		if redirectLimit is None:
+			redirectLimit = 3
 
 		#create an agent for direct requests
 		self._direct_agent = Agent(reactor, pool=self._pool, connectTimeout=scraper.config.get('timeout') or 30)
-		self._direct_agent = BrowserLikeRedirectAgent(self._direct_agent, redirectLimit=3)
+		if redirectLimit>0:
+			self._direct_agent = BrowserLikeRedirectAgent(self._direct_agent, redirectLimit=redirectLimit)
+		
 		self._direct_agent = ContentDecoderAgent(self._direct_agent, [('gzip', GzipDecoder)])
 		self.cj = self.scraper.client.opener.cj
 		
@@ -163,17 +189,32 @@ class Client(object):
 			self._direct_agent = CookieAgent(self._direct_agent, self.cj)
 
 		#create an agent for http-proxy requests
-		self.__http_proxy_agent = ProxyAgent(None, pool=self._pool) #no endpoint yet
-		self._http_proxy_agent = BrowserLikeRedirectAgent(self.__http_proxy_agent, redirectLimit=3)
-		self._http_proxy_agent = ContentDecoderAgent(self._http_proxy_agent, [('gzip', GzipDecoder)])
+		#no endpoint yet, use __ instead of _ to backup the instance
+		self.__http_proxy_agent = ProxyAgent(None, pool=self._pool) 
+
+		if redirectLimit>0:
+			self._http_proxy_agent = BrowserLikeRedirectAgent(self.__http_proxy_agent, redirectLimit=redirectLimit)
+
+			self._http_proxy_agent = ContentDecoderAgent(self._http_proxy_agent, [('gzip', GzipDecoder)])
+		else:
+
+			self._http_proxy_agent = ContentDecoderAgent(self.__http_proxy_agent, [('gzip', GzipDecoder)])
+			
 
 		if self.cj is not None:
 			self._http_proxy_agent = CookieAgent(self._http_proxy_agent, self.cj)
 
 		#create an agent for https-proxy requests
+		#no endpoint yet, use __ instead of _ to backup the instance
 		self.__https_proxy_agent = TunnelingAgent(reactor=reactor, proxy=None, contextFactory=ScrapexClientContextFactory(), connectTimeout=30, pool=self._pool) #no proxy yet
-		self._https_proxy_agent = BrowserLikeRedirectAgent(self.__https_proxy_agent, redirectLimit=3)
-		self._https_proxy_agent = ContentDecoderAgent(self._https_proxy_agent, [('gzip', GzipDecoder)])
+		if redirectLimit>0:
+			self._https_proxy_agent = BrowserLikeRedirectAgent(self.__https_proxy_agent, redirectLimit=redirectLimit)
+
+			self._https_proxy_agent = ContentDecoderAgent(self._https_proxy_agent, [('gzip', GzipDecoder)])
+		else:
+			self._https_proxy_agent = ContentDecoderAgent(self.__https_proxy_agent, [('gzip', GzipDecoder)])
+
+			
 		if self.cj is not None:
 			self._https_proxy_agent = CookieAgent(self._https_proxy_agent, self.cj)
 
@@ -222,7 +263,24 @@ class Client(object):
 		deferred = task.deferLater(reactor, delay, agent.request, uri= req.url, method='POST' if req.post else 'GET', bodyProducer=bodyProducer,  headers=_headers)
 		# deferred = agent.request(uri= req.url, method='POST' if req.post else 'GET', bodyProducer=bodyProducer,  headers=_headers)
 
-		output_deferred = Deferred()
+
+		def _canceller(ignore):
+			#check to see whether to retry this request or not
+			if req.get('retries') > 0:
+				req.update({'retries': req['retries'] - 1})
+				
+				self.scraper.logger.debug('request timeouted: %s', req.url)
+
+				self.scraper.logger.debug('retry(%s): %s %s', req.get('retries'), req.url, req.post)
+				
+				#put back the request into the queue
+				self.scraper.downloader.put(req)
+				
+			else:	
+				self.scraper.logger.warn('request cancelled: %s', req.url)	
+
+
+		output_deferred = Deferred(_canceller)
 
 		deferred.addCallback(_handle_response, req, output_deferred)
 		deferred.addErrback(_handle_err, req, output_deferred)
