@@ -58,7 +58,7 @@ def _handle_response(response, req, output_deferred):
 		try:	
 			output_deferred.callback(result)
 		except Exception as e:
-			logger.exception(e)
+			logger.debug(e.message)
 
 		return
 	
@@ -108,7 +108,7 @@ def _handle_response(response, req, output_deferred):
 			output_deferred.callback(result)
 
 		except Exception as e:
-			logger.exception(e)
+			logger.debug(e.message)
 		
 			
 	def body_err(err):
@@ -124,7 +124,7 @@ def _handle_response(response, req, output_deferred):
 		try:	
 			output_deferred.callback(result)
 		except Exception as e:
-			logger.exception(e)
+			logger.debug(e.message)
 		
 
 
@@ -146,7 +146,7 @@ def _handle_err(err, req, output_deferred):
 	try:	
 		output_deferred.callback(result)
 	except Exception as e:
-		logger.exception(e)
+		logger.debug(e.message)
 	
 
 
