@@ -69,10 +69,35 @@ class Downloader():
 		self._pool.maxPersistentPerHost = max(self.cc, 10)
 
 	def put(self, req, onhold = False):
+		"""	
+		put a Request object to the queue
+
+		- onhold: put it to the secondary queue so that it will be processed after all requests on the primary queue
+		
+
+		"""
 		if not onhold:
+			
 			self.q.append(req)
 		else:
 			self.onhold.append(req)	
+
+	def putleft(self, req):
+		
+		"""
+		put to the beginning of the primary queue so it will be processed immediately
+		"""
+		self.q.appendleft(req)		
+
+	def putonhold(self, req):
+
+		"""
+		put it to the secondary queue so that it will be processed after all requests on the primary queue
+		* equilevant to put with onhold = True
+		
+		"""
+		self.onhold.append(req)		
+	
 
 	def process(self):
 		""" a generator used by Cooperator """
@@ -94,7 +119,7 @@ class Downloader():
 					#add a timeout call on the deferred to prevent downloader hangout
 					timeout = req.get('timeout') or 60
 
-					timeout += 3 #wait an extra time compared to the timeout set by the request
+					timeout += 30 #wait an extra time compared to the timeout set by the request
 
 					reactor.callLater(timeout, d.cancel)
 					
