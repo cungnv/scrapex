@@ -43,24 +43,6 @@ def _to_utf8encoded_bytes(bytes, charset):
 
 
 def _handle_response(response, req, output_deferred):
-	accept_error_codes = req.get('accept_error_codes') or []
-
-	
-	if response.code != 200 and response.code not in accept_error_codes:
-		result = {
-				'success': False,
-				'data': '',
-				'req': req,
-				'code': response.code,
-				'message': 'error'
-
-			}
-		try:	
-			output_deferred.callback(result)
-		except Exception as e:
-			logger.debug(e.message)
-
-		return
 	
 	def body_ready(body):
 		if req.get('contain') and req.get('contain') not in body:
@@ -127,10 +109,28 @@ def _handle_response(response, req, output_deferred):
 			logger.debug(e.message)
 		
 
+	accept_error_codes = req.get('accept_error_codes') or []
 
-	d = readBody(response)
-	d.addCallbacks(body_ready, body_err)	
-	
+	if response.code != 200 and response.code not in accept_error_codes:
+		#failed
+		result = {
+				'success': False,
+				'data': '',
+				'req': req,
+				'code': response.code,
+				'message': 'error'
+
+			}
+		try:	
+			output_deferred.callback(result)
+		except Exception as e:
+			logger.debug(e.message)
+
+	else:
+		#success
+		d = readBody(response)
+		d.addCallbacks(body_ready, body_err)	
+		
 	
 def _handle_err(err, req, output_deferred):
 
@@ -168,9 +168,20 @@ class StringProducer(object):
 		pass
 
 class Client(object):
+	"""	
+	todo:
+	- when proxies used, make sure each request uses random proxy
+	- test the number of persistent connections
+	- use a pool of agents?
+
+	"""
 	def __init__(self, scraper, pool=None):
 		self.scraper = scraper
 		self._pool = pool
+
+		self._agents = {} #map proxy->an agent
+
+
 		redirectLimit = scraper.config.get('max_redirects')
 		if redirectLimit is None:
 			redirectLimit = 3
@@ -219,7 +230,62 @@ class Client(object):
 			self._https_proxy_agent = CookieAgent(self._https_proxy_agent, self.cj)
 
 
+	def _create_agent(self, req):
 
+		""" create right agent for specific request """
+
+		agent = None
+
+		uri = URI.fromBytes(req.url)
+		proxy = req.get('proxy')
+		if req.get('use_proxy') is False:
+			proxy = None
+		
+		if proxy:	
+			if uri.scheme == 'https':
+				
+				agent_key = 'httpsproxy-%s-%s' % (proxy.host, proxy.port)
+				agent = self._agents.get(agent_key)
+
+				if not agent:
+					
+					agent = TunnelingAgent(reactor=reactor, proxy=proxy, contextFactory=ScrapexClientContextFactory(), connectTimeout=30, pool=self._pool)
+
+					self._agents[agent_key] = agent
+
+			else:
+				#http
+				agent_key = 'httpproxy-%s-%s' % (proxy.host, proxy.port)
+				agent = self._agents.get(agent_key)
+
+				if not agent:
+					endpoint = TCP4ClientEndpoint(reactor, host=proxy.host, port=proxy.port , timeout=req.get('timeout'))
+					agent = ProxyAgent(endpoint, pool=self._pool)
+					self._agents[agent_key] = agent
+
+
+				if proxy.auth_header:
+					req.get('headers')['Proxy-Authorization'] = proxy.auth_header
+
+		else:
+			
+			agent = self._direct_agent #use single agent when no proxies used
+
+
+		redirectLimit = self.scraper.config.get('max_redirects')
+		if redirectLimit is None:
+			redirectLimit = 3
+	
+		if redirectLimit>0:
+			agent = BrowserLikeRedirectAgent(agent, redirectLimit=redirectLimit)
+
+		
+		agent = ContentDecoderAgent(agent, [('gzip', GzipDecoder)])
+
+		if self.cj is not None:
+			agent = CookieAgent(agent, self.cj)
+		
+		return agent	
 
 	def fetch(self, req):
 
@@ -227,28 +293,31 @@ class Client(object):
 
 		""" select agent and install proxy if required """
 		
-		agent = None
+		# agent = None
 
-		uri = URI.fromBytes(req.url)
-		proxy = req.get('proxy')
-		if req.get('use_proxy') is False:
-			proxy = None
-		if proxy:	
-			if uri.scheme == 'https':
+		# uri = URI.fromBytes(req.url)
+		# proxy = req.get('proxy')
+		# if req.get('use_proxy') is False:
+		# 	proxy = None
+		# if proxy:	
+		# 	if uri.scheme == 'https':
 
-				agent = self._https_proxy_agent
-				#install proxy for this request
-				self.__https_proxy_agent.set_proxy(proxy)
+		# 		agent = self._https_proxy_agent
+		# 		#install proxy for this request
 
-			else:
-				agent = self._http_proxy_agent
-				#install proxy for this request
-				self.__http_proxy_agent._proxyEndpoint = TCP4ClientEndpoint(reactor, host=proxy.host, port=proxy.port , timeout=req.get('timeout'))
-				if proxy.auth_header:
-					req.get('headers')['Proxy-Authorization'] = proxy.auth_header
-		else:
-			agent = self._direct_agent
+		# 		self.__https_proxy_agent.set_proxy(proxy)
 
+		# 	else:
+		# 		agent = self._http_proxy_agent
+		# 		#install proxy for this request
+		# 		self.__http_proxy_agent._proxyEndpoint = TCP4ClientEndpoint(reactor, host=proxy.host, port=proxy.port , timeout=req.get('timeout'))
+		# 		if proxy.auth_header:
+		# 			req.get('headers')['Proxy-Authorization'] = proxy.auth_header
+		# else:
+		# 	agent = self._direct_agent
+		
+		agent = self._create_agent(req) #use one agent per request to rotate proxies
+		
 		headers = req.get('headers')
 		
 		_headers = {}
@@ -256,7 +325,7 @@ class Client(object):
 			_headers[key] = [headers[key]]
 
 		_headers = 	Headers(_headers)
-		self.scraper.logger.debug('to fetch: %s %s', req.url, req.post)
+		self.scraper.logger.debug('to fetch: %s', req.url)
 		
 		bodyProducer = StringProducer(req.post) if req.post else None
 		delay =  req['delay'] + random.random()
@@ -265,19 +334,35 @@ class Client(object):
 
 
 		def _canceller(ignore):
-			#check to see whether to retry this request or not
-			if req.get('retries') > 0:
-				req.update({'retries': req['retries'] - 1})
-				
-				self.scraper.logger.debug('request timeouted: %s', req.url)
+			
+			""" 
+			will be called by the downloader when the request take too much time 
+			
+			the output_deferred's errback will be fired, where it may re-schedule the request
 
-				self.scraper.logger.debug('retry(%s): %s %s', req.get('retries'), req.url, req.post)
+			"""
+			#todo: test this code
+			#cancel the deferred returned by agent.request
+			
+			self.scraper.logger.debug('cancel request: %s', req.url)
+
+			deferred.cancel() #will fire its errback, then in turn will fire output_deferred's callback with a failed response
+
+			""" end of experimental code """
+
+			#check to see whether to retry this request or not
+			# if req.get('retries') > 0:
+			# 	req.update({'retries': req['retries'] - 1})
 				
-				#put back the request into the queue
-				self.scraper.downloader.put(req)
+			# 	self.scraper.logger.debug('request timeouted: %s', req.url)
+
+			# 	self.scraper.logger.debug('re-schedule(%s): %s %s', req.get('retries'), req.url, req.post)
 				
-			else:	
-				self.scraper.logger.warn('request cancelled: %s', req.url)	
+			# 	#put back the request into the queue
+			# 	self.scraper.downloader.putleft(req)
+				
+			# else:	
+			# 	self.scraper.logger.warn('request cancelled: %s', req.url)	
 
 
 		output_deferred = Deferred(_canceller)

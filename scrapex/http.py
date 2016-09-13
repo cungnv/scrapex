@@ -27,7 +27,6 @@ class Proxy(object):
 		self.full_address = ( '%s@%s:%s' % (self.proxy_auth, self.host, self.port) ) if self.proxy_auth else ('%s:%s' % (self.host, self.port))
 
 
-
 class ProxyManager(object):
 	
 	""" for proxy rotation controlling """
@@ -166,8 +165,10 @@ class Request(object):
 			"User-Agent": user_agent,
 			"Accept-Language": "en-us,en;q=0.5",
 			"Accept-Encoding": "gzip, deflate",			
-			"Connection": "close" #turn off keep-alive
+			# "Connection": "close" #turn off keep-alive
+			"Connection": "keep-alive"
 		}
+
 		if req.post:
 			headers.update({"Content-Type": "application/x-www-form-urlencoded"})
 			
@@ -374,10 +375,9 @@ class Client(object):
 		final_url = None	
 
 		
-		self.logger.debug('loading %s %s', req.url, req.post or '')
+		self.logger.debug('loading %s', req.url)
 
 		try:
-			
 			
 			with contextlib.closing(opener.open(request,  timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
 				final_url = res.url
@@ -482,7 +482,7 @@ class Client(object):
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
 
-		logger.debug('loading %s %s', req.url, req.post or '')
+		logger.debug('loading %s', req.url)
 
 		accept_error_codes = req.get('accept_error_codes')
 		

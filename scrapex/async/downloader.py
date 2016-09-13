@@ -1,4 +1,5 @@
 import sys, os, time
+import psutil
 from collections import deque
 from twisted.internet import reactor
 from twisted.internet import task
@@ -107,6 +108,8 @@ class Downloader():
 			try:
 				req = self.q.popleft()
 				req.normalize(self.scraper)
+
+				req.start_time = time.time()
 
 				self._done_count +=1
 
@@ -295,26 +298,43 @@ class Downloader():
 			self.scraper.logger.warn('unsupported return_type: %s', return_type)
 			return None
 
-	def _cb_request_cancelled(self, err):
-		pass
+	def _cb_no_response(self, err):
 
+		self.scraper.logger.debug('no response: %s', err)
+
+	def _open_file_descriptors(self):
+		
+		proc = psutil.Process()
+
+		self.scraper.logger.debug('open_files: %s', proc.open_files() )
+	
 	def _cb_fetch_finished(self, response):
 
 		req = response['req']
+		time_elapsed = time.time() - req.start_time
+		time_elapsed = round(time_elapsed, 2)
+		req.time_elapsed = time_elapsed
+		self.scraper.logger.debug('time_elapsed: %s -- %s', time_elapsed, response['success'])
+
 		
 		if response['success'] == True:
 			if req['use_cache']:
 				self._write_to_cache(req.url, req.post, data=response['data'], file_name = req.get('file_name'))
 		else:
+			
 			#untested code
 			if req.get('retries'):
 				req.update({'retries': req['retries'] - 1})
 				
 				self.scraper.logger.debug('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
-				self.scraper.logger.debug('retry: %s %s', req.url, req.post)
-				# self._request(req)
+				self.scraper.logger.debug('retry(%s): %s %s', req['retries'], req.url, req.post)
+				
 				#put back the request into the queue
-				self.put(req)
+				if req.get('proxy'):
+					#try with new proxy
+					req.set('proxy', self.scraper.proxy_manager.get_proxy(req.url))
+
+				self.putleft(req)
 				return
 			else:	
 				self.scraper.logger.warn('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
@@ -358,7 +378,7 @@ class Downloader():
 		# deferred.addBoth(self._cb_fetch_finished)
 
 		deferred.addCallback(self._cb_fetch_finished) #handle both good and bad result, as long as the request finished
-		deferred.addErrback(self._cb_request_cancelled) #when request cancelled due to timeout error
+		deferred.addErrback(self._cb_no_response) #somehow the request could not finish
 
 		return deferred
 		
@@ -390,7 +410,7 @@ class Downloader():
 				self.scraper.logger.debug('fetch error: %s -- %s, url: %s', response['code'], response['message'], req.url)
 				self.scraper.logger.debug('retry: %s %s', req.url, req.post)
 				#put back the request into the queue
-				self.put(req)
+				self.putleft(req)
 				return	
 
 		

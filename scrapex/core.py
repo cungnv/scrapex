@@ -92,6 +92,9 @@ class Scraper(object):
 
 		#init the output db
 		self.outdb = {}
+
+		self._time_start = time.time()
+
 	
 	def get_log_stats(self):
 		log_file = self.join_path('log.txt')
@@ -120,6 +123,9 @@ class Scraper(object):
 					self.logger.info('Completed successfully')
 				else:
 					self.logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
+
+			time_elapsed = round(time.time() - self._time_start, 2)
+			self.logger.info('time elapsed: %s minutes', round(time_elapsed/60))			
 
 
 
