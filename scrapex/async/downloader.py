@@ -1,5 +1,4 @@
 import sys, os, time
-import psutil
 from collections import deque
 from twisted.internet import reactor
 from twisted.internet import task
@@ -302,11 +301,6 @@ class Downloader():
 
 		self.scraper.logger.debug('no response: %s', err)
 
-	def _open_file_descriptors(self):
-		
-		proc = psutil.Process()
-
-		self.scraper.logger.debug('open_files: %s', proc.open_files() )
 	
 	def _cb_fetch_finished(self, response):
 
