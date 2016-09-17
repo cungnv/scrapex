@@ -480,7 +480,7 @@ def parse_table(table_node, restype='dict', more_xpath=None, cols=None):
 
 
 	if len(rs) == 0:
-		logger.warn('no rows found on table')
+		
 		return []
 	
 
