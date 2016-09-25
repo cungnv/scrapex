@@ -325,7 +325,9 @@ class Client(object):
 			_headers[key] = [headers[key]]
 
 		_headers = 	Headers(_headers)
-		self.scraper.logger.debug('to fetch: %s', req.url)
+		
+		if self.scraper.config['debug']:
+			self.scraper.logger.debug('to fetch: %s', req.url)
 		
 		bodyProducer = StringProducer(req.post) if req.post else None
 		delay =  req['delay'] + random.random()

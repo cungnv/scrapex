@@ -28,7 +28,9 @@ class Scraper(object):
 			retries = 0,
 			parse_log = True,
 			show_status_message = True,
-			max_redirects = 3
+			max_redirects = 3,
+			debug = True,
+			log_file = 'log.txt'
 
 			)
 
@@ -53,21 +55,40 @@ class Scraper(object):
 		
 
 		""" logging settings """
+		_log_file_path = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
+
 		if self.config.get('use_logging_config') is not False:
-			#by default, config the logging
+			
 			if os.path.exists(self.join_path('logging.config')):
+				#use custom logging config
 				logging.config.dictConfig(json.loads(common.get_file(self.join_path('logging.config'))))
+
 			else:
-				default_log_settings = logging_config.default_settings
-				default_log_settings['handlers']['file_handler']['filename'] = self.join_path('log.txt')
-				if self.config.get('debug') is True:
-					default_log_settings['handlers']['console']['level'] = 'DEBUG'
+				#use default logging config
+				
+				default_log_settings = logging_config.default_settings.copy()
+
+				if _log_file_path:
+					default_log_settings['handlers']['file_handler']['filename'] = _log_file_path
+
+				else:
+					#when log_file set to None, disable find_handler
+					del default_log_settings['handlers']['file_handler']
+					del default_log_settings['loggers']['requests.packages.urllib3.connectionpool']
+
+					default_log_settings['root']['handlers'] = ['console']
+
+
+
+				# if self.config.get('debug') is True:
+				# 	default_log_settings['handlers']['console']['level'] = 'DEBUG'
 
 				logging.config.dictConfig(default_log_settings)	
 
 			#clear the log	
 			if not self.config.get('preserve_log'):
-				self.put_file(self.join_path('log.txt'), '')		
+				if _log_file_path is not None:
+					self.put_file(_log_file_path, '')		
 
 
 		self.logger = logging.getLogger(__name__)
@@ -97,8 +118,9 @@ class Scraper(object):
 
 	
 	def get_log_stats(self):
-		log_file = self.join_path('log.txt')
-		if not os.path.exists(log_file):
+		log_file = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
+
+		if log_file is None or not os.path.exists(log_file):
 			return ''
 		else:
 			logdata = common.parse_log(log_file)

@@ -99,7 +99,7 @@ class Request(object):
 	def __init__(self, url, post = None, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'max_redirects, accept_error_codes, return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'log_file, use_logging_config, debug, max_redirects, accept_error_codes, return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -374,8 +374,8 @@ class Client(object):
 		error_message = ''
 		final_url = None	
 
-		
-		self.logger.debug('loading %s', req.url)
+		if self.scraper.config['debug']:		
+			self.logger.debug('loading %s', req.url)
 
 		try:
 			
@@ -481,8 +481,8 @@ class Client(object):
 						'http': 'http://{0}'.format(proxy.full_address),
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
-
-		logger.debug('loading %s', req.url)
+		if self.scraper.config['debug']:			
+			logger.debug('loading %s', req.url)
 
 		accept_error_codes = req.get('accept_error_codes')
 		
