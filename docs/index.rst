@@ -7,6 +7,10 @@ Welcome to scrapex's documentation!
 ===================================
 Scrapex is a python web scraping framework, designed for quick writing, productive, but still powerful and flexible.
 
+Table of Contents
+=================
+
+.. _scrapex_toc:
 
 Scrapex User Manual
 ----------------
