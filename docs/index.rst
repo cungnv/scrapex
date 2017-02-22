@@ -10,7 +10,6 @@ Scrapex is a python web scraping framework, designed for quick writing, producti
 Table of Contents
 =================
 
-.. _scrapex_toc:
 
 Scrapex User Manual
 ----------------
