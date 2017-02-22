@@ -10,17 +10,16 @@ Scrapex is a python web scraping framework, designed for quick writing, producti
 Table of Contents
 =================
 
-
 Scrapex User Manual
 ----------------
 
 .. toctree::
     :maxdepth: 2
 
-    usage/installation
-    usage/testing
-    grab/quickstart
-    grab/request_method
+    installation
+    testing
+    quickstart
+    request_method
 
 
 Indices and tables
