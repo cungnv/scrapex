@@ -1,4 +1,19 @@
-import hashlib, os, copy, codecs, re,urllib, urlparse, json, string, threading, StringIO, csv, logging, pickle, random,time
+import hashlib
+import os
+import copy
+import codecs
+import re
+import urllib
+import urlparse
+import json
+import string
+import threading
+import StringIO
+import csv
+import logging
+import pickle
+import random
+import time
 from Queue import Queue
 from HTMLParser import HTMLParser
 
@@ -6,6 +21,7 @@ logger = logging.getLogger()
 
 def md5(text):
 	return hashlib.md5(text).hexdigest()
+
 def put_bin(path, data):	
 	if not data:
 		return False
@@ -175,7 +191,7 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):
 	else:		
 		append_file(path, sep.join(values)+'\r\n')	
 
-def file_name(path):
+def filename(path):
 	path = DataItem(path).rr('\?.*?$')
 	return path.subreg('/([^/\?\$]+\.[a-z]{2,4})$--is')
 
@@ -188,11 +204,10 @@ def file_ext(path):
 
 
 
-def address(full, two_lines=False):	
+def parse_address(full, two_address_lines = False):	
 
 	full = DataItem(full).replace(u'\u00A0',' ').rr('\s+',' ').trim()
-	bkfull = full
-
+	
 	#normalize the full address when full looks like: Some City, State zipcode
 	if len(full.split(',')) == 2:
 		full = '__nostreet123, ' + full
@@ -212,20 +227,39 @@ def address(full, two_lines=False):
 	full = DataItem(full+'<end>').replace(city+'<end>', '').trim().rr(',$','').trim()
 	street = full.tostring().replace('__nostreet123', '')
 
+	street1 = ''
 	street2 = ''
-	if two_lines and ',' in street:
+	if ',' in street:
 		street2 = subreg(street,',([^\,]+)$')
-		street = subreg(street,'^(.*?),(?:[^\,]+)$')
+		street1 = subreg(street,'^(.*?),(?:[^\,]+)$')
+	else:
+		street2 = ''
+		street1 = street
+	if not two_address_lines:	
+		address = {
+			'address': street,
+			'city': city,
+			'state': state,
+			'zipcode': zip
+
+		}		
+	else:
+		address = {
+			'address_line1': street1,
+			'address_line2': street2,
+			'city': city,
+			'state': state,
+			'zipcode': zip
+
+		}	
 
 
-	return Address(street = street, street2=street2, city= city, state = state, zip = zip, full = bkfull)		
-
-
+	return address
 
 
 def split_csv(path, maxlines):
 	dir = os.path.join(path,'..')
-	_file_name = file_name(path)
+	_filename = filename(path)
 	fno =1
 	cnt=0
 	headline = None
@@ -241,10 +275,10 @@ def split_csv(path, maxlines):
 			cnt = 1
 		#add headline for new file	
 		if cnt==1:
-			append_file(os.path.join(dir, _file_name.replace('.csv','-%s.csv'%fno)), headline)		
+			append_file(os.path.join(dir, _filename.replace('.csv','-%s.csv'%fno)), headline)		
 
 		#add data line	
-		append_file(os.path.join(dir, _file_name.replace('.csv','-%s.csv'%fno)), line)
+		append_file(os.path.join(dir, _filename.replace('.csv','-%s.csv'%fno)), line)
 def get_email(txt):
 	return subreg(txt, r'\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b--is')
 
@@ -299,6 +333,7 @@ def atoz():
 def AtoZ():
 	return [alpha for alpha in string.uppercase]	
 def urlencode(rawstr):
+	rawstr = rawstr.encode('utf8')
 	return DataItem( urllib.quote_plus(rawstr) )
 def urldecode(rawstr):
 	return DataItem(urllib.unquote(rawstr))	
@@ -585,17 +620,6 @@ class DataItem(unicode):
 	def strip_links(self):
 		return self.rr('<a [^<>].*?>(.*?)</a>--is', r'\1')
 
-class Address(object):		
-	def __init__(self, street='', street2='', city='', state='', zip ='', country = '', full=''):			
-		self.street= street
-		self.street2 = street2
-		self.city = city
-		self.state = state
-		self.zip = zip
-		self.country = country,
-		self.full = full
-	def __str__(self):
-		return unicode('street: %s, street2: %s, city: %s, state: %s, zip: %s, country: %s' % (self.street, self.street2, self.city, self.state, self.zip, self.country))				
 		
 class DataObject(object):
 	def __init__(self, **data):
@@ -682,22 +706,7 @@ class MyDict(object):
 		return str(self.data)
 
 
-class UList(list):
-	def __init__(self, initlist=[]):
-			
-		for item in initlist:
-			self.append(item)
-
-	def append(self, item):
-		try:
-		 	self.index(item)
-		except:
-			#not found, so add to		
-			super(UList, self).append(item)
-		return self	
-	def join(self, sep=u', '):
-		return sep.join(self)
 
 if __name__ == '__main__':
 
-	print	parse_log('log.txt')
+	print	parse_address('2309 Foothill Blvd, La Canada Flintridge, CA 91011')

@@ -1,4 +1,12 @@
-import threading, os, random, sys, time, json, logging, logging.config, atexit
+import threading
+import os
+import random
+import sys
+import time
+import json
+import logging
+import logging.config
+import atexit
 from Queue import Queue
 from urlparse import urlparse
 
@@ -46,13 +54,11 @@ class Scraper(object):
 		if os.path.exists(self.join_path('settings.txt')):
 			self.config.update(json.loads(common.get_file(self.join_path('settings.txt'))))
 
-		if self.config['use_cache']:
-			cache_path = os.path.join(self.dir, self.config['cache_path'])	
-
-			self.cache = Cache(cache_path)
-		else:
-			self.cache = Cache('')
 		
+		#create cache object	
+		cache_path = os.path.join(self.dir, self.config['cache_path'])	
+		self.cache = Cache(cache_path)
+	
 
 		""" logging settings """
 		_log_file_path = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
@@ -152,16 +158,16 @@ class Scraper(object):
 
 
 	
-	def join_path(self, file_name):
-		return os.path.join(self.dir, file_name)
-	def read_lines(self, file_name):
-		return common.read_lines(self.join_path(file_name))	
+	def join_path(self, filename):
+		return os.path.join(self.dir, filename)
+	def read_lines(self, filename):
+		return common.read_lines(self.join_path(filename))	
 
-	def write_json(self, file_name, data):
-		common.write_json(self.join_path(file_name), data)
+	def write_json(self, filename, data):
+		common.write_json(self.join_path(filename), data)
 		return self
-	def read_json(self, file_name):
-		return common.read_json(self.join_path(file_name))
+	def read_json(self, filename):
+		return common.read_json(self.join_path(filename))
 
 	def clear_cookies(self):
 		self.client = http.Client(scraper=self)
@@ -184,19 +190,19 @@ class Scraper(object):
 		return self.client.load_json(Request(url = url, post = post, **options))
 			
 
-	def save_link(self, url, dir='images', file_name='auto', format='jpg', prefix='', **_options):
+	def save_link(self, url, dir='images', filename='auto', format='jpg', prefix='', **_options):
 		fn = ''
 
-		if file_name == 'auto':			
+		if filename == 'auto':			
 			#special name
 			fn = common.DataItem(url).rr('\?.*?$').subreg('/([^/\?\$]+\.[a-z]{2,4})$--is')			
 			if not fn:
-				self.logger.warn( 'failed to parse file_name from url: %s', url )
+				self.logger.warn( 'failed to parse filename from url: %s', url )
 				return None
 			
 		else:
-			#file_name is a fixed name
-			fn = file_name
+			#filename is a fixed name
+			fn = filename
 		
 		if not common.subreg(fn, '(\.[a-z]{2,5}$)--is'):
 			fn += '.'+format
@@ -246,14 +252,14 @@ class Scraper(object):
 		#clear the db
 		self.outdb = {}
 
-	def save(self, record, file_name = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True):		
+	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True):		
 		#waiting while other thread writing
 		while self.writingflag:			
 			pass
 		#hold the flag	
 		self.writingflag = True
 			
-		path = os.path.join(self.dir, file_name)
+		path = os.path.join(self.dir, filename)
 		format = common.DataItem(path).subreg('\.([a-z]{2,5})$--is').lower()
 
 		if not self.outdb.get(path):
@@ -286,13 +292,13 @@ class Scraper(object):
 
 		#free the flag
 		self.writingflag = False
-	def append_line(self, file_name, line, dedup=False):		
+	def append_line(self, filename, line, dedup=False):		
 		#waiting while other thread writing
 		while self.writingflag:			
 			pass
 		#hold the flag	
 		self.writingflag = True
-		path = self.join_path(file_name)					
+		path = self.join_path(filename)					
 
 		if dedup:
 			if not hasattr(self,'_data_lines'):				
@@ -308,8 +314,8 @@ class Scraper(object):
 		#free the flag
 		self.writingflag = False	
 
-	def put_file(self, file_name, data):
-		common.put_file(self.join_path(file_name), data)	
+	def put_file(self, filename, data):
+		common.put_file(self.join_path(filename), data)	
 		return self
 
 	def read_csv(self, path, restype='list', encoding='utf8', line_sep='\r\n'):

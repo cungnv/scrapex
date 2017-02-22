@@ -1,5 +1,21 @@
-import sys, os, urlparse, time, zlib, json, re, codecs, logging, urllib2, urllib, httplib, contextlib, cookielib, random, socket, ssl, base64
-
+import sys
+import os
+import urlparse
+import time
+import zlib
+import json
+import re
+import codecs
+import logging
+import urllib2
+import urllib
+import httplib
+import contextlib
+import cookielib
+import random
+import socket
+import ssl
+import base64
 from cStringIO import StringIO
 from gzip import GzipFile
 
@@ -16,6 +32,7 @@ else:
 	ssl._create_default_https_context = _create_unverified_https_context
 
 meta_seperator = '=======META======'
+
 class Proxy(object):
 	def __init__(self, host, port, proxy_auth = None):
 		self.host = host
@@ -26,6 +43,8 @@ class Proxy(object):
 
 		self.full_address = ( '%s@%s:%s' % (self.proxy_auth, self.host, self.port) ) if self.proxy_auth else ('%s:%s' % (self.host, self.port))
 
+	def __str__(self):
+		return '%s:%s' % (self.host, self.port)
 
 class ProxyManager(object):
 	
@@ -38,7 +57,26 @@ class ProxyManager(object):
 
 		self.load_proxies()
 
+		self.session_proxy = None #if set, always use this project intead of radom one
 
+	def parse_proxy(self, proxy_line):
+		proxy = proxy_line
+
+		if len(proxy.split(':')) == 2:
+			if self.proxy_auth:
+				return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth=self.proxy_auth)
+			else:
+				return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth= None)
+				
+			
+		#support proxy in ip:port:user:pass
+		if len(proxy.split(':')) == 4:
+			proxy = proxy.split(':')
+			return Proxy(host=proxy[0], port=proxy[1], proxy_auth='%s:%s' % (proxy[2], proxy[3]))
+		
+		raise Exception('failed to parse proxy: %s', proxy)	
+		
+	
 	def load_proxies(self):		
 		proxy_file = self.proxy_file
 
@@ -54,7 +92,7 @@ class ProxyManager(object):
 
 				#support tab, commas separator as well
 				line = line.replace('\t',':').replace(',',':')	
-				self.proxies.append(line)		
+				self.proxies.append(self.parse_proxy(line))		
 
 
 		return self	
@@ -63,35 +101,27 @@ class ProxyManager(object):
 		if not self.proxies:
 			return None
 
-		proxy = random.choice( self.proxies )	
-		if self.proxy_auth and len(proxy.split(':')) == 2:
-			return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth=self.proxy_auth)
-			
-		#support proxy in ip:port:user:pass
-		if len(proxy.split(':')) == 4:
-			proxy = proxy.split(':')
-			return Proxy(host=proxy[0], port=proxy[1], proxy_auth='%s:%s' % (proxy[2], proxy[3]))
-			
-			
-		return None
+		return random.choice( self.proxies )	
+
 
 	def get_proxy(self, url=None):
 
-		return self.random_proxy()
+		return self.session_proxy or self.random_proxy()
 		
 
-
-class Status():
-	""" Represents a http request response status """
-
-	def __init__(self, code=0, final_url='', error=''):
+class Response(object):
+	""" a wrapper for http response """
+	def __init__(self, data, code = None, final_url='', message='', request = None, headers = ''):
+		
+		self.data = data #unicode data
 		self.code = code
+		self.message = message
 		self.final_url = final_url
-		self.error = error
+		
+		self.request = request #original request object
 
-	def __str__(self):
+		self.headers = headers #response headers
 
-		return str("code: %s, error: %s, final_url: %s" % (self.code, self.error, self.final_url) )
 
 class Request(object):	
 	""" Represents a http request """
@@ -99,7 +129,7 @@ class Request(object):
 	def __init__(self, url, post = None, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'log_file, use_logging_config, debug, max_redirects, accept_error_codes, return_type, cb, meta, log_time_and_proxy, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, file_name, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'proxy, log_file, use_logging_config, debug, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -205,25 +235,17 @@ class Request(object):
 		
 		return self	
 
-class Response(object):
-	""" a wrapper for http response """
-	def __init__(self, data, status):
-		self.data = data
-		self.status = status
 
 
 class Doc(Node):
-	def __init__(self, url='', html='<html></html>', html_clean=None, status=None):
+	def __init__(self, url='', html='<html></html>', html_clean=None, response=None):
 		logger = logging.getLogger('__name__')		
 		if html_clean:
 			html = html_clean(html)
 
 		Node.__init__(self, html)
 		self.url = common.DataItem( url )
-		self.status = status or Status(final_url=url)
-		
-
-		
+		self.response = response or Response(final_url=url)
 		
 		#resolve relative urls
 		baseurl = self.x("//base/@href").tostring()
@@ -294,7 +316,7 @@ class Client(object):
 	def load(self, req):
 		""" returns a DOM Document"""
 		html = self.load_html(req)
-		doc = Doc(html=html, url = req.url, status= html.status)
+		doc = Doc(html=html, url = req.url, response= html.response)
 
 		return doc
 
@@ -306,23 +328,22 @@ class Client(object):
 			accept_error_codes = []
 
 
-		if cache and cache.exists(url = req.url, post=req.post, file_name=req.get('file_name')) and req.get('use_cache'):
-			return self._read_from_cache(url=req.url, post=req.post, file_name=req.get('file_name'))
+		if cache and cache.exists(url = req.url, post=req.post, filename=req.get('filename')) and req.get('use_cache'):
+			return self._read_from_cache(url=req.url, post=req.post, filename=req.get('filename'))
 
-		if req.get('use_cache') and req.get('cache_only') and not cache.exists(url = req.url, post=req.post, file_name=req.get('file_name')):
+		if req.get('use_cache') and req.get('cache_only') and not cache.exists(url = req.url, post=req.post, filename=req.get('filename')):
 			html = common.DataItem('<html/>')
-			html.status = Status()
+			html.response = Response()
 			return html 	
 			
 		res = self.fetch_data(req)
 
 		html = common.DataItem( res.data or '')
-		status = res.status
 
-		if (status.code == 200 or status.code in accept_error_codes) and  cache and req.get('use_cache'):
-			self._write_to_cache(url=req.url, post=req.post, data=html, status=status, file_name=req.get('file_name'))
+		if (res.code == 200 or res.code in accept_error_codes) and  cache and req.get('use_cache'):
+			self._write_to_cache(url=req.url, post=req.post, data=html, response=res, filename=req.get('filename'))
 
-		html.status = status
+		html.response = res
 
 		return html	
 
@@ -373,6 +394,7 @@ class Client(object):
 		status_code = 0
 		error_message = ''
 		final_url = None	
+		response_headers = None
 
 		if self.scraper.config['debug']:		
 			self.logger.debug('loading %s', req.url)
@@ -382,6 +404,9 @@ class Client(object):
 			with contextlib.closing(opener.open(request,  timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
 				final_url = res.url
 				status_code = res.code
+
+				
+				response_headers = res.headers
 
 
 				rawdata = res.read()
@@ -428,13 +453,7 @@ class Client(object):
 					data = bytes		
 
 				
-				#log proxy and timestamp into the html file if asked
-				if req.get('log_time_and_proxy'):
-					
-					data += '\n<log id="time_proxy"><time>{time}</time><proxy>{proxy}</proxy></log>'.format(time=time.time(), proxy=proxy if (proxy and req.get('use_proxy') is not False) else '')
-	
-
-				return Response(data=data, status= Status(code=status_code, final_url=final_url))	
+				return Response(data=data, code=status_code, final_url=final_url, request = req, headers=response_headers)	
 
 		
 		except Exception, e:
@@ -466,7 +485,8 @@ class Client(object):
 				self.logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
 				if 'invalid html' in error_message:
 					status_code = 0
-				return Response(data=None, status = Status(code = status_code, final_url=final_url, error = error_message))
+
+				return Response(data=None, code = status_code, final_url=final_url, message = error_message, request=req, headers=response_headers)
 
 
 	def requests_fetch_data(self, req, headers):
@@ -503,11 +523,11 @@ class Client(object):
 				r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
 			
 		
-			status_code = r.status_code
+			status_code = r.response_code
 			final_url = r.url
 			if status_code != 200:
 				if status_code not in accept_error_codes:
-					raise Exception('Invalid status code: %s' % r.status_code)
+					raise Exception('Invalid status code: %s' % r.response_code)
 			
 			rawdata = r.raw.read()
 
@@ -526,7 +546,7 @@ class Client(object):
 			is_binary_data = req.get('bin') or False
 			
 			if is_binary_data:
-				return Response(data=bytes, status= Status(code=status_code, final_url=final_url))
+				return Response(data=bytes, code=status_code, final_url=final_url)
 
 
 			html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
@@ -539,11 +559,8 @@ class Client(object):
 			if verify and (not verify(html)):
 				raise Exception("invalid html")
 
-			#log proxy and timestamp into the html file if asked
-			if req.get('log_time_and_proxy'):
-				html += u'\n<log id="time_proxy"><time>{time}</time><proxy>{proxy}</proxy></log>'.format(time=time.time(), proxy=proxy if proxies else '')
-
-			return Response(data=html, status= Status(code=status_code, final_url=final_url))	
+			
+			return Response(data=html, code=status_code, final_url=final_url, request = req)	
 			
 				
 
@@ -559,43 +576,43 @@ class Client(object):
 				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
 				if 'invalid html' in error_message:
 					status_code = 0
-				return Response(data=None, status = Status(code = status_code, final_url=final_url, error = error_message))
+				return Response(data=None, code = status_code, final_url=final_url, message = error_message, request=req)
 
 		
 
-	def _read_from_cache(self, url, post, file_name=None):
+	def _read_from_cache(self, url, post, filename=None):
 		cache = self.scraper.cache
 
-		cachedata = cache.read(url = url, post = post, file_name = file_name).split(meta_seperator)
+		cachedata = cache.read(url = url, post = post, filename = filename).split(meta_seperator)
 		
 		cachedhtml = None
-		status = Status(code=200, final_url=None, error=None)
+		
 		if len(cachedata)==2:
 			cachedhtml = cachedata[1]
 			meta = json.loads( cachedata[0] )
 			#reload status
-			status = Status(code= meta['status']['code'], final_url = meta['status']['final_url'], error = meta['status'].get('error', '') )
+			response = Response(data=cachedhtml,code= meta['response']['code'], final_url = meta['response']['final_url'], message = meta['response'].get('message', '') )
 		else:
 			#no meta data
 			cachedhtml = cachedata[0]
+			response = Response(data=cachedhtml,code=200, final_url=None, message=None)
+
 		html = common.DataItem(cachedhtml)	
-		html.status = status
+		html.response = response
 
 		return html
 
-	def _write_to_cache(self, url, post, data, status, file_name=None):
+	def _write_to_cache(self, url, post, data, response, filename=None):
 		meta = {
 				'url': url,
-				'status': {
-					'code': status.code,
-					'final_url': status.final_url,
-					'error': status.error
+				'response': {
+					'code': response.code,
+					'final_url': response.final_url,
+					'message': response.message
 				}
 			}
 		
-		self.scraper.cache.write(url=url, post=post, file_name=file_name, data=u''.join([json.dumps(meta), meta_seperator, data]) )	
-	
-
+		self.scraper.cache.write(url=url, post=post, filename=filename, data=u''.join([json.dumps(meta), meta_seperator, data]) )	
 		
 
 if __name__ == '__main__':
@@ -604,3 +621,4 @@ if __name__ == '__main__':
 	
 	doc = s.load('https://librivox.org/what-i-believe-by-leo-tolstoy/')
 	print doc.x("//title")
+	print doc.response

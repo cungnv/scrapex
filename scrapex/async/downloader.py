@@ -248,17 +248,17 @@ class Downloader():
 			writeToFD(fd, data)
 			# return d
 	
-	def _write_to_cache(self, url, post, data, file_name=None):
+	def _write_to_cache(self, url, post, data, filename=None):
 		
-		file_name = file_name or self.scraper.cache.make_key(url=url,post=post)
-		file_path = os.path.join(self.scraper.cache.location, file_name)
+		filename = filename or self.scraper.cache.make_key(url=url,post=post)
+		file_path = os.path.join(self.scraper.cache.location, filename)
 		return self._write_file(file_path, data)
 
-	def _read_from_cache(self, url, post, file_name):
+	def _read_from_cache(self, url, post, filename):
 		d = defer.Deferred()
 
-		file_name = file_name or self.scraper.cache.make_key(url=url,post=post)
-		path = os.path.join(self.scraper.cache.location, file_name)
+		filename = filename or self.scraper.cache.make_key(url=url,post=post)
+		path = os.path.join(self.scraper.cache.location, filename)
 		with open(path, 'rb') as f:
 			fd = f.fileno()
 			setNonBlocking(fd)
@@ -276,21 +276,25 @@ class Downloader():
 		except Exception as e:
 			logger.warn('failed to decode bytes from url: %s', req.url)
 
+		_res = http.Response(data=unicode_html, 
+			code=response['code'], 
+			message=response['message'], 
+			final_url= 'todo: update final_url', 
+			request = req, 
+			headers= 'todo: update responsed headers'
+
+			)	
+
 		
 		return_type = req.get('return_type') or 'doc'
 
 		if return_type == 'doc':
-			doc = http.Doc(url=req.url, html=unicode_html)
-			doc.req = req
-			doc.status.code = response['code']
-			doc.status.message = response['message']
+			doc = http.Doc(url=req.url, html=unicode_html, response = _res)
 			return doc
+
 		elif return_type == 'html':
-			html = common.DataItem( unicode_html )
-			html.req = req
-			html.status = common.DataObject()
-			html.status.code = response['code']
-			html.status.message = response['message']
+			html = common.DataItem( unicode_html, response = response )
+			
 			return html
 		
 		else:
@@ -313,7 +317,7 @@ class Downloader():
 		
 		if response['success'] == True:
 			if req['use_cache']:
-				self._write_to_cache(req.url, req.post, data=response['data'], file_name = req.get('file_name'))
+				self._write_to_cache(req.url, req.post, data=response['data'], filename = req.get('filename'))
 		else:
 			
 			#untested code
@@ -344,7 +348,7 @@ class Downloader():
 
 	def _request(self, req):
 		if req['use_cache']:
-			if self.scraper.cache.exists(url=req.url, post=req.post, file_name = req.get('file_name')):
+			if self.scraper.cache.exists(url=req.url, post=req.post, filename = req.get('filename')):
 
 				if req.get('cb'):
 					def read_file_done(data):
@@ -356,7 +360,7 @@ class Downloader():
 						except Exception as e:
 							self.scraper.logger.exception(e)	
 
-					deferred = self._read_from_cache(req.url, req.post, req.get('file_name') )
+					deferred = self._read_from_cache(req.url, req.post, req.get('filename') )
 					
 					deferred.addCallback(read_file_done)
 
@@ -415,11 +419,11 @@ class Downloader():
 	def _download_file(self, req):
 		cb = req.get('cb')
 
-		file_name = req.get('file_name')
-		if not file_name:
+		filename = req.get('filename')
+		if not filename:
 			
 			if cb:
-				cb(FileDownloadResponse(req=req, success=False, message='file_name not defined'))
+				cb(FileDownloadResponse(req=req, success=False, message='filename not defined'))
 			
 			return None
 
@@ -428,7 +432,7 @@ class Downloader():
 		if not os.path.exists(directory):
 			os.mkdir(directory)
 
-		file_path = os.path.join(directory , file_name)
+		file_path = os.path.join(directory , filename)
 		if os.path.exists(file_path):
 			#already downloaded
 			if cb:
