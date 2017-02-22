@@ -8,7 +8,7 @@ Welcome to scrapex's documentation!
 Scrapex is a python web scraping framework, designed for quick writing, productive, but still powerful and flexible.
 
 
-Grab User Manual
+Scrapex User Manual
 ----------------
 
 .. toctree::
@@ -18,12 +18,6 @@ Grab User Manual
     usage/testing
     grab/quickstart
     grab/request_method
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
 
 
 Indices and tables
