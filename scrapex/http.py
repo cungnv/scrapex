@@ -245,7 +245,7 @@ class Doc(Node):
 
 		Node.__init__(self, html)
 		self.url = common.DataItem( url )
-		self.response = response or Response(final_url=url)
+		self.response = response or Response(data=html, final_url=url)
 		
 		#resolve relative urls
 		baseurl = self.x("//base/@href").tostring()
