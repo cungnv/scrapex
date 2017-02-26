@@ -11,10 +11,23 @@ Scrapex is a python web scraping framework, designed for fast development and fl
 
 .. toctree::
     :maxdepth: 2
-    
+
     quickstart
     installation
-    
+    features
+    working_with_scraper
+    data_extraction
+    parse_address
+    proxies
+    cookies
+    headers
+    logging_debugging
+    dataitem
+    cache
+    scrapex_selenium
+    other_usages
+    sample_codes
+
 
 Indices and tables
 ==================

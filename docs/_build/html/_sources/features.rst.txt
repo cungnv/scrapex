@@ -1,0 +1,4 @@
+Features
+========
+    pip install scrapex
+
