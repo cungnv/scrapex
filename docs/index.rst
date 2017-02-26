@@ -8,14 +8,10 @@ Welcome to scrapex's documentation!
 
 Scrapex is a python web scraping framework, designed for fast development and flexibility.
 
-Table of Contents
-=================
-
-Scrapex User Manual
--------------------
 
 .. toctree::
     :maxdepth: 2
+    
     quickstart
     installation
     

@@ -1,6 +1,4 @@
-.. _toctree:
-
 Installation
 ============
-	pip install scrapex
+    pip install scrapex
 

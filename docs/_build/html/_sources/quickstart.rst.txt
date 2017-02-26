@@ -1,4 +1,4 @@
 Quick Start
 ============
-	s = Scraper(use_cache=False)
+    s = Scraper(use_cache=False)
 
