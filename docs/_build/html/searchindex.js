@@ -1,0 +1,1 @@
+Search.setIndex({docnames:["index"],envversion:50,filenames:["index.rst"],objects:{},objnames:{},objtypes:{},terms:{design:0,develop:0,fast:0,flexibl:0,framework:0,index:0,modul:0,page:0,python:0,scrape:0,search:0,web:0},titles:["Welcome to scrapex&#8217;s documentation!"],titleterms:{content:0,document:0,indic:0,manual:0,scrapex:0,tabl:0,user:0,welcom:0}})

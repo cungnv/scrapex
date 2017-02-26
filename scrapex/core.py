@@ -221,7 +221,7 @@ class Scraper(object):
 			
 			res = self.client.fetch_data(http.Request(url=url, bin = True, **options))	
 					
-			if res.status.code == 200 and res.data:
+			if res.code == 200 and res.data:
 				common.put_bin(path, res.data)
 				return fn
 			else:

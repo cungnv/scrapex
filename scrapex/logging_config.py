@@ -66,4 +66,4 @@ def set_default(log_file = 'log.txt', reserve=False):
 
 	logging.config.dictConfig(default_settings)
 
-
+	
