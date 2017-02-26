@@ -16,12 +16,9 @@ Scrapex User Manual
 
 .. toctree::
     :maxdepth: 2
-
-    installation
-    testing
     quickstart
-    request_method
-
+    installation
+    
 
 Indices and tables
 ==================
