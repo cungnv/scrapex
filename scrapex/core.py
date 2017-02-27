@@ -123,7 +123,9 @@ class Scraper(object):
 					self.logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
 
 			time_elapsed = round(time.time() - self._time_start, 2)
-			self.logger.info('time elapsed: %s minutes', round(time_elapsed/60))			
+			minutes = round(time_elapsed/60)
+			seconds = time_elapsed - minutes * 60
+			self.logger.info('time elapsed: %s minutes %s seconds', minutes, seconds)			
 
 
 
