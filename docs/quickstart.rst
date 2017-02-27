@@ -1,6 +1,8 @@
 Quick Start
 ============
 
+Create a very basic scraper to scrape github search result page:
+
 ::
 
     from scrapex import Scraper
