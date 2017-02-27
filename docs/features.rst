@@ -1,5 +1,5 @@
 Key Features
 ============
 
-    .. include: inc.features.txt
+    .. include:: inc.features.txt
 

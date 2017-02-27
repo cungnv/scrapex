@@ -10,7 +10,7 @@ Scrapex is a python Web Scraping Framework for Fast and Flexible Development. Wr
 
 Key Features:
 
-    .. include: inc.features.txt
+    .. include:: inc.features.txt
 
 
 .. toctree::
