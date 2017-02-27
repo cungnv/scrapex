@@ -57,13 +57,17 @@ default_settings = {
 	}
 }
 
-def set_default(log_file = 'log.txt', reserve=False):
+def set_default(log_file = 'log.txt', preserve=False):
+	
+
 	if log_file:
 		default_settings['handlers']['file_handler']['filename'] = log_file
 
-	if not reserve:
+	if not preserve:
 		common.put_file(log_file,'')	
 
 	logging.config.dictConfig(default_settings)
 
-	
+	return logging.getLogger('scrapex')
+
+

@@ -38,8 +38,9 @@ class Scraper(object):
 			show_status_message = True,
 			max_redirects = 3,
 			debug = True,
-			log_file = 'log.txt'
 
+			log_file = 'log.txt'
+			
 			)
 
 
@@ -61,43 +62,12 @@ class Scraper(object):
 	
 
 		""" logging settings """
-		# _log_file_path = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
+		_log_file_path = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
 
-		# if self.config.get('use_logging_config') is not False:
-			
-		# 	if os.path.exists(self.join_path('logging.config')):
-		# 		#use custom logging config
-		# 		logging.config.dictConfig(json.loads(common.get_file(self.join_path('logging.config'))))
+		if _log_file_path:
+			logging_config.set_default(log_file = _log_file_path, preserve = False)
 
-		# 	else:
-		# 		#use default logging config
-				
-		# 		default_log_settings = logging_config.default_settings.copy()
-
-		# 		if _log_file_path:
-		# 			default_log_settings['handlers']['file_handler']['filename'] = _log_file_path
-
-		# 		else:
-		# 			#when log_file set to None, disable find_handler
-		# 			del default_log_settings['handlers']['file_handler']
-		# 			del default_log_settings['loggers']['requests.packages.urllib3.connectionpool']
-
-		# 			default_log_settings['root']['handlers'] = ['console']
-
-
-
-		# 		# if self.config.get('debug') is True:
-		# 		# 	default_log_settings['handlers']['console']['level'] = 'DEBUG'
-
-		# 		logging.config.dictConfig(default_log_settings)	
-
-		# 	#clear the log	
-		# 	if not self.config.get('preserve_log'):
-		# 		if _log_file_path is not None:
-		# 			self.put_file(_log_file_path, '')		
-
-
-		self.logger = logging.getLogger(__name__)
+		self.logger = logging.getLogger('scrapex')
 
 		if self.config['show_status_message']:
 
@@ -141,9 +111,9 @@ class Scraper(object):
 		self.flush()
 		if self.config['show_status_message']:
 			#parse log
-			log_file = self.join_path('log.txt')
+			log_file = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
 			
-			if not os.path.exists(log_file) or self.config['parse_log'] is False:
+			if not log_file or self.config['parse_log'] is False:
 				self.logger.info('Completed')
 			else:
 				logdata = common.parse_log(log_file)
@@ -401,7 +371,7 @@ class Scraper(object):
 
 			)
 
-	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=True, debug=True, verify=None, meta={},  **_options):
+	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=False, debug=True, verify=None, meta={},  **_options):
 		
 		if cc != self.downloader.cc:
 			self.downloader.set_cc(cc)
