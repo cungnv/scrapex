@@ -1,5 +1,6 @@
 Quick Start
 ============
+
 ::
 
     from scrapex import Scraper
@@ -56,4 +57,22 @@ Quick Start
             'result.csv' 
 
             )
+
+
+The console screen:
+
+::
+    
+    INFO: start
+    INFO: We’ve found 763 repository results
+    INFO: result count: 763
+    INFO: # of listings on first page: 10
+    INFO: Completed successfully
+    INFO: time elapsed: 0.0 minutes 0.17 seconds
+    
+
+
+
+
+
 
