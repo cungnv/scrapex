@@ -19,6 +19,7 @@ Key Features:
     quickstart
     installation
     features
+    sample_codes
     working_with_scraper
     data_extraction
     parse_address
@@ -30,9 +31,7 @@ Key Features:
     cache
     scrapex_selenium
     other_usages
-    sample_codes
-
-
+    
 Indices and tables
 ==================
 

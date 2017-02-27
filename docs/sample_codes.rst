@@ -39,6 +39,36 @@ make http requests
 
     html = s.load_html(url)
 
+    # don't want to use cache in this request alone
+    doc = s.load(url, use_cache = False)
+
+    # don't want to use proxy and cookies in this request alone
+    doc = s.load(url, use_cookie = False, use_proxy = False)    
+
+    # use custom headers
+    doc = s.load(url, headers={
+
+        #copied from Google Chrome's Network Tab
+
+        'Cookie': 'csrftoken=RcWB0BVsPfiRzvMQLHZ4WlmUbSLvVFKS; __utmt=1;', 
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
+        'Referer': 'http://scrapex.readthedocs.io/en/latest/features.html' 
+
+
+    })
+
+download files
+--------------
+
+::
+
+    #download image file to a folder images inside the project's directory
+    s.download_file(url=image_url, filename = 'test.jpg', dir = 'images')
+
+    #download a pdf file to somewhere else
+    s.download_file(url = pdf_url, filename='/path/to/local/file.pdf')
+
+    
 
 
 

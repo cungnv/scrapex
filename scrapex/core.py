@@ -161,8 +161,12 @@ class Scraper(object):
 		
 		return self.client.load_json(Request(url = url, post = post, **options))
 			
+	def  save_link(self, url, filename, dir='images', **_options):
+		""" backward supports """
+		
+		return self.download_file(url, filename, dir, **_options)
 
-	def save_link(self, url, dir='images', filename='auto', format='jpg', prefix='', **_options):
+	def download_file(self, url, filename, dir='images', **_options):
 		fn = ''
 
 		if filename == 'auto':			
