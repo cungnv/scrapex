@@ -10,26 +10,7 @@ Scrapex is a python Web Scraping Framework for Fast and Flexible Development. Wr
 
 Key Features:
 
-    * Flexible Cache Sysem: 
-        allow last-minutes changes, parsing-mistakes being fixed quickly, wihtout having to run against the website again and again
-    
-    * Extracting data by Xpath, Regex, String Subtraction; All in a Chain
-    
-    * Automic Cookies Handling
-
-    * Ramdom Proxy Rotation
-
-    * Random User Agent Rotation
-
-    * Easy Street Address Parsing
-    
-    * Easily Saving data to CSV, Excel, JSON
-    
-    * Automatically resolving relative URLs and making them absolute URLs.
-    
-    * Asynchronous Programing to Handle Big Data Scrape
-    
-    * Automatic Response Decode
+    .. include: inc.features.txt
 
 
 .. toctree::
