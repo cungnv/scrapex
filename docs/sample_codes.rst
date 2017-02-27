@@ -13,6 +13,7 @@ create scraper object
         use_cache = True, #enable the cache system
         use_cookie = True, #enable cookies
         delay = 0.1, # add 0.1 second delay between network requests
+        retries = 2, #tries 2 more times if a http request failed
         log_file = 'log.txt', #enable default logging settings; set to None if you want to set logging yourself
         proxy_file = 'path/to/proxy.txt', #each line contains a proxy in host:port format
         proxy_auth = 'user:pass' # or None if no authentication required
@@ -62,13 +63,13 @@ download files
 
 ::
 
-    #download image file to a folder images inside the project's directory
-    s.download_file(url=image_url, filename = 'test.jpg', dir = 'images')
+    #download image file to folder images inside the project's directory
+    s.download_file(image_url, filename = 'test.jpg', dir = 'images')
 
     #download a pdf file to somewhere else
-    s.download_file(url = pdf_url, filename='/path/to/local/file.pdf')
+    s.download_file(pdf_url, filename='/path/to/local/file.pdf')
 
-    
+
 
 
 

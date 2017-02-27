@@ -20,7 +20,6 @@ Key Features:
     installation
     features
     sample_codes
-    working_with_scraper
     data_extraction
     parse_address
     proxies
