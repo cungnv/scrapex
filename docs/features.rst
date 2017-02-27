@@ -2,9 +2,9 @@ Key Features
 ============
 
     * Flexible Cache Sysem: 
-    	allow quick changes, parsing-mistakes being fixed quickly, wihtout having to run against the website again and again
+        allow last-minutes changes, parsing-mistakes being fixed quickly, wihtout having to run against the website again and again
     
-    * Extracting data by Xpath, Regular Expression, and String Subtraction; all in Chain
+    * Extracting data by Xpath, Regex, String Subtraction; All in a Chain
     
     * Automic Cookies Handling
 
