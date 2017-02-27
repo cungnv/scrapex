@@ -6,15 +6,17 @@
 Welcome to scrapex's documentation!
 ===================================
 
-Scrapex is a python web scraping framework for fast and flexible development.
+Scrapex is a python Web Scraping Framework for Fast and Flexible Development. Write Less, Work More.
 
-Key features of scrapex:
+Key Features:
 
-    * Flexible Cache Sysem: allow quick changes, parsing-mistakes being fixed quickly, 
-    wihtout having to run against the website again and again
+    * Flexible Cache Sysem: 
+        allow quick changes, parsing-mistakes being fixed quickly, wihtout having to run against the website again and again
     
     * Extracting data by Xpath, Regular Expression, and String Subtraction; all in Chain
     
+    * Automic Cookies Handling
+
     * Ramdom Proxy Rotation
 
     * Random User Agent Rotation

@@ -1,11 +1,13 @@
-Features
-========
+Key Features
+============
 
-    * Flexible Cache Sysem: allow quick changes, parsing-mistakes being fixed quickly, 
-    wihtout having to run against the website again and again
+    * Flexible Cache Sysem: 
+    	allow quick changes, parsing-mistakes being fixed quickly, wihtout having to run against the website again and again
     
     * Extracting data by Xpath, Regular Expression, and String Subtraction; all in Chain
     
+    * Automic Cookies Handling
+
     * Ramdom Proxy Rotation
 
     * Random User Agent Rotation
