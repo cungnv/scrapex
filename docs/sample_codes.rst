@@ -7,6 +7,7 @@ create scraper object
 ---------------------
 
 ::
+
     s = Scraper(
         dir = '.', #define the project directory, by default: use the current working directory
         use_cache = True, #enable the cache system
@@ -27,18 +28,18 @@ make http requests
     doc = s.load(url)
 
     # POST request
-    doc = s.load(url, post = 'username=your+value&password=your+password')
+    doc = s.load(url, post = 'search_term=web+scraping&page=2')
     # or
     doc = s.load(url, post = {
-        'username': 'your user',
-        'password': 'your password'
+        'search_term': 'web scraping',
+        'page': '2'
         } )
     
     # just want html content, not creat the doc object
 
-    html = s.load_html(url, post = 'username=your+value&password=your+password')
+    html = s.load_html(url)
 
-    
+
 
 
 
