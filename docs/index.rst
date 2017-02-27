@@ -19,7 +19,7 @@ Key Features:
     quickstart
     installation
     features
-    sample_codes
+    code_samples
     data_extraction
     parse_address
     proxies

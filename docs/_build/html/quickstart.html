@@ -26,6 +26,8 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Welcome to scrapex’s documentation!" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -43,8 +45,67 @@
             
   <div class="section" id="quick-start">
 <h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
-<blockquote>
-<div>s = Scraper(use_cache=False)</div></blockquote>
+<p>Create a very basic scraper to scrape github search result page:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scrapex</span> <span class="k">import</span> <span class="n">Scraper</span>
+
+<span class="c1">#create a scraper, the central object</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">Scraper</span><span class="p">(</span>
+    <span class="nb">dir</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="c1">#define the project directory, by default: use the current working directory</span>
+    <span class="n">use_cache</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">#enable the cache system</span>
+    <span class="n">use_cookie</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">#enable cookies</span>
+    <span class="n">delay</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1"># add 0.1 second delay between network requests</span>
+    <span class="n">retries</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="c1">#tries 2 more times if a http request failed</span>
+    <span class="n">log_file</span> <span class="o">=</span> <span class="s1">&#39;log.txt&#39;</span><span class="p">,</span> <span class="c1">#enable default logging settings; set to None if you want to set logging yourself</span>
+    <span class="n">proxy_file</span> <span class="o">=</span> <span class="s1">&#39;path/to/proxy.txt&#39;</span><span class="p">,</span> <span class="c1">#each line contains a proxy in host:port format</span>
+    <span class="n">proxy_auth</span> <span class="o">=</span> <span class="s1">&#39;user:pass&#39;</span> <span class="c1"># or None if no authentication required</span>
+<span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">logger</span>
+
+<span class="c1">#load a page</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;https://github.com/search?q=python+web+scraping&amp;type=Repositories&amp;ref=searchresults&#39;</span><span class="p">)</span>
+
+<span class="c1">#extract the headline using xpath</span>
+<span class="n">headline</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="s2">&quot;//h3[contains(text(), &#39;result&#39;)]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">trim</span><span class="p">()</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">headline</span><span class="p">)</span>
+
+<span class="c1">#extract the result count from the headline using regex</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;result count: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">headline</span><span class="o">.</span><span class="n">subreg</span><span class="p">(</span><span class="s1">&#39;([\d\,]+)&#39;</span><span class="p">))</span>
+
+<span class="c1">#select all result nodes. q means query</span>
+<span class="n">rs</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">q</span><span class="p">(</span><span class="s2">&quot;//ul[@class=&#39;repo-list js-repo-list&#39;]/li&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;# of listings on first page: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">))</span>
+
+<span class="c1">#loop through each result, and save details to a csv file</span>
+<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">:</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">save</span><span class="p">([</span>
+        <span class="c1"># a list of name,value pairs.</span>
+        <span class="c1"># the names will become the csv&#39;s column names</span>
+
+        <span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="s2">&quot;.//h3&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="s2">&quot;.//h3/a/@href&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;short description&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">),</span>
+
+        <span class="c1">#firstly query all the tag links INSIDE this r node, then join the link text by a comma</span>
+        <span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">q</span><span class="p">(</span><span class="s2">&quot;div/a[contains(@class, &#39;topic-tag&#39;)]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+
+        <span class="p">],</span>
+
+        <span class="c1">#the csv filename, located inside the project&#39;s directory</span>
+        <span class="s1">&#39;result.csv&#39;</span>
+
+        <span class="p">)</span>
+</pre></div>
+</div>
+<p>==&gt; The console screen:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>INFO: start
+INFO: We’ve found 763 repository results
+INFO: result count: 763
+INFO: # of listings on first page: 10
+INFO: Completed successfully
+INFO: time elapsed: 0.0 minutes 0.17 seconds
+</pre></div>
+</div>
 </div>
 
 
@@ -56,6 +117,8 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to scrapex&#8217;s documentation!</a></li>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
   </ul></li>
 </ul>
 </div>

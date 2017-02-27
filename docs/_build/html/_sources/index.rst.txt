@@ -6,7 +6,11 @@
 Welcome to scrapex's documentation!
 ===================================
 
-Scrapex is a python web scraping framework, designed for fast development and flexibility.
+Scrapex is a python Web Scraping Framework for Fast and Flexible Development. Write Less, Work More.
+
+Key Features:
+
+    .. include:: inc.features.txt
 
 
 .. toctree::
@@ -15,7 +19,7 @@ Scrapex is a python web scraping framework, designed for fast development and fl
     quickstart
     installation
     features
-    working_with_scraper
+    code_samples
     data_extraction
     parse_address
     proxies
@@ -26,9 +30,7 @@ Scrapex is a python web scraping framework, designed for fast development and fl
     cache
     scrapex_selenium
     other_usages
-    sample_codes
-
-
+    
 Indices and tables
 ==================
 

@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Code Samples &#8212; scrapex 0.1.2 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Data Extraction" href="data_extraction.html" />
+    <link rel="prev" title="Key Features" href="features.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="code-samples">
+<h1>Code Samples<a class="headerlink" href="#code-samples" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="create-scraper-object">
+<h2>create scraper object<a class="headerlink" href="#create-scraper-object" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">Scraper</span><span class="p">(</span>
+    <span class="nb">dir</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="c1">#define the project directory, by default: use the current working directory</span>
+    <span class="n">use_cache</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">#enable the cache system</span>
+    <span class="n">use_cookie</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">#enable cookies</span>
+    <span class="n">delay</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1"># add 0.1 second delay between network requests</span>
+    <span class="n">retries</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="c1">#tries 2 more times if a http request failed</span>
+    <span class="n">log_file</span> <span class="o">=</span> <span class="s1">&#39;log.txt&#39;</span><span class="p">,</span> <span class="c1">#enable default logging settings; set to None if you want to set logging yourself</span>
+    <span class="n">proxy_file</span> <span class="o">=</span> <span class="s1">&#39;path/to/proxy.txt&#39;</span><span class="p">,</span> <span class="c1">#each line contains a proxy in host:port format</span>
+    <span class="n">proxy_auth</span> <span class="o">=</span> <span class="s1">&#39;user:pass&#39;</span> <span class="c1"># or None if no authentication required</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="make-http-requests">
+<h2>make http requests<a class="headerlink" href="#make-http-requests" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># GET request</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+<span class="c1"># POST request</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">post</span> <span class="o">=</span> <span class="s1">&#39;search_term=web+scraping&amp;page=2&#39;</span><span class="p">)</span>
+<span class="c1"># or</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">post</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;search_term&#39;</span><span class="p">:</span> <span class="s1">&#39;web scraping&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;page&#39;</span><span class="p">:</span> <span class="s1">&#39;2&#39;</span>
+    <span class="p">}</span> <span class="p">)</span>
+
+<span class="c1"># just want html content, not creat the doc object</span>
+
+<span class="n">html</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load_html</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+<span class="c1"># don&#39;t want to use cache in this request alone</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">use_cache</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># don&#39;t want to use proxy and cookies in this request alone</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">use_cookie</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">use_proxy</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># use custom headers</span>
+<span class="n">doc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
+
+    <span class="c1">#copied from Google Chrome&#39;s Network Tab</span>
+
+    <span class="s1">&#39;Cookie&#39;</span><span class="p">:</span> <span class="s1">&#39;csrftoken=RcWB0BVsPfiRzvMQLHZ4WlmUbSLvVFKS; __utmt=1;&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="s1">&#39;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Referer&#39;</span><span class="p">:</span> <span class="s1">&#39;http://scrapex.readthedocs.io/en/latest/features.html&#39;</span>
+
+
+<span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="download-files">
+<h2>download files<a class="headerlink" href="#download-files" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#download image file to folder images inside the project&#39;s directory</span>
+<span class="n">s</span><span class="o">.</span><span class="n">download_file</span><span class="p">(</span><span class="n">image_url</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;test.jpg&#39;</span><span class="p">,</span> <span class="nb">dir</span> <span class="o">=</span> <span class="s1">&#39;images&#39;</span><span class="p">)</span>
+
+<span class="c1">#download a pdf file to somewhere else</span>
+<span class="n">s</span><span class="o">.</span><span class="n">download_file</span><span class="p">(</span><span class="n">pdf_url</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;/path/to/local/file.pdf&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Code Samples</a><ul>
+<li><a class="reference internal" href="#create-scraper-object">create scraper object</a></li>
+<li><a class="reference internal" href="#make-http-requests">make http requests</a></li>
+<li><a class="reference internal" href="#download-files">download files</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="features.html" title="previous chapter">Key Features</a></li>
+      <li>Next: <a href="data_extraction.html" title="next chapter">Data Extraction</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/code_samples.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Cung Nguyen.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/code_samples.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

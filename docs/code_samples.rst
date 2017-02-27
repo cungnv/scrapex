@@ -1,4 +1,4 @@
-Sample Codes
+Code Samples
 ============
     
 

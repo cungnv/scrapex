@@ -1,4 +1,5 @@
-Features
-========
-    pip install scrapex
+Key Features
+============
+
+    .. include:: inc.features.txt
 
