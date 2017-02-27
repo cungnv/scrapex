@@ -1,7 +1,8 @@
 Quick Start
 ============
     
-    ``
+.. code-block:: python
+
     from scrapex import Scraper
 
 	s = Scraper(
@@ -64,8 +65,4 @@ Quick Start
 			'result.csv' #the csv filename, located inside the product's directory
 
 			)
-
-
-
-    ``
 
