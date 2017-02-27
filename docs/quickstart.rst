@@ -8,20 +8,12 @@ Create a very basic scraper to scrape github search result page:
     from scrapex import Scraper
 
     #create a scraper, the central object
-
     s = Scraper(
-        
         dir = '.', #define the project directory, by default: use the current working directory
-
         use_cache = True, #enable the cache system
-
         use_cookie = True, #enable cookies
-
         delay = 1, # add 1 second delay between network requests
-
         log_file = 'log.txt', #enable default logging settings
-
-
     )
 
     logger = s.logger
@@ -61,7 +53,7 @@ Create a very basic scraper to scrape github search result page:
             )
 
 
-The console screen:
+==> The console screen:
 
 ::
     
