@@ -8,7 +8,7 @@ Quick Start
 
     s = Scraper(
         
-        dir = '.', #define the project directory
+        dir = '.', #define the project directory, by default: use the current working directory
 
         use_cache = True, #enable the cache system
 
@@ -52,7 +52,7 @@ Quick Start
 
             ],
 
-            #the csv filename, located inside the product's directory
+            #the csv filename, located inside the project's directory
             'result.csv' 
 
             )
