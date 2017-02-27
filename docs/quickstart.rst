@@ -1,8 +1,6 @@
 Quick Start
 ============
-    
-.. highlight:: python
-
+::
 
     from scrapex import Scraper
 
