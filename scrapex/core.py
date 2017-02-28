@@ -167,30 +167,11 @@ class Scraper(object):
 		return self.download_file(url, filename, dir, **_options)
 
 	def download_file(self, url, filename, dir='images', **_options):
-		fn = ''
-
-		if filename == 'auto':			
-			#special name
-			fn = common.DataItem(url).rr('\?.*?$').subreg('/([^/\?\$]+\.[a-z]{2,4})$--is')			
-			if not fn:
-				self.logger.warn( 'failed to parse filename from url: %s', url )
-				return None
-			
-		else:
-			#filename is a fixed name
-			fn = filename
 		
-		if not common.subreg(fn, '(\.[a-z]{2,5}$)--is'):
-			fn += '.'+format
-		fn = prefix + fn
-
-		if not os.path.exists(os.path.join(self.dir, dir)):
-			os.makedirs(os.path.join(self.dir, dir))
+		path = os.path.join(self.dir, dir, filename)
 		
-		path = os.path.join(self.dir, dir, fn)
-
 		if(os.path.exists(path)):
-			return fn #already downloaded
+			return filename #already downloaded
 		else:
 			#start downloading the file
 			options = common.combine_dicts(self.config, _options)		
@@ -199,7 +180,7 @@ class Scraper(object):
 					
 			if res.code == 200 and res.data:
 				common.put_bin(path, res.data)
-				return fn
+				return filename
 			else:
 				return None
 
