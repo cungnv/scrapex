@@ -63,9 +63,8 @@ At a glance:
 
 
 source code:
-::
 
-    .. include:: ../demo/at-a-glance.txt
+.. include:: ../demo/at-a-glance.py
 
 
 
