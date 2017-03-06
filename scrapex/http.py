@@ -33,6 +33,8 @@ else:
 
 meta_seperator = '=======META======'
 
+logger = logging.getLogger(__name__)
+
 class Proxy(object):
 	def __init__(self, host, port, proxy_auth = None):
 		self.host = host
@@ -129,7 +131,8 @@ class Request(object):
 	def __init__(self, url, post = None, **options):		
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
-		allowed_option_names = 'proxy, log_file, use_logging_config, debug, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+
+		allowed_option_names = 'proxy, log_file, use_default_logging, log_post, log_headers, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -301,7 +304,6 @@ class Client(object):
 		
 		socket.setdefaulttimeout(self.scraper.config.get('timeout', 45) )
 
-		self.logger = logging.getLogger(__name__)
 		
 		self.opener = create_opener(use_cookie=True)
 
@@ -355,12 +357,15 @@ class Client(object):
 			return json.loads(data)
 
 		except:
-			self.logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
+			logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
 			return None	
 		
 	
 	def fetch_data(self, req):
+
 		""" processes a http request specified by the req object and returns a response object """
+
+
 		req.normalize(self.scraper)
 
 		accept_error_codes = req.get('accept_error_codes')
@@ -396,8 +401,13 @@ class Client(object):
 		final_url = None	
 		response_headers = None
 
-		if self.scraper.config['debug']:		
-			self.logger.debug('loading %s', req.url)
+		if self.scraper.config['log_post']:		
+			logger.debug('loading %s\n%s', req.url, req.post or '')
+		else:
+			logger.debug('loading %s', req.url)	
+		if self.scraper.config['log_headers']:
+			logger.debug('request headers:\n%s', headers)	
+
 
 		try:
 			
@@ -421,7 +431,7 @@ class Client(object):
 				encoding = req.get('encoding') or  common.DataItem(res.headers.get('content-type') or '').subreg('charset\s*=([^;]+)')	or 'utf8'
 				content_type = res.headers.get('content-type', '').lower()
 
-				#self.logger.debug('content type: %s, encoding: %s', content_type, encoding)
+				
 				
 				data = ''
 
@@ -436,7 +446,7 @@ class Client(object):
 					data = bytes.decode(encoding, 'ignore')
 
 					#verify data
-					#self.logger.debug('contain: %s', req.get('contain'))
+					
 					if req.get('contain') and req.get('contain') not in data:
 						raise Exception("invalid html, not contain: %s" % req.get('contain'))
 
@@ -452,7 +462,9 @@ class Client(object):
 					#binary content
 					data = bytes		
 
-				
+				if self.scraper.config['log_headers']:
+					logger.debug('response_headers:\n %s', response_headers)
+
 				return Response(data=data, code=status_code, final_url=final_url, request = req, headers=response_headers)	
 
 		
@@ -478,11 +490,11 @@ class Client(object):
 			
 			if tries > 0 and status_code not in accept_error_codes:
 				#try to open the request one again	
-				self.logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
+				logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
 				req.update({'retries': tries - 1})
 				return self.fetch_data(req)
 			else:
-				self.logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
+				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
 				if 'invalid html' in error_message:
 					status_code = 0
 
@@ -501,8 +513,11 @@ class Client(object):
 						'http': 'http://{0}'.format(proxy.full_address),
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
-		if self.scraper.config['debug']:			
+		if self.scraper.config['log_post']:			
+			logger.debug('loading %s\n%s', req.url, req.post or '')
+		else:
 			logger.debug('loading %s', req.url)
+				
 
 		accept_error_codes = req.get('accept_error_codes')
 		

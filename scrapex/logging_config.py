@@ -5,36 +5,30 @@ default_settings = {
 	"version": 1,
 	"disable_existing_loggers": False,
 	"formatters": {
-		"full": {
-			"format": "%(asctime)s - %(name)s - %(module)s - %(funcName)s() - %(levelname)s: %(message)s"
+		"to_file": {
+			"format": "%(asctime)s - %(name)s - %(module)s - %(funcName)s() - %(levelname)s: %(message)s",
+			"datefmt": "%Y-%m-%d %H:%M"
+
 		},        
 		
-		"no_time": {
-			"format": "%(name)s - %(levelname)s: %(message)s"
-		},
-
-		"console": {
+		"to_console": {
 			"format": "%(levelname)s: %(message)s"
-		},
-
-		"message_only": {
-			"format": "%(message)s"
 		}
-
+		
 	},
 
 	"handlers": {
 		"console": {
 			"class": "logging.StreamHandler",
 			"level": "INFO",
-			"formatter": "console",
+			"formatter": "to_console",
 			"stream": "ext://sys.stdout"
 		},
 
 		"file_handler": {
 			"class": "logging.handlers.RotatingFileHandler",
 			"level": "DEBUG",
-			"formatter": "full",
+			"formatter": "to_file",
 			"filename": "log.txt",
 			"mode": "w",
 			"maxBytes": 10485760,
@@ -53,20 +47,27 @@ default_settings = {
 
 	"root": {
 		"level": "DEBUG",
-		"handlers": ["console", "file_handler"]
+		"handlers": [
+		"console", 
+		"file_handler"
+		]
 	}
 }
 
 def set_default(log_file = 'log.txt', preserve=False):
 	
+	settings = default_settings.copy()
 
 	if log_file:
-		default_settings['handlers']['file_handler']['filename'] = log_file
+		settings['handlers']['file_handler']['filename'] = log_file
 
-	if not preserve:
-		common.put_file(log_file,'')	
+		if not preserve:
+			common.put_file(log_file,'')	
+	else:
+		#just log to console
+		settings['root']['handlers'] = ['console']
 
-	logging.config.dictConfig(default_settings)
+	logging.config.dictConfig(settings)
 
 	return logging.getLogger('scrapex')
 

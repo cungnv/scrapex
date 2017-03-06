@@ -17,6 +17,9 @@ from scrapex.cache import Cache
 from scrapex.async import Downloader
 from scrapex import http, common, logging_config
 
+logger = logging.getLogger(__name__)
+
+
 class Scraper(object):
 	
 
@@ -37,9 +40,11 @@ class Scraper(object):
 			parse_log = True,
 			show_status_message = True,
 			max_redirects = 3,
-			debug = True,
-
-			log_file = 'log.txt'
+			
+			use_default_logging = True,
+			log_file = 'log.txt',
+			log_post = False,
+			log_headers = False
 			
 			)
 
@@ -62,16 +67,21 @@ class Scraper(object):
 	
 
 		""" logging settings """
-		_log_file_path = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
 
-		if _log_file_path:
+		if self.config['use_default_logging']:
+			_log_file_path = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
+
+			# if _log_file_path:
 			logging_config.set_default(log_file = _log_file_path, preserve = False)
 
+
+		
 		self.logger = logging.getLogger('scrapex')
+
 
 		if self.config['show_status_message']:
 
-			self.logger.info('start')
+			logger.info('start')
 		
 		atexit.register(self.__del__)
 
@@ -114,18 +124,18 @@ class Scraper(object):
 			log_file = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
 			
 			if not log_file or self.config['parse_log'] is False:
-				self.logger.info('Completed')
+				logger.info('Completed')
 			else:
 				logdata = common.parse_log(log_file)
 				if logdata['errors'] == 0 and logdata['warnings'] == 0:
-					self.logger.info('Completed successfully')
+					logger.info('Completed successfully')
 				else:
-					self.logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
+					logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
 
 			time_elapsed = round(time.time() - self._time_start, 2)
 			minutes = round(time_elapsed/60)
 			seconds = time_elapsed - minutes * 60
-			self.logger.info('time elapsed: %s minutes %s seconds', minutes, seconds)			
+			logger.info('time elapsed: %s minutes %s seconds', minutes, seconds)			
 
 
 
@@ -376,9 +386,9 @@ class Scraper(object):
 			if verify:				
 				if not verify(common.DataObject(starturl=common.DataItem(url), page= page, doc=doc)):
 					doc.ok = False
-					self.logger.warn("invalid doc at page {0}".format(page))
+					logger.warn("invalid doc at page {0}".format(page))
 			
-			self.logger.info('page %s', page)
+			logger.info('page %s', page)
 			
 			
 			#download and parse details	
@@ -386,7 +396,7 @@ class Scraper(object):
 				
 				listings = detail(common.DataObject(starturl=common.DataItem(url), page= page, doc=doc)) if hasattr(detail, '__call__') else doc.q(detail)
 				
-				self.logger.info('details: %s', len(listings) )
+				logger.info('details: %s', len(listings) )
 
 				for listing in listings:
 					
@@ -420,7 +430,7 @@ class Scraper(object):
 			#if (next and _nexturl ) or (next_post and _next_post):
 			if not done:
 				
-				#self.logger.debug('next_post: %s, _nexturl: %s', _next_post,  _nexturl)
+				#logger.debug('next_post: %s, _nexturl: %s', _next_post,  _nexturl)
 
 				stats.page += 1
 

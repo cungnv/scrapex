@@ -293,7 +293,9 @@ class Downloader():
 			return doc
 
 		elif return_type == 'html':
-			html = common.DataItem( unicode_html, response = response )
+			# html = common.DataItem( unicode_html, response = response )
+			html = common.DataItem( unicode_html)
+			html.response = _res
 			
 			return html
 		
