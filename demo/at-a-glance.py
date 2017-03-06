@@ -1,47 +1,44 @@
+::
 
-import sys, time, os, json
-sys.path.insert(0,'/Users/cung/scrapex')
+	from scrapex import Scraper, common
 
+	s = Scraper(dir = 'first-project', use_cache = True, show_status_message = False)
 
-from scrapex import Scraper, common
+	doc = s.load('https://www.yellowpages.com/search?search_terms=restaurant&geo_location_terms=New+York%2C+NY')
 
-s = Scraper(dir = 'first-project', use_cache = True, show_status_message = False)
+	print doc.response.code
 
-doc = s.load('https://www.yellowpages.com/search?search_terms=restaurant&geo_location_terms=New+York%2C+NY')
+	listings = doc.q("//div[@class='result']") #query result nodes by Xpath
 
-print doc.response.code
+	print 'number of listings:', len(listings)
 
-listings = doc.q("//div[@class='result']") #query result nodes by Xpath
+	listing = listings[0] # just play with the first result node
 
-print 'number of listings:', len(listings)
+	name = listing.x(".//a[@class='business-name']").trim()
 
-listing = listings[0] # just play with the first result node
+	print name
 
-name = listing.x(".//a[@class='business-name']").trim()
+	phone = listing.x(".//*[@itemprop='telephone']").trim()
 
-print name
+	print phone
 
-phone = listing.x(".//*[@itemprop='telephone']").trim()
+	full_address = listing.q(".//p[@itemprop='address']/span").join(', ').replace(',,',',')
 
-print phone
+	print full_address
 
-full_address = listing.q(".//p[@itemprop='address']/span").join(', ').replace(',,',',')
+	parsed_address = common.parse_address(full_address)
 
-print full_address
+	print parsed_address
 
-parsed_address = common.parse_address(full_address)
+	#save the record to csv file
 
-print parsed_address
+	s.save([
+	    #column name, value
+	    'name', name,
+	    'phone', phone,
+	    'address', parsed_address['address'],
+	    'city', parsed_address['city'],
+	    'state', parsed_address['state'],
+	    'zip code', parsed_address['zipcode']
 
-#save the record to csv file
-
-s.save([
-    #column name, value
-    'name', name,
-    'phone', phone,
-    'address', parsed_address['address'],
-    'city', parsed_address['city'],
-    'state', parsed_address['state'],
-    'zip code', parsed_address['zipcode']
-
-    ], 'result.csv')
+	    ], 'result.csv')
