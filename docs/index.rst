@@ -6,7 +6,7 @@
 Welcome to scrapex's documentation!
 ===================================
 
-Scrapex is a python Web Scraping Framework for Fast and Flexible Development. Write Less, Work More.
+Scrapex is a Python Web Scraping Framework for Fast & Flexible Development.
 
 At a glance:
 ::
@@ -60,6 +60,14 @@ At a glance:
     ... 
     ...     ], 'result.csv')
     >>> 
+
+
+source code:
+::
+
+.. include:: demo/at-a-glance.py
+
+
 
 
 
