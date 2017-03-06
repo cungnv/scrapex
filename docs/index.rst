@@ -65,7 +65,7 @@ At a glance:
 source code:
 ::
 
-.. _include:: demo/at-a-glance.py
+    .. include:: ../demo/at-a-glance.py
 
 
 
