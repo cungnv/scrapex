@@ -5,9 +5,10 @@ Scrapex is a Python Web Scraping Framework for Fast & Flexible Development.
 Installation
 ============
 ::
+
     pip install https://github.com/cungnv/scrapex/archive/master.zip
     
-.. note:: You may need to `install Lxml`_ before install scrapex.
+	* note: You may need to `install Lxml`_ before install scrapex.
 
 .. _install Lxml: http://lxml.de/installation.html
 
