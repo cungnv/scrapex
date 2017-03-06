@@ -62,12 +62,6 @@ At a glance:
     >>> 
 
 
-source code:
-
-.. include:: ../demo/at-a-glance.py
-
-
-
 
 
 .. toctree::
