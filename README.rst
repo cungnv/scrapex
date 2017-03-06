@@ -3,12 +3,26 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to scrapex's documentation!
-===================================
-
+Scrapex
+=======
 Scrapex is a Python Web Scraping Framework for Fast & Flexible Development.
 
-At a glance:
+Installation
+============
+::
+
+    pip install https://github.com/cungnv/scrapex/archive/master.zip
+    
+.. note::
+
+	You may need to `install Lxml`_ before install scrapex.
+
+.. _install Lxml: http://lxml.de/installation.html
+
+
+
+At a glance
+===========
 ::
 
     >>> from scrapex import Scraper, common
@@ -60,32 +74,4 @@ At a glance:
     ... 
     ...     ], 'result.csv')
     >>> 
-
-
-
-
-.. toctree::
-    :maxdepth: 2
-
-    quickstart
-    installation
-    features
-    code_samples
-    data_extraction
-    parse_address
-    proxies
-    cookies
-    headers
-    logging_debugging
-    dataitem
-    cache
-    scrapex_selenium
-    other_usages
-    
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
