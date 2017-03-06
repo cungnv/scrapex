@@ -1,8 +1,3 @@
-.. scrapex documentation master file, created by
-   sphinx-quickstart on Wed Feb 22 16:05:03 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Scrapex
 =======
 Scrapex is a Python Web Scraping Framework for Fast & Flexible Development.
@@ -10,16 +5,11 @@ Scrapex is a Python Web Scraping Framework for Fast & Flexible Development.
 Installation
 ============
 ::
-
     pip install https://github.com/cungnv/scrapex/archive/master.zip
     
-.. note::
-
-	You may need to `install Lxml`_ before install scrapex.
+.. note:: You may need to `install Lxml`_ before install scrapex.
 
 .. _install Lxml: http://lxml.de/installation.html
-
-
 
 At a glance
 ===========
