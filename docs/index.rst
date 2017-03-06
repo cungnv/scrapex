@@ -13,7 +13,7 @@ At a glance:
 
     >>> from scrapex import Scraper, common
     >>> 
-    >>> s = Scraper(dir = 'first-project', use_cache = True, show_status_message = False)
+    >>> s = Scraper(dir = 'first-project', use_cache = True)
     >>> 
     >>> doc = s.load('https://www.yellowpages.com/search?search_terms=restaurant&geo_location_terms=New+York%2C+NY')
     >>> 
