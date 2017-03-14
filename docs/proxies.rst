@@ -6,11 +6,11 @@ How to Enable Proxies
 The following setup will have the scraper select random proxy for each network request.
 ::
 
+	>>> from scrapex import Scraper
 	>>> s = Scraper(
-	...     proxy_file = '/path/to/proxy.txt',
-	...		proxy_auth = 'username:password' # if authentication required
-	
-	)
+	... proxy_file = '/path/to/proxy.txt',
+	... proxy_auth = 'username:password' #if authentication required
+	... )
 
 Proxy File Format
 -----------------
