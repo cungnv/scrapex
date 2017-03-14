@@ -349,6 +349,7 @@ class Downloader():
 
 
 	def _request(self, req):
+		
 		if req['use_cache']:
 			if self.scraper.cache.exists(url=req.url, post=req.post, filename = req.get('filename')):
 

@@ -133,9 +133,14 @@ class Scraper(object):
 					logger.info('Completed with %s warning(s) and %s error(s)', logdata['warnings'], logdata['errors'])
 
 			time_elapsed = round(time.time() - self._time_start, 2)
-			minutes = round(time_elapsed/60)
+
+			minutes = round(time_elapsed/60) if time_elapsed > 60 else 0
 			seconds = time_elapsed - minutes * 60
-			logger.info('time elapsed: %s minutes %s seconds', minutes, seconds)			
+			
+			if minutes:
+				logger.info('time elapsed: %s minutes %s seconds', minutes, seconds)			
+			else:	
+				logger.info('time elapsed: %s seconds', seconds)			
 
 
 
@@ -219,7 +224,7 @@ class Scraper(object):
 		#clear the db
 		self.outdb = {}
 
-	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True):		
+	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True, always_quoted=True):		
 		#waiting while other thread writing
 		while self.writingflag:			
 			pass
@@ -249,7 +254,7 @@ class Scraper(object):
 
 		if format == 'csv':				
 			#for csv format, save to file immediately	
-			common.save_csv(path, record)
+			common.save_csv(path, record, always_quoted=always_quoted)
 		elif format in ['xls', 'xlsx']:
 			#save for later
 			trackingobj.data.append(record)

@@ -156,7 +156,7 @@ def rr(pt, to, s):
 	flags = redata['flags'] or re.S	
 	return DataItem( re.sub(reg, to, s, flags = flags) )
 
-def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):
+def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, always_quoted = True):
 
 	#normalize the record to list
 	if isinstance(record, dict):
@@ -182,7 +182,11 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True):
 			if not isinstance(item, DataItem): item = DataItem(item)
 
 			value = item.trim().replace(quote, escape + quote).replace('\r','').replace(u'\u00A0',' ').trim().tostring()
-			values.append(quote + value + quote)
+			if always_quoted or sep in value:
+				values.append(quote + value + quote)
+			else:
+				values.append(value)
+					
 				
 
 	
