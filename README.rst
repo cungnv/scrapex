@@ -16,7 +16,7 @@ Installation
 
 At a glance
 ===========
-```python
+::python
 
     >>> from scrapex import Scraper, common
     >>> 
@@ -68,4 +68,3 @@ At a glance
     ...     ], 'result.csv')
     >>> 
 
-```
