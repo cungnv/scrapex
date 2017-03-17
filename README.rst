@@ -16,7 +16,7 @@ Installation
 
 At a glance
 ===========
-::python
+::
 
     >>> from scrapex import Scraper, common
     >>> 
