@@ -260,6 +260,17 @@ def parse_address(full, two_address_lines = False):
 
 	return address
 
+def address(full_address):
+	""" just for backward support """
+	a = parse_address(full_address)
+
+	ret = DataItem()
+	ret.street = a['address']
+	ret.city = a['city']
+	ret.state = a['state']
+	ret.zip = a['zipcode']
+
+	return ret
 
 def split_csv(path, maxlines):
 	dir = os.path.join(path,'..')
@@ -574,6 +585,47 @@ def list_to_dict(l):
 
 	return res		
 
+def parse_form_data(form_data_text, custom_params={}):
+	"""
+	
+	@params: Query String Parameters, copied from Google Chrome's Network in this format:
+	
+	param1: some value
+	param2: some more value
+	.....
+	
+	@custom_params: to override the copied values
+
+	@return:
+		a encoded-string, ready to make http request
+
+	"""
+	
+	listofparams = []
+	for line in form_data_text.strip().split('\n'):
+		line = line.strip()
+		if not line:
+			#empty line
+			continue
+		if line.startswith('#'):
+			#commented param
+			continue
+		line = DataItem(line)
+			
+		name =  line.sub('',':')
+		value =  line.subreg('^[^\:]+:(.*?)$')
+
+		if name in custom_params:
+			value = custom_params[name]
+			if not isinstance(value, basestring):
+				value = str(value)
+
+		listofparams.append(
+			'%s=%s' % (name, urlencode(value.encode('utf8')))
+			)		
+
+	return '&'.join(listofparams)
+	
 
 	
 class DataItem(unicode):

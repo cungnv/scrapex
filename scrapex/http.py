@@ -329,8 +329,9 @@ class Client(object):
 		if accept_error_codes is None:
 			accept_error_codes = []
 
-
+			
 		if cache and cache.exists(url = req.url, post=req.post, filename=req.get('filename')) and req.get('use_cache'):
+				
 			return self._read_from_cache(url=req.url, post=req.post, filename=req.get('filename'))
 
 		if req.get('use_cache') and req.get('cache_only') and not cache.exists(url = req.url, post=req.post, filename=req.get('filename')):
