@@ -183,6 +183,10 @@ class Scraper(object):
 
 	def download_file(self, url, filename, dir='images', **_options):
 		
+		dir_path = self.join_path(dir)
+		if not os.path.exists(dir_path):
+			os.makedirs(dir_path)
+
 		path = os.path.join(self.dir, dir, filename)
 		
 		if(os.path.exists(path)):
