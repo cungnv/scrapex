@@ -497,7 +497,7 @@ class Client(object):
 				req.update({'retries': tries - 1})
 				
 				#try with new proxy
-				newproxy = req.scraper.get_proxy()
+				newproxy = req.scraper.proxy_manager.get_proxy()
 				req.update({'proxy': newproxy})
 				
 				logger.debug('retry with new proxy: %s', newproxy)
