@@ -174,6 +174,8 @@ class Request(object):
 		if self.is_normalized:
 			return self
 
+		self.scraper = scraper	
+
 		#copy scraper-wide options if not set yet	
 		self.options = common.combine_dicts(scraper.config, self.options)
 
@@ -493,6 +495,13 @@ class Client(object):
 				#try to open the request one again	
 				logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
 				req.update({'retries': tries - 1})
+				
+				#try with new proxy
+				newproxy = req.scraper.get_proxy()
+				req.update({'proxy': newproxy})
+				
+				logger.debug('retry with new proxy: %s', newproxy)
+
 				return self.fetch_data(req)
 			else:
 				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
