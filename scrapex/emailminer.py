@@ -141,13 +141,11 @@ def mine_emails(url, br, deep_level=2):
 				
 
 
-def mine_batch(db, cc=3, headless = True, retries = 3):
+def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 	"""
 	mine emails for a db, and update directly
 
 	"""
-	
-	batchsize = 1000 #no of items per db fetch
 	
 	maxtries = 3
 	
@@ -218,8 +216,28 @@ def mine_batch(db, cc=3, headless = True, retries = 3):
 
 		logger.info('reset failed items')
 
-		
+	brs = []	
 
+	def _init_brs():
+		#create one br instance per thread
+		global brs
+		brs = []
+
+		for i in range(0,cc):
+			chrome_options = Options()
+			if headless:
+				chrome_options.add_argument("--headless")
+
+			#todo: adding page load timeout to each br instance
+
+			br = webdriver.Chrome(chrome_options=chrome_options)
+			brs.append(br)
+	def _quit_brs():
+		for br in brs:
+			try:
+				br.quit()
+			except:
+				pass
 				
 	num_of_rounds = 1 + retries
 		
@@ -227,19 +245,9 @@ def mine_batch(db, cc=3, headless = True, retries = 3):
 		
 		logger.info('mine_batch, round: %s', _round)
 
-		brs = []
+		
 		try:
-			#create one br instance per thread
-			for i in range(0,cc):
-				chrome_options = Options()
-				if headless:
-					chrome_options.add_argument("--headless")
-
-				#todo: adding page load timeout to each br instance
-
-				br = webdriver.Chrome(chrome_options=chrome_options)
-				brs.append(br)
-
+			
 			#start mining
 			
 			pending_items = None
@@ -255,20 +263,20 @@ def mine_batch(db, cc=3, headless = True, retries = 3):
 
 				logger.info('mine_batch, round: %s, batch#: %s | items: %s', _round, batch_no, len(pending_items))
 
+				_init_brs()
+
 				parts = [part for part in chunks(pending_items, cc)]
 				parts = zip(parts, brs) # assign one br for each part
 				
 				common.start_threads(parts, _worker, cc=cc )
 
+				_quit_brs() #restart brs after each batch
+
 
 		except Exception as e:
 			logger.exception(e)		
 		finally:
-			for br in brs:
-				try:
-					br.quit()
-				except:
-					pass			
+			_quit_brs()			
 
 		if _round < num_of_rounds:
 			#not last round, reset the failed items
