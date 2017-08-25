@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+brs = []	
 
 def mine_emails(url, br, deep_level=2):
 	if not url: return []
@@ -216,9 +217,10 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 		logger.info('reset failed items')
 
-	brs = []	
 
 	def _init_brs():
+		logger.info('_init_brs....')
+
 		#create one br instance per thread
 		global brs
 		brs = []
@@ -235,9 +237,13 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 	def _quit_brs():
 		for br in brs:
 			try:
+				logger.info('to quit br...')
 				br.quit()
-			except:
-				pass
+
+				logger.info('br quitted')
+
+			except Exception as e:
+				logger.exception(e)
 				
 	num_of_rounds = 1 + retries
 		
@@ -264,6 +270,8 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				logger.info('mine_batch, round: %s, batch#: %s | items: %s', _round, batch_no, len(pending_items))
 
 				_init_brs()
+
+				logger.info('brs: %s', len(brs))
 
 				parts = [part for part in chunks(pending_items, cc)]
 				parts = zip(parts, brs) # assign one br for each part
