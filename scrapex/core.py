@@ -376,6 +376,55 @@ class Scraper(object):
 			start_now = False
 
 			)
+	def mine_emails(self, url):
+		""" 
+		looks for emails on key pages of a website: homepage, contact
+
+		"""
+		if not url: return []
+		if not common.subreg(url, '^(http)'):
+			url = 'http://'+url
+		if '@' in url:
+			return common.get_emails(url)
+		domain = common.get_domain(url)
+		emails = []
+		def _parse_emails(doc):
+			link_texts = doc.q("//a").join(' | ')
+			
+			for email in common.get_emails(link_texts):
+			
+				if '@' in email and email not in emails:
+					emails.append(email)
+
+			if not emails:
+				#try with text only, not links
+				html = doc.remove("//script").html()
+				for email in common.get_emails(html):
+			
+					if '@' in email and email not in emails:
+						emails.append(email)
+
+		
+		homepage = self.load(url)
+		_parse_emails(homepage)
+		
+		
+		if emails:
+			#no need to look on other page
+			return emails		
+
+		contact_url = homepage.x("//a[contains(@href,'contact') or contains(@href,'Contact')]/@href")
+
+		if contact_url:
+			contactpage = self.load(contact_url)
+			_parse_emails(contactpage)
+		
+
+		return emails
+
+
+
+
 
 	def pagin(self, url, next=None, post=None,next_post=None, parse_list=None, detail= None, parse_detail= None, cc = 3, max_pages = 0, list_pages_first=True, start_now=False, debug=True, verify=None, meta={},  **_options):
 		
