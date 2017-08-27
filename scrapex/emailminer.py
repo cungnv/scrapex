@@ -28,15 +28,21 @@ def mine_emails(url, br, deep_level=2):
 
 		"""
 		logger.debug('mine_emails page %s, level %s', page_url, current_level)
+		html = ''
 
 		try:
+			try:
+				br.get(page_url)
+			except:
+				pass
+					
+			html = br.page_source
 
-			br.get(page_url)
+		except Exception as e:
+			logger.warn('failed to _load_page: %s', page_url)
+			logger.exception(e)
 
-		except:
-			pass
-
-		html = br.page_source
+		
 		doc = Doc(url=page_url, html=html)
 		#update loaded links
 		links = doc.q("//a")
@@ -115,13 +121,15 @@ def mine_emails(url, br, deep_level=2):
 		return emails
 
 	contact_url = doc.x("//a[contains(@href,'contact') or contains(@href,'Contact')]/@href")
-	doc = _load_page(contact_url, current_level = 2)
-	emails = _parse_emails(doc)
-	
-	if emails:
+	if contact_url:
+		doc = _load_page(contact_url, current_level = 2)
+		emails = _parse_emails(doc)
+		
+		#when a contact page found, no need to dig further even if no emails found
+
 		return emails
-
-
+		
+	
 	#try with level 2
 
 	if deep_level >=2:
@@ -148,7 +156,6 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 	"""
 	
-	maxtries = 3
 	
 	logger.info('items with websites: %s', db._db.items.count({
 		
@@ -180,10 +187,12 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				db.update_item(item)
 				
 			except Exception as e:
-				logger.warn('failed to mine_emails for %s', item['_id'])
+				logger.warn('failed to mine_emails for %s with error: %s', item.get('website'), e.message)
+
 				item['_mined_emails'] = u'failed: {}'.format(e.message)
 				db.update_item(item)				
-				# logger.exception(e)	
+				
+				logger.exception(e)	
 
 	def _pending_items():
 		"""
@@ -246,7 +255,8 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				logger.exception(e)
 				
 	num_of_rounds = 1 + retries
-		
+	logger.info('num_of_rounds: %s', num_of_rounds)
+
 	for _round in range(1, num_of_rounds+1):	
 		
 		logger.info('mine_batch, round: %s', _round)
