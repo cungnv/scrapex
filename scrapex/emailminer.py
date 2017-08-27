@@ -1,4 +1,5 @@
 
+import os
 import re
 from scrapex import common, Doc
 
@@ -35,7 +36,7 @@ def mine_emails(url, br, deep_level=2):
 				br.get(page_url)
 			except:
 				pass
-					
+
 			html = br.page_source
 
 		except Exception as e:
@@ -253,6 +254,11 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 			except Exception as e:
 				logger.exception(e)
+
+		try:
+			os.system('kill $(pgrep chrom)')		
+		except:
+			pass	
 				
 	num_of_rounds = 1 + retries
 	logger.info('num_of_rounds: %s', num_of_rounds)
