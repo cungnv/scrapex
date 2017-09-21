@@ -7,6 +7,15 @@ import csv
 import os
 
 from scrapex import common
+def _encode_item_values(item):
+	for k in item:
+		v = item[k]
+		if isinstance(v,unicode):
+			
+			item[k] = v.encode('utf8')
+
+	return item
+	
 
 class DB(object):
 	"""Provides a scaleable storage for big scrapes."""
@@ -50,17 +59,15 @@ class DB(object):
 	def count_searches(self):
 		return self._db.searches.count({})
 	
+
+
 	def insert_item(self, item):
 		if '_id' in item:
 			#check for existence first
 			if self.exists_item(item['_id']):
 				return False
 
-		for k in item:
-			v = item[k]
-			if isinstance(v,unicode):
-
-				item[k] = v.encode('utf8')
+		item = _encode_item_values(item)
 
 		self._db.items.insert(item)
 
@@ -71,6 +78,8 @@ class DB(object):
 		self._db.items.insert_many(items)
 
 	def insertorupdate_item(self, item):
+		item = _encode_item_values(item)
+
 		self._db.items.update_one({'_id': item['_id']},{'$set': item}, upsert=True)
 	
 	def get_item(self, _id):
@@ -112,7 +121,7 @@ class DB(object):
 
 		return sorted(fields)
 
-	def export_items(self, dest_file, query = None, fields = None, include_hidden_fields = False, multicol_fields={}):
+	def export_items(self, dest_file, query = None, sort=None, fields = None, include_hidden_fields = False, multicol_fields={}):
 
 		""" 
 		@query: None means all items
@@ -130,7 +139,14 @@ class DB(object):
 
 		rows = []
 
-		for item in self._db.items.find():
+		query = query or {}
+		
+		cursor = self._db.items.find(query)
+
+		if sort:
+			cursor = cursor.sort(sort)
+
+		for item in cursor:
 			res = []
 
 			for field in fields:
@@ -178,9 +194,27 @@ class DB(object):
 			excellib.save_xlsx(dest_file, rows)	
 
 
+	def insert_log(self, _dict):
+			
+		_dict.update({'created': datetime.now()})
+		return self._db.logs.insert(_dict)
+
+	def remove_logs(self, query={}):
+		self._db.logs.delete_many(query)
 
 
+	def get_logs(self, query={}):
+		logs = []
 
+		for log in self._db.logs.find(query):
+
+			logs.append(logs)
+
+		return logs	
+
+	
+
+	
 
 
 			

@@ -291,8 +291,10 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 				parts = [part for part in chunks(pending_items, cc)]
 				parts = zip(parts, brs) # assign one br for each part
-				
-				common.start_threads(parts, _worker, cc=cc )
+				if cc > 1:
+					common.start_threads(parts, _worker, cc=cc )
+				else:
+					_worker(parts)
 
 				_quit_brs() #restart brs after each batch
 
