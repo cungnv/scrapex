@@ -208,7 +208,7 @@ class DB(object):
 
 		for log in self._db.logs.find(query):
 
-			logs.append(logs)
+			logs.append(log)
 
 		return logs	
 
