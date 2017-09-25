@@ -1,7 +1,7 @@
 
 import os
 import re
-from scrapex import common, Doc
+from scrapex import common, Doc, Scraper
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -9,10 +9,17 @@ from selenium.webdriver.chrome.options import Options
 import logging
 
 logger = logging.getLogger(__name__)
+s = Scraper(use_cache=False, show_status_message = False)
 
 brs = []	
 
-def mine_emails(url, br, deep_level=2):
+def mine_emails(url, br, deep_level=1):
+	"""
+	deep_level = 1: scrape home page and contact page only
+
+	"""
+	
+
 	if not url: return []
 	if not common.subreg(url, '^(http)'):
 		url = 'http://'+url
@@ -158,7 +165,7 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 	"""
 	
 	
-	logger.info('items with websites: %s', db._db.items.count({
+	logger.info('items with websites: %s', db._db.sites.count({
 		
 		'$and': [
 			{'website': {'$exists':True} },
@@ -172,7 +179,7 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 		}))
 
 	
-	logger.info('items minded successfully: %s', db._db.items.count( 
+	logger.info('items minded successfully: %s', db._db.sites.count( 
 		{'_mined_emails': True },
 
 		))
@@ -185,13 +192,17 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				website = item.get('website') or item.get('Website')
 				item['email'] = mine_emails(website, br)
 				item['_mined_emails'] = True
-				db.update_item(item)
+				logger.info('%s >> %s', item['domain'], item['email'])
+
+				
+				db._db.sites.update_one({'_id': item['_id']}, {'$set': item })
 				
 			except Exception as e:
 				logger.warn('failed to mine_emails for %s with error: %s', item.get('website'), e.message)
 
 				item['_mined_emails'] = u'failed: {}'.format(e.message)
-				db.update_item(item)				
+				
+				db._db.sites.update_one({'_id': item['_id']}, {'$set': item })
 				
 				logger.exception(e)	
 
@@ -201,7 +212,7 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 		"""
 		items = []
-		for item in db._db.items.find():
+		for item in db._db.sites.find():
 			if len(items) >= batchsize:
 				break
 			if not item.get('website'):
@@ -214,6 +225,24 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 			if item.get('_mined_emails'):
 				#already done, including failed one
 				continue
+			if item.get('_is_bad_website'):
+				continue
+
+			website = item['website']
+
+			if '_is_bad_website' not in item:
+				#check the status of website
+				__is_bad_website = _is_bad_website(website)
+				
+				logger.info('checking for bad website: %s ==> %s', website, __is_bad_website)
+
+
+				db._db.sites.update_one({'_id': item['_id']}, {'$set': { '_is_bad_website': __is_bad_website} })
+
+				if __is_bad_website:
+					continue
+
+
 				
 			items.append(item)	
 
@@ -223,7 +252,7 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 		
 		filter_failed_items = {'_mined_emails': {'$regex': re.compile( '.*failed.*', re.I) }}
 
-		db._db.items.update_many(filter_failed_items, {'$set': {'_mined_emails': None}})
+		db._db.sites.update_many(filter_failed_items, {'$set': {'_mined_emails': None}})
 
 		logger.info('reset failed items')
 
@@ -257,6 +286,9 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 		try:
 			os.system('kill $(pgrep chrom)')		
+			os.system('pkill -f Google')
+			os.system('pkill -f chrom')
+
 		except:
 			pass	
 				
@@ -290,11 +322,16 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				logger.info('brs: %s', len(brs))
 
 				parts = [part for part in chunks(pending_items, cc)]
-				parts = zip(parts, brs) # assign one br for each part
+				
 				if cc > 1:
+					parts = zip(parts, brs) # assign one br for each part
 					common.start_threads(parts, _worker, cc=cc )
 				else:
-					_worker(parts)
+					for part in parts:
+						try:
+							_worker((part, brs[0]))
+						except Exception as e:
+							logger.exception(e)	
 
 				_quit_brs() #restart brs after each batch
 
@@ -339,6 +376,50 @@ def chunks(_list, no_of_parts):
 		
 		yield part
 
+def _is_bad_website(website):
+	
+	if 'facebook' in website.lower():
+		return True
+	if 'fb.com' in website.lower():
+		return True
+	
+	if 'twitter' in website.lower():
+		return True
+
+	if 'linkedin' in website.lower():
+		return True
+	
+	if 'youtube' in website.lower():
+		return True
+	
+	if 'walmart' in website.lower():
+		return True
+	if 'stores.toysrus.com' in website.lower():
+		return True
+		
+	if 'apple.com' in website.lower():
+		return True	
+	if 'homedepot.com' in website.lower():
+		return True	
+	
+	if 'locations.michaels.com' in website.lower():
+		return True	
+
+	
+
+	
+		
+		
+
+	if not website.lower().startswith('http'):
+		website = 'http://{}'.format(website)
+	doc = s.load(website)
+	if doc.response.code != 200:
+		return True	
+
+	
+	return False	
+		
 
 if __name__ == '__main__':
 	# for part in chunks([0,1,2,3,4,5,6,7], 3):
