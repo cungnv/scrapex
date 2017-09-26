@@ -208,9 +208,10 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				
 				logger.exception(e)
 
-				if 'timeout' in e.message.lower():
-					_quit_br(br)
-					br = _create_br()
+				#restart the br
+					
+				_quit_br(br)
+				br = _create_br()
 
 
 		_quit_br(br)
