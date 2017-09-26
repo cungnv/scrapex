@@ -187,7 +187,9 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 
 
-	def _worker((items, br)):
+	def _worker(items):
+		br = _create_br()
+
 		for item in items:
 			try:
 				website = item.get('website') or item.get('Website')
@@ -195,7 +197,6 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				item['_mined_emails'] = True
 				logger.info('%s >> %s', item['domain'], item['email'])
 
-				
 				db._db.sites.update_one({'_id': item['_id']}, {'$set': item })
 				
 			except Exception as e:
@@ -205,7 +206,16 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				
 				db._db.sites.update_one({'_id': item['_id']}, {'$set': item })
 				
-				logger.exception(e)	
+				logger.exception(e)
+
+				if 'timeout' in e.message.lower():
+					_quit_br(br)
+					br = _create_br()
+
+
+		_quit_br(br)
+
+				
 
 	def _pending_items():
 		"""
@@ -214,8 +224,8 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 		"""
 		items = []
 		for item in db._db.sites.find():
-			# if len(items) >= batchsize:
-			# 	break
+			if len(items) >= batchsize:
+				break
 			
 			if not item.get('website'):
 				continue
@@ -259,43 +269,41 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 		logger.info('reset failed items')
 
 
-	def _init_brs():
-		logger.info('_init_brs....')
+	def _create_br():
+		logger.info('_create_br...')
+		time.sleep(random.randint(2,6))
 
 		#create one br instance per thread
 		global brs
 		brs = []
 
-		for i in range(0,cc):
-			chrome_options = Options()
-			if headless:
-				chrome_options.add_argument("--headless")
+		
+		chrome_options = Options()
+		if headless:
+			chrome_options.add_argument("--headless")
 
-			#todo: adding page load timeout to each br instance
+		#todo: adding page load timeout to each br instance
 
-			br = webdriver.Chrome(chrome_options=chrome_options)
-			brs.append(br)
+		br = webdriver.Chrome(chrome_options=chrome_options)
 
-			time.sleep(6)
+		return br
 
-	def _quit_brs():
-		for br in brs:
-			try:
-				logger.info('to quit br...')
-				br.quit()
-
-				logger.info('br quitted')
-
-			except Exception as e:
-				logger.exception(e)
-
+	def _quit_br(br):
+		
 		try:
+			logger.info('to quit br...')
+			br.quit()
+
+			logger.info('br quitted')
+
+		except Exception as e:
+			logger.exception(e)
+
+		
 			os.system('kill $(pgrep chrom)')		
 			os.system('pkill -f Google')
 			os.system('pkill -f chrom')
 
-		except:
-			pass	
 				
 	num_of_rounds = 1 + retries
 	logger.info('num_of_rounds: %s', num_of_rounds)
@@ -322,37 +330,29 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 				logger.info('mine_batch, round: %s, batch#: %s | items: %s', _round, batch_no, len(pending_items))
 
-				_init_brs()
-
-				logger.info('brs: %s', len(brs))
 
 				parts = [part for part in chunks(pending_items, cc)]
 				
 				if cc > 1:
-					parts = zip(parts, brs) # assign one br for each part
+					# parts = zip(parts, brs) # assign one br for each part
 					common.start_threads(parts, _worker, cc=cc )
 				else:
 					for part in parts:
 						try:
-							_worker((part, brs[0]))
+							_worker(part)
+
 						except Exception as e:
 							logger.exception(e)	
 
-				_quit_brs() #restart brs after each batch
-
-
+				
 		except Exception as e:
 			logger.exception(e)		
-		finally:
-			_quit_brs()			
-
+		
 		if _round < num_of_rounds:
 			#not last round, reset the failed items
 			_reset_failed_items()
 
 
-
-	
 
 def chunks(_list, no_of_parts):
 	""" 
