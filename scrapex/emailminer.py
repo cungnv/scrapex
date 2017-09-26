@@ -2,6 +2,8 @@
 import os
 import re
 import time
+import random
+
 from scrapex import common, Doc, Scraper
 
 from selenium import webdriver
@@ -209,7 +211,7 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				logger.exception(e)
 
 				#restart the br
-					
+
 				_quit_br(br)
 				br = _create_br()
 
