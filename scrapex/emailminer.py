@@ -1,6 +1,7 @@
 
 import os
 import re
+import time
 from scrapex import common, Doc, Scraper
 
 from selenium import webdriver
@@ -213,8 +214,9 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 		"""
 		items = []
 		for item in db._db.sites.find():
-			if len(items) >= batchsize:
-				break
+			# if len(items) >= batchsize:
+			# 	break
+			
 			if not item.get('website'):
 				continue
 
@@ -273,6 +275,9 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 			br = webdriver.Chrome(chrome_options=chrome_options)
 			brs.append(br)
+
+			time.sleep(6)
+
 	def _quit_brs():
 		for br in brs:
 			try:
