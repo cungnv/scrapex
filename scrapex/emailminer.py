@@ -418,10 +418,12 @@ def _is_bad_website(website):
 
 	if not website.lower().startswith('http'):
 		website = 'http://{}'.format(website)
-	doc = s.load(website)
-	if doc.response.code != 200:
-		return True	
-
+	try:
+		doc = s.load(website)
+		if doc.response.code != 200:
+			return True	
+	except Exception as e:
+		logger.exception(e)	
 	
 	return False	
 		
