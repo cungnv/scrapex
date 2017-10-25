@@ -16,7 +16,7 @@ s = Scraper(use_cache=False, show_status_message = False)
 
 brs = []	
 
-def mine_emails(url, br, deep_level=1):
+def mine_emails(url, br=None, deep_level=1):
 	"""
 	deep_level = 1: scrape home page and contact page only
 
@@ -40,18 +40,20 @@ def mine_emails(url, br, deep_level=1):
 		"""
 		logger.debug('mine_emails page %s, level %s', page_url, current_level)
 		html = ''
-
-		try:
+		if br:
 			try:
 				br.get(page_url)
-			except:
-				pass
 
-			html = br.page_source
+				html = br.page_source
 
-		except Exception as e:
-			logger.warn('failed to _load_page: %s', page_url)
-			logger.exception(e)
+			except Exception as e:
+				logger.warn('failed to _load_page: %s', page_url)
+				# logger.exception(e)
+				raise e #to trigger new br
+
+		else:
+			
+			html = s.load_html(page_url)		
 
 		
 		doc = Doc(url=page_url, html=html)
@@ -161,11 +163,13 @@ def mine_emails(url, br, deep_level=1):
 				
 
 
-def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
+def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200, use_br=True):
 	"""
 	mine emails for a db, and update directly
 
 	"""
+
+	cnt_failed_to_quit_br = 0
 	
 	
 	logger.info('items with websites: %s', db._db.sites.count({
@@ -190,13 +194,14 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 
 
 	def _worker(items):
-		br = _create_br()
+		br = _create_br() if use_br else None
 
 		for item in items:
 			try:
 				website = item.get('website') or item.get('Website')
-				item['email'] = mine_emails(website, br)
+				item['email'] = mine_emails(website, br=br)
 				item['_mined_emails'] = True
+				item['_use_br'] = use_br
 				logger.info('%s >> %s', item['domain'], item['email'])
 
 				db._db.sites.update_one({'_id': item['_id']}, {'$set': item })
@@ -205,18 +210,19 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				logger.warn('failed to mine_emails for %s with error: %s', item.get('website'), e.message)
 
 				item['_mined_emails'] = u'failed: {}'.format(e.message)
-				
+				item['_use_br'] = use_br
+
 				db._db.sites.update_one({'_id': item['_id']}, {'$set': item })
 				
 				logger.exception(e)
 
 				#restart the br
+				if use_br:
+					_quit_br(br)
+					br = _create_br()
 
-				_quit_br(br)
-				br = _create_br()
-
-
-		_quit_br(br)
+		if use_br:			
+			_quit_br(br)
 
 				
 
@@ -292,7 +298,10 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 		return br
 
 	def _quit_br(br):
-		
+
+		if not br:
+			return
+
 		try:
 			logger.info('to quit br...')
 			br.quit()
@@ -300,12 +309,17 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 			logger.info('br quitted')
 
 		except Exception as e:
+			cnt_failed_to_quit_br += 1
+			logger.info('cnt_failed_to_quit_br: %s', cnt_failed_to_quit_br)
 			logger.exception(e)
 
-		
-			os.system('kill $(pgrep chrom)')		
-			os.system('pkill -f Google')
-			os.system('pkill -f chrom')
+			if cnt_failed_to_quit_br > 20:
+				
+				cnt_failed_to_quit_br = 0
+
+				os.system('pkill -f Google')
+				os.system('pkill -f google')
+				os.system('pkill -f chrom')
 
 				
 	num_of_rounds = 1 + retries
@@ -329,7 +343,7 @@ def mine_batch(db, cc=3, headless = True, retries = 3, batchsize = 200):
 				skip_failed_items = True 
 				pending_items = _pending_items()
 				if not pending_items:
-					break
+					return #finish all
 
 				logger.info('mine_batch, round: %s, batch#: %s | items: %s', _round, batch_no, len(pending_items))
 

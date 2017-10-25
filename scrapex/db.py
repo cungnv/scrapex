@@ -97,8 +97,8 @@ class DB(object):
 		self._db.items.update_one({'_id': item['_id']},{'$set': item}, upsert=False)
 
 
-	def count_items(self):
-		return self._db.items.count({})
+	def count_items(self, query={}):
+		return self._db.items.count(query)
 
 	def exists_item(self, _id):
 		_item = self.get_item(_id)
@@ -107,10 +107,13 @@ class DB(object):
 		else:
 			return False	
 	
-	def _compile_all_fields(self,include_hidden_fields = False):
+	def _compile_all_fields(self,include_hidden_fields = False, exclude_fields = []):
 		fields = []
-		for item in self._db.items.find():
+		for item in self._db.items.find().limit(10000):#just need first 10,000 records to find all possible fields?
 			for field in item.keys():
+				if field in exclude_fields:
+					continue
+					
 				if field.startswith('_'):
 					#hidden field
 					if not include_hidden_fields:
@@ -121,7 +124,7 @@ class DB(object):
 
 		return sorted(fields)
 
-	def export_items(self, dest_file, query = None, sort=None, fields = None, include_hidden_fields = False, multicol_fields={}):
+	def export_items(self, dest_file, query = None, limit = None, sort=None, fields = None, include_hidden_fields = False, multicol_fields={}, exclude_fields = []):
 
 		""" 
 		@query: None means all items
@@ -133,7 +136,7 @@ class DB(object):
 			os.remove(dest_file)
 
 		if not fields:
-			fields =self._compile_all_fields(include_hidden_fields)
+			fields =self._compile_all_fields(include_hidden_fields, exclude_fields=exclude_fields)
 
 		format = common.DataItem(dest_file).subreg('\.([a-z]{2,5})$--is').lower()
 
@@ -146,6 +149,9 @@ class DB(object):
 		if sort:
 			cursor = cursor.sort(sort)
 
+		if limit:
+			cursor = cursor.limit(limit)
+				
 		for item in cursor:
 			res = []
 
