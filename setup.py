@@ -6,7 +6,7 @@ except ImportError:
 	
 setup(
 	name='scrapex', 
-	version='0.1.2',
+	version='0.1.3',
 	packages=find_packages(),
 	author='Cung Nguyen',
 	author_email='cungjava2000@gmail.com',
@@ -19,9 +19,7 @@ setup(
 		'xlwt',
 		'xlrd',
 		'openpyxl',
-		'twisted',
-		'pyOpenSSL',
-		'service_identity'
+		'pyOpenSSL'
 	],
 	
 	license='LGPL',

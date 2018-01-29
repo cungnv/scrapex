@@ -156,7 +156,7 @@ def rr(pt, to, s):
 	flags = redata['flags'] or re.S	
 	return DataItem( re.sub(reg, to, s, flags = flags) )
 
-def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, always_quoted = True):
+def save_csv(path, record, sep=u',', quote=u'"', escape = u'"', write_header=True, always_quoted = True):
 
 	#normalize the record to list
 	if isinstance(record, dict):
@@ -191,9 +191,9 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, 
 
 	
 	if not os.path.exists(path) and write_header:
-		append_file(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
+		append_file(path, sep.join(keys)+u'\r\n' + sep.join(values)+'\r\n')
 	else:		
-		append_file(path, sep.join(values)+'\r\n')	
+		append_file(path, sep.join(values)+u'\r\n')	
 
 def filename(path):
 	path = DataItem(path).rr('\?.*?$')
@@ -295,7 +295,14 @@ def split_csv(path, maxlines):
 		#add data line	
 		append_file(os.path.join(dir, _filename.replace('.csv','-%s.csv'%fno)), line)
 def get_email(txt):
-	return subreg(txt, r'\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b--is')
+	
+	email = subreg(txt, r'\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b--is')
+	if '%' in email or 'email' in email.lower():
+		email = DataItem('')
+
+	return email	
+		
+
 
 def toml(des):
 	
@@ -625,7 +632,7 @@ def parse_form_data(form_data_text, custom_params={}):
 			)		
 
 	return '&'.join(listofparams)
-	
+
 
 	
 class DataItem(unicode):
@@ -638,10 +645,17 @@ class DataItem(unicode):
 	
 	
 	def __repr__(self):
+
 		return self.data	
 
 	def __str__(self):
-		return self.data
+		
+		return unicode(self.data).encode('utf8')
+	
+	def __unicode__(self):
+		
+		return unicode( self.data )
+
 
 	def tostring(self):
 		return self.data						

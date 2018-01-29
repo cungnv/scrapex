@@ -14,7 +14,6 @@ from scrapex.node import Node
 from scrapex.worker import Worker
 from scrapex.http import Request
 from scrapex.cache import Cache
-from scrapex.async import Downloader
 from scrapex import http, common, logging_config
 
 logger = logging.getLogger(__name__)

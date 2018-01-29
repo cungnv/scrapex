@@ -52,7 +52,7 @@ class ProxyManager(object):
 	
 	""" for proxy rotation controlling """
 
-	def __init__(self, proxy_file, proxy_auth=''):		
+	def __init__(self, proxy_file, proxy_auth=''):      
 		self.proxy_file = proxy_file
 		self.proxy_auth = proxy_auth
 		self.proxies = []
@@ -76,10 +76,10 @@ class ProxyManager(object):
 			proxy = proxy.split(':')
 			return Proxy(host=proxy[0], port=proxy[1], proxy_auth='%s:%s' % (proxy[2], proxy[3]))
 		
-		raise Exception('failed to parse proxy: %s', proxy)	
+		raise Exception('failed to parse proxy: %s', proxy) 
 		
 	
-	def load_proxies(self):		
+	def load_proxies(self):     
 		proxy_file = self.proxy_file
 
 		if proxy_file:
@@ -93,17 +93,17 @@ class ProxyManager(object):
 					continue
 
 				#support tab, commas separator as well
-				line = line.replace('\t',':').replace(',',':')	
-				self.proxies.append(self.parse_proxy(line))		
+				line = line.replace('\t',':').replace(',',':')  
+				self.proxies.append(self.parse_proxy(line))     
 
 
-		return self	
+		return self 
 
 	def random_proxy(self):
 		if not self.proxies:
 			return None
 
-		return random.choice( self.proxies )	
+		return random.choice( self.proxies )    
 
 
 	def get_proxy(self, url=None):
@@ -125,10 +125,10 @@ class Response(object):
 		self.headers = headers #response headers
 
 
-class Request(object):	
+class Request(object):  
 	""" Represents a http request """
 
-	def __init__(self, url, post = None, **options):		
+	def __init__(self, url, post = None, **options):        
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
 
@@ -154,7 +154,7 @@ class Request(object):
 		if self.options.get('ajax') is True:
 			self.options['headers']['X-Requested-With'] = 'XMLHttpRequest'
 
-		self.is_normalized = False	
+		self.is_normalized = False  
 	
 	def __getitem__(self, key):
 		return self.get(key)
@@ -174,9 +174,9 @@ class Request(object):
 		if self.is_normalized:
 			return self
 
-		self.scraper = scraper	
+		self.scraper = scraper  
 
-		#copy scraper-wide options if not set yet	
+		#copy scraper-wide options if not set yet   
 		self.options = common.combine_dicts(scraper.config, self.options)
 
 		req = self
@@ -199,7 +199,7 @@ class Request(object):
 			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 			"User-Agent": user_agent,
 			"Accept-Language": "en-us,en;q=0.5",
-			"Accept-Encoding": "gzip, deflate",			
+			"Accept-Encoding": "gzip, deflate",         
 			# "Connection": "close" #turn off keep-alive
 			"Connection": "keep-alive"
 		}
@@ -214,7 +214,7 @@ class Request(object):
 				headers.update(req.get('headers')) 
 			else:
 				#only use user defined headers
-				headers = req.get('headers')	
+				headers = req.get('headers')    
 
 
 		req.set('headers', headers)
@@ -236,15 +236,15 @@ class Request(object):
 		if req.post and isinstance(req.post, dict):
 			req.post = urllib.urlencode(sorted(req.post.items()))
 
-		self.is_normalized = True	
+		self.is_normalized = True   
 		
-		return self	
+		return self 
 
 
 
 class Doc(Node):
 	def __init__(self, url='', html='<html></html>', html_clean=None, response=None):
-		logger = logging.getLogger('__name__')		
+		logger = logging.getLogger('__name__')      
 		if html_clean:
 			html = html_clean(html)
 
@@ -257,19 +257,19 @@ class Doc(Node):
 		if not baseurl:
 			baseurl = self.url
 		try:
-			for n in self.q('//a[@href and not(contains(@href, "javascript")) and not(starts-with(@href, "#")) and not(contains(@href, "mailto:"))]'):					
+			for n in self.q('//a[@href and not(contains(@href, "javascript")) and not(starts-with(@href, "#")) and not(contains(@href, "mailto:"))]'):                  
 				if n.href().trim() == '': continue
 				n.set('href', urlparse.urljoin(baseurl, n.get('href').tostring()))
 
-			for n in self.q('//iframe[@src]'):					
+			for n in self.q('//iframe[@src]'):                  
 				if n.src().trim() == '': continue
 				n.set('src', urlparse.urljoin(baseurl, n.src()))
 		
 
 
-			for n in self.q('//form[@action]'):					
-				n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))	
-			for n in self.q('//img[@src]'):					
+			for n in self.q('//form[@action]'):                 
+				n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))  
+			for n in self.q('//img[@src]'):                 
 				n.set('src', urlparse.urljoin(baseurl, n.get('src').tostring()))
 		except Exception as e:
 			logger.warn('there was error while init the Doc object: %s', self.url)
@@ -280,13 +280,13 @@ class Doc(Node):
 		for node in self.q(xpath or "//input[@name and @value]"):
 			data.update(dict( ( (node.name(), node.value(),), ) ))
 
-		return data	
+		return data 
 	def aspx_vs(self):
 		return self.x("//input[@id='__VIEWSTATE']/@value").urlencode() or self.html().sub('__VIEWSTATE|','|').urlencode()
 	def aspx_ev(self):
 		return self.x("//input[@id='__EVENTVALIDATION']/@value").urlencode() or self.html().sub('__EVENTVALIDATION|','|').urlencode()
 	def aspx_prepage(self):
-		return self.x("//input[@id='__PREVIOUSPAGE']/@value").urlencode() or self.html().sub('__PREVIOUSPAGE|','|').urlencode()	
+		return self.x("//input[@id='__PREVIOUSPAGE']/@value").urlencode() or self.html().sub('__PREVIOUSPAGE|','|').urlencode() 
 
 
 def create_opener(use_cookie=True, cj=None):
@@ -296,7 +296,7 @@ def create_opener(use_cookie=True, cj=None):
 		opener.cj = cj
 		return opener
 	else:
-		return urllib2.build_opener()	
+		return urllib2.build_opener()   
 
 class Client(object):
 
@@ -320,7 +320,13 @@ class Client(object):
 	def load(self, req):
 		""" returns a DOM Document"""
 		html = self.load_html(req)
-		doc = Doc(html=html, url = req.url, response= html.response)
+		
+		# cleaned_html = html.replace(u'\xa0', ' ')
+
+		doc = Doc(
+			html=html, 
+			url = req.url, 
+			response= html.response)
 
 		return doc
 
@@ -339,7 +345,7 @@ class Client(object):
 		if req.get('use_cache') and req.get('cache_only') and not cache.exists(url = req.url, post=req.post, filename=req.get('filename')):
 			html = common.DataItem('<html/>')
 			html.response = Response()
-			return html 	
+			return html     
 			
 		res = self.fetch_data(req)
 
@@ -350,7 +356,7 @@ class Client(object):
 
 		html.response = res
 
-		return html	
+		return html 
 
 		
 	def load_json(self, req):
@@ -361,7 +367,7 @@ class Client(object):
 
 		except:
 			logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
-			return None	
+			return None 
 		
 	
 	def fetch_data(self, req):
@@ -397,19 +403,19 @@ class Client(object):
 
 		request = urllib2.Request(req.url, req.post, headers)
 			
-		tries = req.get('retries', 0)	
+		tries = req.get('retries', 0)   
 		
 		status_code = 0
 		error_message = ''
-		final_url = None	
+		final_url = None    
 		response_headers = None
 
-		if self.scraper.config['log_post']:		
+		if self.scraper.config['log_post']:     
 			logger.debug('loading %s\n%s', req.url, req.post or '')
 		else:
-			logger.debug('loading %s', req.url)	
+			logger.debug('loading %s', req.url) 
 		if self.scraper.config['log_headers']:
-			logger.debug('request headers:\n%s', headers)	
+			logger.debug('request headers:\n%s', headers)   
 
 
 		try:
@@ -426,12 +432,12 @@ class Client(object):
 				
 				if 'gzip' in res.headers.get('content-encoding','').lower():
 					bytes = zlib.decompress(rawdata, 16+zlib.MAX_WBITS)
-				elif 'deflate' in res.headers.get('content-encoding','').lower():	
-					bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata)	
+				elif 'deflate' in res.headers.get('content-encoding','').lower():   
+					bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata) 
 				else:
 					bytes = rawdata
 
-				encoding = req.get('encoding') or  common.DataItem(res.headers.get('content-type') or '').subreg('charset\s*=([^;]+)')	or 'utf8'
+				encoding = req.get('encoding') or  common.DataItem(res.headers.get('content-type') or '').subreg('charset\s*=([^;]+)')  or 'utf8'
 				content_type = res.headers.get('content-type', '').lower()
 
 				
@@ -463,36 +469,36 @@ class Client(object):
 				else:
 					
 					#binary content
-					data = bytes		
+					data = bytes        
 
 				if self.scraper.config['log_headers']:
 					logger.debug('response_headers:\n %s', response_headers)
 
-				return Response(data=data, code=status_code, final_url=final_url, request = req, headers=response_headers)	
+				return Response(data=data, code=status_code, final_url=final_url, request = req, headers=response_headers)  
 
 		
 		except Exception, e:
 			if status_code == 0 and hasattr(e,'code'):
 				status_code = e.code
 			if hasattr(e, 'reason'):
-				error_message = e.reason			
+				error_message = e.reason            
 
 			elif hasattr(e, 'line'):
 				error_message = 'BadStatusLine: %s' % e.line
 
-			elif hasattr(e, 'message'):	
+			elif hasattr(e, 'message'): 
 				error_message =  e.message
 
 			
 
 			if not error_message and hasattr(e, 'args'):
-				try:				
-					error_message = u", ".join([unicode(item) for item in e.args]).replace("''",'unknown')	
+				try:                
+					error_message = u", ".join([unicode(item) for item in e.args]).replace("''",'unknown')  
 				except:
 					pass
 			
 			if tries > 0 and status_code not in accept_error_codes:
-				#try to open the request one again	
+				#try to open the request one again  
 				logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
 				req.update({'retries': tries - 1})
 				
@@ -504,7 +510,7 @@ class Client(object):
 
 				return self.fetch_data(req)
 			else:
-				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
+				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)    
 				if 'invalid html' in error_message:
 					status_code = 0
 
@@ -523,7 +529,7 @@ class Client(object):
 						'http': 'http://{0}'.format(proxy.full_address),
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
-		if self.scraper.config['log_post']:			
+		if self.scraper.config['log_post']:         
 			logger.debug('loading %s\n%s', req.url, req.post or '')
 		else:
 			logger.debug('loading %s', req.url)
@@ -535,16 +541,16 @@ class Client(object):
 
 		status_code = 0
 		error_message = ''
-		final_url = None	
+		final_url = None    
 
-		tries = req.get('retries', 0)	
+		tries = req.get('retries', 0)   
 
 		try:
-			time.sleep(req.get('delay', 0.001))	
-			r = None	
+			time.sleep(req.get('delay', 0.001)) 
+			r = None    
 			if req.post:
 				r = client.post(req.url, data = req.post, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True)
-			else:	
+			else:   
 				r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
 			
 		
@@ -563,7 +569,7 @@ class Client(object):
 				
 			elif 'deflate' in r.headers.get('content-encoding', ''):
 
-				bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata)	
+				bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata) 
 			
 			else:
 				bytes = rawdata
@@ -585,20 +591,20 @@ class Client(object):
 				raise Exception("invalid html")
 
 			
-			return Response(data=html, code=status_code, final_url=final_url, request = req)	
+			return Response(data=html, code=status_code, final_url=final_url, request = req)    
 			
 				
 
-		except Exception, e:			
+		except Exception, e:            
 			error_message = e.message
 			
 			if tries > 0 and status_code not in accept_error_codes:
-				#try to open the request one again	
+				#try to open the request one again  
 				logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
 				req.update({'retries': tries - 1})
 				return self.requests_fetch_data(req, headers)
 			else:
-				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)	
+				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)    
 				if 'invalid html' in error_message:
 					status_code = 0
 				return Response(data=None, code = status_code, final_url=final_url, message = error_message, request=req)
@@ -622,7 +628,7 @@ class Client(object):
 			cachedhtml = cachedata[0]
 			response = Response(data=cachedhtml,code=200, final_url=None, message=None)
 
-		html = common.DataItem(cachedhtml)	
+		html = common.DataItem(cachedhtml)  
 		html.response = response
 
 		return html
@@ -637,8 +643,31 @@ class Client(object):
 				}
 			}
 		
-		self.scraper.cache.write(url=url, post=post, filename=filename, data=u''.join([json.dumps(meta), meta_seperator, data]) )	
+		self.scraper.cache.write(url=url, post=post, filename=filename, data=u''.join([json.dumps(meta), meta_seperator, data]) )   
 		
+
+class NoRedirection(urllib2.HTTPErrorProcessor):
+
+	def http_response(self, request, response):
+		return response
+
+	https_response = http_response
+
+	
+def get_redirect_url(url):
+	try:
+		opener = urllib2.build_opener(NoRedirection)
+		
+		response = opener.open(url)
+
+		if response.code == 302:
+			return response.headers['location']
+		else:
+			return ''
+	except Exception as e:
+		logger.exception(e)
+	finally:
+		response.close()			
 
 if __name__ == '__main__':
 	import core

@@ -7,15 +7,6 @@ import csv
 import os
 
 from scrapex import common
-def _encode_item_values(item):
-	for k in item:
-		v = item[k]
-		if isinstance(v,unicode):
-			
-			item[k] = v.encode('utf8')
-
-	return item
-	
 
 class DB(object):
 	"""Provides a scaleable storage for big scrapes."""
@@ -55,11 +46,15 @@ class DB(object):
 
 	def remove_search(self, _id):
 		self._db.searches.delete_one({'_id': _id})
+	def remove_searches(self, query={}):
+		self._db.searches.delete_many(query)
 
-	def count_searches(self):
-		return self._db.searches.count({})
+	def update_search(self, search):
+		self._db.searches.update_one({'_id': search['_id']},{'$set': search}, upsert=True)
 	
-
+	def count_searches(self, query={}):
+		return self._db.searches.count(query)
+	
 
 	def insert_item(self, item):
 		if '_id' in item:
@@ -67,7 +62,6 @@ class DB(object):
 			if self.exists_item(item['_id']):
 				return False
 
-		item = _encode_item_values(item)
 
 		self._db.items.insert(item)
 
@@ -78,8 +72,7 @@ class DB(object):
 		self._db.items.insert_many(items)
 
 	def insertorupdate_item(self, item):
-		item = _encode_item_values(item)
-
+		
 		self._db.items.update_one({'_id': item['_id']},{'$set': item}, upsert=True)
 	
 	def get_item(self, _id):
@@ -96,6 +89,8 @@ class DB(object):
 
 		self._db.items.update_one({'_id': item['_id']},{'$set': item}, upsert=False)
 
+	def update_items(self, query, set_dict):	
+		self._db.items.update_many(query, {'$set': set_dict})
 
 	def count_items(self, query={}):
 		return self._db.items.count(query)
@@ -144,6 +139,11 @@ class DB(object):
 
 		query = query or {}
 		
+		cnt = self.count_items(query)
+		
+		print('cnt: {}'.format(cnt))		
+
+
 		cursor = self._db.items.find(query)
 
 		if sort:
@@ -156,7 +156,10 @@ class DB(object):
 			res = []
 
 			for field in fields:
-				value = item.get(field) or ''
+				# value = item.get(field) or ''
+				value = item.get(field)
+				if value is None:
+					value = ''
 
 				if field in multicol_fields:
 					maxcol = multicol_fields[field]
