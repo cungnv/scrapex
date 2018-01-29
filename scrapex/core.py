@@ -91,7 +91,7 @@ class Scraper(object):
 		self.client = http.Client(scraper=self)
 
 		#create an async downloader for this scraper
-		self.downloader = Downloader(scraper=self, cc=3)
+		# self.downloader = Downloader(scraper=self, cc=3)
 		
 		#set flags
 		self.writingflag = False
