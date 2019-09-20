@@ -21,8 +21,7 @@ class Cache(object):
 		if post and isinstance(post, dict):
 			post = urllib.urlencode(sorted(post.items()))
 
-		return common.md5(u'{}{}'.format(url, post or '' ).encode('utf8')) + '.htm'
-
+		return common.md5((url + (post or '')).encode('utf8')) + '.htm'
 
 	def write(self, url='', data='', post='',filename = None):
 		logger = logging.getLogger(__name__)
@@ -57,4 +56,3 @@ class Cache(object):
 			yield (filename, html)
 
 		
-			

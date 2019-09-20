@@ -9,7 +9,7 @@ import logging.config
 import atexit
 from Queue import Queue
 from urlparse import urlparse
-import cookielib
+
 from scrapex.node import Node
 from scrapex.worker import Worker
 from scrapex.http import Request
@@ -102,9 +102,6 @@ class Scraper(object):
 		self._time_start = time.time()
 
 	
-
-
-
 	def get_log_stats(self):
 		log_file = self.join_path(self.config['log_file']) if self.config['log_file'] is not None else None
 
@@ -192,7 +189,7 @@ class Scraper(object):
 		path = os.path.join(self.dir, dir, filename)
 		
 		if(os.path.exists(path)):
-			return True, 200
+			return filename #already downloaded
 		else:
 			#start downloading the file
 			options = common.combine_dicts(self.config, _options)		
@@ -201,9 +198,9 @@ class Scraper(object):
 					
 			if res.code == 200 and res.data:
 				common.put_bin(path, res.data)
-				return True, res.code
+				return filename
 			else:
-				return False, res.code
+				return None
 
 
 	

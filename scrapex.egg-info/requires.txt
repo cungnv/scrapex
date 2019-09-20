@@ -1,0 +1,5 @@
+lxml
+xlwt
+xlrd
+openpyxl
+pyOpenSSL

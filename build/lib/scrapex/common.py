@@ -1,6 +1,5 @@
 import hashlib
 import os
-import sys
 import copy
 import codecs
 import re
@@ -18,73 +17,7 @@ import time
 from Queue import Queue
 from HTMLParser import HTMLParser
 
-from openpyxl import Workbook
-
 logger = logging.getLogger()
-
-def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
-	csv.field_size_limit(sys.maxsize)
-	if not max_num_of_rows:
-		# put all rows into a single xlsx file
-		wb = Workbook()
-		sheet = wb.active
-
-		i = 0
-		for r in read_csv(csv_file_path):
-			i+= 1
-
-			sheet.append(r)
-
-
-		wb.save(xlsx_file_path)	
-	else:
-		#use multiple xlsx file
-		fileindex = 0
-		headers = None
-		cnt_rows = 0
-
-		i = 0
-		for r in read_csv(csv_file_path):
-			
-			i+= 1
-			if i == 1:
-				headers = r
-				continue
-			
-			assert len(r) == len(headers), 'invalid row'
-
-			# if len(r[7]) > 500:
-			# 	# print 'remove description'
-			# 	#temp fix
-			# 	r[7] = ''# r[7][0:1000] + u'...'
-
-
-				
-			if cnt_rows == 0:
-
-				fileindex += 1
-				
-				xlsx_file = xlsx_file_path.replace('.xlsx','-{}.xlsx'.format(fileindex))
-
-				print 'to create file: %s' % xlsx_file
-
-				wb = Workbook()
-				sheet = wb.active
-				
-				sheet.append(headers)
-
-			sheet.append(r)
-			cnt_rows += 1
-
-			if cnt_rows == max_num_of_rows:
-				wb.save(xlsx_file)
-				cnt_rows = 0 #reset
-		
-		if cnt_rows > 0:
-			#some rows remaining
-			wb.save(xlsx_file)
-
-
 
 def create_multi_columns(data, basename, maxcol):
 	
@@ -826,16 +759,9 @@ class DataItem(unicode):
 
 	def __init__(self, data=u''):
 		
-		if data is None:
-			data = u''
+		if data is None: data = ''
 
-		try:	
-			data = unicode(data)
-		except:
-			
-			data = data.decode('utf8')	
-
-		self.data = data		
+		self.data = unicode(data)
 	
 	
 	def __repr__(self):

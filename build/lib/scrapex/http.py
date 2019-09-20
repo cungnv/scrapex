@@ -21,8 +21,6 @@ from gzip import GzipFile
 
 import traceback
 
-import requests
-
 from scrapex import common, agent
 from scrapex.node import Node
 
@@ -34,10 +32,6 @@ except AttributeError:
 else:
 	# Handle target environment that doesn't support HTTPS verification
 	ssl._create_default_https_context = _create_unverified_https_context
-
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 meta_seperator = '=======META======'
 
@@ -140,7 +134,7 @@ class Request(object):
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
 
-		allowed_option_names = 'proxy, log_file, use_default_logging, log_post, log_headers, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'proxy, log_file, use_default_logging, log_post, log_headers, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_requests, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -208,8 +202,8 @@ class Request(object):
 			"User-Agent": user_agent,
 			"Accept-Language": "en-us,en;q=0.5",
 			"Accept-Encoding": "gzip, deflate",         
-			"Connection": "close" #turn off keep-alive
-			# "Connection": "keep-alive"
+			# "Connection": "close" #turn off keep-alive
+			"Connection": "keep-alive"
 		}
 
 		if req.post:
@@ -257,11 +251,7 @@ class Doc(Node):
 			html = html_clean(html)
 
 		Node.__init__(self, html)
-		try:
-			self.url = common.DataItem( url )
-		except:
-			self.url = common.DataItem( url.decode('utf8') )	
-
+		self.url = common.DataItem( url )
 		self.response = response or Response(data=html, final_url=url)
 		
 		#resolve relative urls
@@ -318,7 +308,15 @@ class Client(object):
 		
 		socket.setdefaulttimeout(self.scraper.config.get('timeout', 45) )
 
-		self.session = requests.Session()
+		
+		self.opener = create_opener(use_cookie=True)
+
+		
+
+		if scraper.config.get('use_requests') is True:
+			import requests
+			# print 'create new requests Session'
+			self.requests_client = requests.Session()
 
 
 	def load(self, req):
@@ -335,7 +333,6 @@ class Client(object):
 		return doc
 
 	def load_html(self, req):
-
 		""" returns a unicode html object """
 		cache = self.scraper.cache
 		accept_error_codes = req.get('accept_error_codes')
@@ -343,7 +340,7 @@ class Client(object):
 			accept_error_codes = []
 
 			
-		if req.get('use_cache') and cache and cache.exists(url = req.url, post=req.post, filename=req.get('filename')):
+		if cache and cache.exists(url = req.url, post=req.post, filename=req.get('filename')) and req.get('use_cache'):
 				
 			return self._read_from_cache(url=req.url, post=req.post, filename=req.get('filename'))
 
@@ -373,29 +370,177 @@ class Client(object):
 		except:
 			logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
 			return None 
+		
 	
 	def fetch_data(self, req):
-		
+
+		""" processes a http request specified by the req object and returns a response object """
+
+		try:
+
+			req.normalize(self.scraper)
+
+			accept_error_codes = req.get('accept_error_codes')
+
+			
+			time.sleep(self.scraper.config['delay'])
+			opener = req.get('opener')
+			if not opener:
+				opener = create_opener(use_cookie=False) if req.get('use_cookie') is False else  self.opener
+
+
+			headers = req.get('headers')
+			
+			if self.scraper.config.get('use_requests') is True:
+				#use requests module instead of urllib2
+				return self.requests_fetch_data(req,headers)
+
+			proxy = req.get('proxy')
+			
+			if proxy and req.get('use_proxy') is not False:
+				if req.url.lower().startswith('https://'):
+					opener.add_handler(urllib2.ProxyHandler({'https' : proxy.full_address }))
+				else:
+					opener.add_handler(urllib2.ProxyHandler({'http' : proxy.full_address }))
+			
+
+			request = urllib2.Request(req.url, req.post, headers)
+				
+			tries = req.get('retries', 0)   
+			
+			status_code = 0
+			error_message = ''
+			final_url = None    
+			response_headers = None
+
+			if self.scraper.config['log_post']:     
+				logger.debug('loading %s\n%s', req.url, req.post or '')
+			else:
+				logger.debug(u'loading %s', req.url) 
+			if self.scraper.config['log_headers']:
+				logger.debug('request headers:\n%s', headers)   
+
+
+			try:
+				
+				with contextlib.closing(opener.open(request,  timeout= req.get('timeout', self.scraper.config['timeout']))) as res:
+					final_url = res.url
+					status_code = res.code
+
+					
+					response_headers = res.headers
+
+
+					rawdata = res.read()
+					
+					if 'gzip' in res.headers.get('content-encoding','').lower():
+						bytes = zlib.decompress(rawdata, 16+zlib.MAX_WBITS)
+					elif 'deflate' in res.headers.get('content-encoding','').lower():   
+						bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata) 
+					else:
+						bytes = rawdata
+
+					encoding = req.get('encoding') or  common.DataItem(res.headers.get('content-type') or '').subreg('charset\s*=([^;]+)')  or 'utf8'
+					content_type = res.headers.get('content-type', '').lower()
+
+					
+					
+					data = ''
+
+					#default is text data
+					
+					is_binary_data = req.get('bin') or False
+					if 'image' in content_type or 'pdf' in content_type:
+						is_binary_data = True
+
+					if  not is_binary_data:
+						
+						data = bytes.decode(encoding, 'ignore')
+
+						#verify data
+						
+						if req.get('contain') and req.get('contain') not in data:
+							raise Exception("invalid html, not contain: %s" % req.get('contain'))
+
+						if req.get('not_contain') and req.get('not_contain') in data:
+							raise Exception("invalid html, contain negative string: %s" % req.get('not_contain'))
+							
+						verify = req.get('verify')
+						
+						if verify and (not verify(data)):
+							raise Exception("invalid html")
+					else:
+						
+						#binary content
+						data = bytes        
+
+					if self.scraper.config['log_headers']:
+						logger.debug('response_headers:\n %s', response_headers)
+
+					return Response(data=data, code=status_code, final_url=final_url, request = req, headers=response_headers)  
+
+			
+			except Exception, e:
+				if status_code == 0 and hasattr(e,'code'):
+					status_code = e.code
+				if hasattr(e, 'reason'):
+					error_message = e.reason            
+
+				elif hasattr(e, 'line'):
+					error_message = 'BadStatusLine: %s' % e.line
+
+				elif hasattr(e, 'message'): 
+					error_message =  e.message
+
+				
+
+				if not error_message and hasattr(e, 'args'):
+					try:                
+						error_message = u", ".join([unicode(item) for item in e.args]).replace("''",'unknown')  
+					except:
+						pass
+				
+				if tries > 0 and status_code not in accept_error_codes:
+					#try to open the request one again  
+					logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
+					req.update({'retries': tries - 1})
+					
+					#try with new proxy
+					newproxy = req.scraper.proxy_manager.get_proxy()
+					req.update({'proxy': newproxy})
+					
+					logger.debug('retry with new proxy: %s', newproxy)
+
+					return self.fetch_data(req)
+				else:
+					logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)    
+					if 'invalid html' in error_message:
+						status_code = 0
+
+					return Response(data=None, code = status_code, final_url=final_url, message = error_message, request=req, headers=response_headers)
+
+		except Exception as ex:
+			
+			logger.warn('failed to fetch_data: %s', req.url.encode('utf8'))
+			 
+			traceback.print_exc()
+
+			raise ex
+
+			
+
+	def requests_fetch_data(self, req, headers):
 		logger = logging.getLogger(__name__)
-		
-		req.normalize(self.scraper)
-
-		time.sleep(self.scraper.config['delay'])
-
-		headers = req.get('headers')
 		
 		proxy = req.get('proxy')
 
 		proxies = None
 		if proxy and req.get('use_proxy') is not False:
-			
-			logger.debug('proxy: {}:{}'.format(proxy.host, proxy.port))
-
+				
 			proxies = {
 						'http': 'http://{0}'.format(proxy.full_address),
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
-						
 		if self.scraper.config['log_post']:         
 			logger.debug('loading %s\n%s', req.url, req.post or '')
 		else:
@@ -404,7 +549,7 @@ class Client(object):
 
 		accept_error_codes = req.get('accept_error_codes')
 		
-		client = requests if req.get('use_cookie') is False else  self.session
+		client = self.requests_client
 
 		status_code = 0
 		error_message = ''
@@ -413,19 +558,19 @@ class Client(object):
 		tries = req.get('retries', 0)   
 
 		try:
-			
+			time.sleep(req.get('delay', 0.001)) 
 			r = None    
 			if req.post:
 				r = client.post(req.url, data = req.post, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True)
 			else:   
 				r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
 			
-
-			status_code = r.status_code
+		
+			status_code = r.response_code
 			final_url = r.url
 			if status_code != 200:
 				if status_code not in accept_error_codes:
-					raise Exception('Invalid status code: %s' % r.status_code)
+					raise Exception('Invalid status code: %s' % r.response_code)
 			
 			rawdata = r.raw.read()
 
@@ -467,11 +612,11 @@ class Client(object):
 			
 			if tries > 0 and status_code not in accept_error_codes:
 				#try to open the request one again  
-				logger.debug('data fetching error: %s %s -- %s', status_code if status_code !=0 else '', error_message, req.url)
+				logger.debug('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)
 				req.update({'retries': tries - 1})
-				return self.fetch_data(req)
+				return self.requests_fetch_data(req, headers)
 			else:
-				logger.warn('data fetching error: %s %s -- %s', status_code if status_code !=0 else '', error_message, req.url)    
+				logger.warn('data fetching error: %s %s', status_code if status_code !=0 else '', error_message)    
 				if 'invalid html' in error_message:
 					status_code = 0
 				return Response(data=None, code = status_code, final_url=final_url, message = error_message, request=req)
@@ -485,15 +630,11 @@ class Client(object):
 		
 		cachedhtml = None
 		
-
 		if len(cachedata)==2:
 			cachedhtml = cachedata[1]
 			meta = json.loads( cachedata[0] )
 			#reload status
-			try:
-				response = Response(data=cachedhtml,code= meta['response']['code'], final_url = meta['response']['final_url'], message = meta['response'].get('message', '') )
-			except:
-				response = Response(data=cachedhtml,code=200, final_url=None, message=None)		
+			response = Response(data=cachedhtml,code= meta['response']['code'], final_url = meta['response']['final_url'], message = meta['response'].get('message', '') )
 		else:
 			#no meta data
 			cachedhtml = cachedata[0]
