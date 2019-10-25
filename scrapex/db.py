@@ -102,9 +102,9 @@ class DB(object):
 		else:
 			return False	
 	
-	def _compile_all_fields(self,include_hidden_fields = False, exclude_fields = []):
+	def _compile_all_fields(self,include_hidden_fields = False, exclude_fields = [], query={}, limit=10000):
 		fields = []
-		for item in self._db.items.find().limit(10000):#just need first 10,000 records to find all possible fields?
+		for item in self._db.items.find(query).limit(limit):#just need first 10,000 records to find all possible fields?
 			for field in item.keys():
 				if field in exclude_fields:
 					continue
@@ -162,7 +162,9 @@ class DB(object):
 					value = ''
 
 				if field in multicol_fields:
-					maxcol = multicol_fields[field]
+					maxcol = multicol_fields[field]['maxcol']
+					field_format = multicol_fields[field]['field_format']
+
 
 					parts = []
 					if value is None:
@@ -181,7 +183,7 @@ class DB(object):
 
 
 					for i in xrange(maxcol):
-						res.append('{} {}'.format(field, i+1))
+						res.append(field_format.format(i+1))
 						res.append(parts[i])
 
 				else:	

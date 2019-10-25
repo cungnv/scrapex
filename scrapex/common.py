@@ -22,6 +22,21 @@ from openpyxl import Workbook
 
 logger = logging.getLogger()
 
+def parse_cookies(cookieline):
+	
+	cookies = {}
+	for pair in cookieline.split('; '):
+
+		parts = pair.strip().split('=')
+
+		name = parts.pop(0)
+		value = '='.join(parts)
+		cookies[name] = value
+			
+
+	return cookies	
+
+
 def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 	csv.field_size_limit(sys.maxsize)
 	if not max_num_of_rows:
@@ -289,7 +304,12 @@ def save_csv(path, record, sep=u',', quote=u'"', escape = u'"', write_header=Tru
 		if i % 2 == 0:
 			#get key
 			key = item.strip().replace(quote, escape + quote).replace('\r','')
-			keys.append(quote + key + quote)
+			
+			if always_quoted or sep in key:
+				keys.append(quote + key + quote)
+			else:
+				keys.append(key)
+
 		else:
 			#get the value
 			if item is None: item = DataItem()
@@ -602,7 +622,7 @@ def rand_sort(input_list):
 	return [item[1] for item in items]
 		
 
-def start_threads(items, worker, cc=1, timeout=None):
+def start_threads(items, worker, cc=1, timeout=None, start_delay=1):
 	
 	logger = logging.getLogger(__name__)
 
@@ -633,7 +653,10 @@ def start_threads(items, worker, cc=1, timeout=None):
 	#start workers		
 	for i in range(cc):		
 		t = Worker(queue = queue, func=worker)			
-		t.setDaemon(True)				
+		t.setDaemon(True)
+		
+		time.sleep(random.uniform(0, start_delay) )	
+
 		t.start()	
 	if not timeout:	
 		queue.join()	

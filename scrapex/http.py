@@ -140,7 +140,7 @@ class Request(object):
 		#to avoid using invalid option names
 		logger = logging.getLogger('__name__')
 
-		allowed_option_names = 'proxy, log_file, use_default_logging, log_post, log_headers, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'cookies, proxy, log_file, use_default_logging, log_post, log_headers, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
 		for o in options.keys():
 			if o not in allowed_option_names:
@@ -383,7 +383,7 @@ class Client(object):
 		time.sleep(self.scraper.config['delay'])
 
 		headers = req.get('headers')
-		
+		cookies = req.get('cookies') or {}
 		proxy = req.get('proxy')
 
 		proxies = None
@@ -405,7 +405,7 @@ class Client(object):
 		accept_error_codes = req.get('accept_error_codes')
 		
 		client = requests if req.get('use_cookie') is False else  self.session
-
+		
 		status_code = 0
 		error_message = ''
 		final_url = None    
@@ -416,9 +416,9 @@ class Client(object):
 			
 			r = None    
 			if req.post:
-				r = client.post(req.url, data = req.post, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True)
+				r = client.post(req.url, data = req.post, headers = headers, cookies= cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True)
 			else:   
-				r = client.get(req.url, headers = headers, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
+				r = client.get(req.url, headers = headers, cookies=cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
 			
 
 			status_code = r.status_code
@@ -448,6 +448,10 @@ class Client(object):
 
 
 			html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
+
+			#testing
+			# logger.info('rawdata: %s', len(rawdata))
+			# logger.info('html: %s', len(html))
 
 			#verify data
 			if req.get('contain') and req.get('contain') not in html:

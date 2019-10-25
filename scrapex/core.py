@@ -187,7 +187,10 @@ class Scraper(object):
 		
 		dir_path = self.join_path(dir)
 		if not os.path.exists(dir_path):
-			os.makedirs(dir_path)
+			try:
+				os.makedirs(dir_path)
+			except:
+				pass	
 
 		path = os.path.join(self.dir, dir, filename)
 		
