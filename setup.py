@@ -19,7 +19,8 @@ setup(
 		'xlwt',
 		'xlrd',
 		'openpyxl',
-		'pyOpenSSL'
+		'pyOpenSSL',
+		'requests',
 	],
 	
 	license='LGPL',
