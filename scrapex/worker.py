@@ -1,3 +1,4 @@
+from builtins import str
 import threading, random, logging
 from scrapex import http
 
@@ -24,11 +25,11 @@ class Worker(threading.Thread):
 					doc = self.client.load(item['req'])								
 					if item['cb']:
 						item['cb'](doc)						
-				except Exception, e:
+				except Exception as e:
 					logger.exception(e)
 
 				self.queue.task_done()
-		except Exception, e2:
+		except Exception as e2:
 			#thread exited due to queue empty, nothing special		
 			pass
 			

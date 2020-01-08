@@ -1,26 +1,41 @@
+#encoding: utf-8
+
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from past.builtins import basestring
+from builtins import object
 import hashlib
 import os
 import sys
 import copy
 import codecs
 import re
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import json
 import string
 import threading
-import StringIO
+import io
 import csv
 import logging
 import pickle
 import random
 import time
-from Queue import Queue
-from HTMLParser import HTMLParser
+from queue import Queue
+from collections import OrderedDict
 
+from html.parser import HTMLParser
 from openpyxl import Workbook
 
+
 logger = logging.getLogger()
+
+
 
 def parse_cookies(cookieline):
 	
@@ -68,12 +83,6 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 			
 			assert len(r) == len(headers), 'invalid row'
 
-			# if len(r[7]) > 500:
-			# 	# print 'remove description'
-			# 	#temp fix
-			# 	r[7] = ''# r[7][0:1000] + u'...'
-
-
 				
 			if cnt_rows == 0:
 
@@ -81,7 +90,7 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 				
 				xlsx_file = xlsx_file_path.replace('.xlsx','-{}.xlsx'.format(fileindex))
 
-				print 'to create file: %s' % xlsx_file
+				print('to create file: %s' % xlsx_file)
 
 				wb = Workbook()
 				sheet = wb.active
@@ -114,10 +123,10 @@ def create_multi_columns(data, basename, maxcol):
 
 		if len(data) < maxcol:
 			#normalize
-			for i in xrange(maxcol-len(data)):
+			for i in range(maxcol-len(data)):
 				data.append('')
 
-		for i in xrange(maxcol):
+		for i in range(maxcol):
 			res.append('{} {}'.format(basename, i+1))
 			res.append(data[i])
 
@@ -129,12 +138,12 @@ def create_multi_columns(data, basename, maxcol):
 
 		if len(data) < maxcol:
 			#normalize
-			for i in xrange(maxcol-len(data)):
-				fakevalues = ['' for j in xrange(len(basename))]
+			for i in range(maxcol-len(data)):
+				fakevalues = ['' for j in range(len(basename))]
 
 				data.append(fakevalues)
 
-		for i in xrange(maxcol):
+		for i in range(maxcol):
 			values = data[i]
 
 			j = 0
@@ -159,7 +168,7 @@ def put_bin(path, data):
 		f.write(data)
 		f.close()
 		return True
-	except Exception, e:
+	except Exception as e:
 		logger.exception(e)
 		return False
 
@@ -202,7 +211,7 @@ def read_lines(path, removeempty = True, trim = True, encoding = 'utf-8'):
 	return lines			
 def read_lines_byrn(path, encoding = 'utf8'):
 	with codecs.open(path, encoding=encoding) as f:
-		buff = u''
+		buff = ''
 		for line in f:			
 			buff += line
 			if line.endswith('\r\n'):
@@ -218,36 +227,7 @@ def combine_dicts(basedict, dict2):
 	newdict = copy.deepcopy(basedict)
 	newdict.update(dict2)
 	return newdict
-def parse_re_flags(reg):
-	#parse flags
-	_flags = []
-	flags = None
-	
-	options = re.search('--[a-z]+$', reg, flags= re.S|re.I)
-	
-	if options:		
-		options = options.group().replace('--','')
-		
-		reg = re.sub(r'--[a-z]+$', '', reg) #remove options part from reg string
 
-		for option in options.lower():
-			if option == 'i': _flags.append(re.I)
-			elif option == 's': _flags.append(re.S)
-			elif option == 'm': _flags.append(re.M)
-			elif option == 'u': _flags.append(re.U)
-
-		for flag in _flags:
-			flags = flags | flag if flags is not None else flag	
-
-	return dict(reg = reg, flags = flags)		
-	
-def subreg(s, reg):
-	
-	redata = parse_re_flags(reg)
-	reg = redata['reg']
-	flags = redata['flags'] or re.S
-	m = re.search(reg, s, flags = flags)
-	return DataItem( m.groups(0)[0] if m else '')
 
 def reg(s, reg):
 	
@@ -261,14 +241,19 @@ def reg(s, reg):
 
 	if m:
 		for field, value in m.groupdict(default='').iteritems():
-			setattr(res, field, value)
+			# setattr(res, field, value)
+			res[field] = value
 	else:
 		#no match, set default values
 		for field in fields:
-			setattr(res, field, '')	
+			res[field] = ''
 
 	return res	
+	
+def subreg(s, reg, flags=re.S):
+	m = re.search(reg, s, flags = flags)
 
+	return DataItem( m.groups(0)[0] if m else '')
 
 	
 def sub(s, startstr, endstr):
@@ -279,24 +264,33 @@ def sub(s, startstr, endstr):
 	to = s.find(endstr, start) if endstr else len(s) #get to the end of string s if no end point provided
 	if to == -1: return DataItem('') #not found
 	return DataItem( s[start:to] )
-def rr(pt, to, s):
-	redata = parse_re_flags(pt)
-	reg = redata['reg']
-	flags = redata['flags'] or re.S	
-	return DataItem( re.sub(reg, to, s, flags = flags) )
 
-def save_csv(path, record, sep=u',', quote=u'"', escape = u'"', write_header=True, always_quoted = True):
+def rr(pt, to, s, flags=re.S):
+	
+	return DataItem( re.sub(pt, to, s, flags = flags) )
 
+def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, always_quoted = True):
+	
 	#normalize the record to list
-	if isinstance(record, dict):
+
+	if isinstance(record, OrderedDict):
+	
+		_record = []
+		for key,value in record.items():
+			_record += [key, value]
+
+		record = _record
+		
+
+	elif isinstance(record, dict):
+	
 		_record = []
 		for key in sorted(record.keys()):
 			_record += [key, record[key]]
 
 		record = _record	
 
-
-
+	
 	values = []
 	keys = []
 	
@@ -315,7 +309,7 @@ def save_csv(path, record, sep=u',', quote=u'"', escape = u'"', write_header=Tru
 			if item is None: item = DataItem()
 			if not isinstance(item, DataItem): item = DataItem(item)
 
-			value = item.trim().replace(quote, escape + quote).replace('\r','').replace(u'\u00A0',' ').trim().tostring()
+			value = item.trim().replace(quote, escape + quote).replace('\r','').replace('\u00A0',' ').trim().tostring()
 			if always_quoted or sep in value:
 				values.append(quote + value + quote)
 			else:
@@ -325,13 +319,13 @@ def save_csv(path, record, sep=u',', quote=u'"', escape = u'"', write_header=Tru
 
 	
 	if not os.path.exists(path) and write_header:
-		append_file(path, sep.join(keys)+u'\r\n' + sep.join(values)+'\r\n')
+		append_file(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
 	else:		
-		append_file(path, sep.join(values)+u'\r\n')	
+		append_file(path, sep.join(values)+'\r\n')	
 
 def filename(path):
 	path = DataItem(path).rr('\?.*?$')
-	return path.subreg('/([^/\?\$]+\.[a-z]{2,4})$--is')
+	return path.subreg('/([^/\?\$]+\.[a-z]{2,4})$', re.I|re.S)
 
 def file_ext(path):
 	""" extract file extension from the path or url """
@@ -344,7 +338,7 @@ def file_ext(path):
 
 def parse_address(full, two_address_lines = False):	
 
-	full = DataItem(full).replace(u'\u00A0',' ').rr('\s+',' ').trim()
+	full = DataItem(full).replace('\u00A0',' ').rr('\s+',' ').trim()
 	
 	#normalize the full address when full looks like: Some City, State zipcode
 	if len(full.split(',')) == 2:
@@ -353,10 +347,10 @@ def parse_address(full, two_address_lines = False):
 	full = DataItem(full if full else '').trim()
 	
 
-	zip = full.subreg('(?: |,)\s*(\d{4,5} ?- ?\d{3,4})$--is').tostring() or full.subreg('(?: |,)\s*(\d{9})$--is').tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$--is').tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$--is').tostring()
+	zip = full.subreg('(?: |,)\s*(\d{4,5} ?- ?\d{3,4})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d{9})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$', re.I|re.S).tostring()
 
 	if not zip:
-		zip = full.subreg('(?: |,)\s*(\d{4,5})$--is')
+		zip = full.subreg('(?: |,)\s*(\d{4,5})$', re.I|re.S)
 
 	full = DataItem(full+'<end>').replace(zip+'<end>', '').trim().rr(',$','').trim()
 	state = full.subreg(',\s*([^\d\,#]{2,})$').tostring()
@@ -430,43 +424,13 @@ def split_csv(path, maxlines):
 		append_file(os.path.join(dir, _filename.replace('.csv','-%s.csv'%fno)), line)
 def get_email(txt):
 	
-	email = subreg(txt, r'\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b--is')
+	email = subreg(txt, r'\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b', re.I|re.S)
 	if '%' in email or 'email' in email.lower():
 		email = DataItem('')
 
 	return email	
 		
 
-
-def toml(des):
-	
-	#normalize the input
-	des = DataItem(des).rr(r'\bfl\.?--is','').rr('\s+',' ')
-	#the ml already in the des
-	if des.subreg('\\b([\d\.]+)\s*ml\\b--is'):
-		return des.subreg('\\b([\d\.]+)\s*ml\\b--is') + ' ml'
-
-
-
-	ms = re.findall(r'(?:[1-9]{1}[0-9]{0,}(?:\.[0-9]{0,3})?|0(?:\.[0-9]{0,3})?|\.[0-9]{1,3}) ?oz',des, flags = re.I|re.S)
-
-	for m in ms:
-		try:
-			bk_m = m			
-			m = DataItem(m).rr('oz--is','').rr('fl--is','').trim()
-			value = float(m)
-			size_ml = value * 29.5735296875
-			if size_ml > 5:
-				size_ml =  round(size_ml, 0)
-			else:
-				size_ml = round(size_ml, 2)
-
-			newsize = ('%d ml' % size_ml) if size_ml>5 else ('%s ml' % size_ml)
-			des = des.replace(bk_m, newsize)
-		except Exception:
-			return des
-
-	return des.subreg('([\d\.]+)\s*ml--is')	+ ' ml' if des.subreg('([\d\.]+)\s*ml--is') else des
 def html_decode(encodedstr):
 	parser = HTMLParser()
 	return parser.unescape(encodedstr)
@@ -490,15 +454,15 @@ def AtoZ():
 	return [alpha for alpha in string.uppercase]	
 def urlencode(rawstr):
 	rawstr = rawstr.encode('utf8')
-	return DataItem( urllib.quote_plus(rawstr) )
+	return DataItem( urllib.parse.quote_plus(rawstr) )
 def urldecode(rawstr):
-	return DataItem(urllib.unquote(rawstr))	
+	return DataItem(urllib.parse.unquote(rawstr))	
 def get_domain(url):
-	urldata = urlparse.urlparse(url)
+	urldata = urllib.parse.urlparse(url)
 	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
 def get_emails(doc):
 	doc = DataItem(doc)
-	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] --is", '@')
+	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] ", '@', flags=re.I|re.S)
 	
 	emails = re.compile(r'\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b', re.S|re.I).findall(doc)
 
@@ -519,7 +483,9 @@ def parse_name(fullname):
 
 	"""
 
-	fullname = DataItem(fullname).rr(u'\s+',' ').trim()
+	from ._name import (SURFFIX_LIST, PREFIX_LIST)
+
+	fullname = DataItem(fullname).rr('\s+',' ').trim()
 
 	parts = fullname.split(' ')
 
@@ -534,7 +500,7 @@ def parse_name(fullname):
 	surffix = parts[-1]
 	if surffix.endswith('.'):
 		
-		surffix = u'{}<end>'.format(surffix).replace('.<end>','').strip()
+		surffix = '{}<end>'.format(surffix).replace('.<end>','').strip()
 
 
 	if surffix in SURFFIX_LIST: 
@@ -551,7 +517,7 @@ def parse_name(fullname):
 
 	if prefix.endswith('.'):
 		
-		prefix = u'{}<end>'.format(prefix).replace('.<end>','').strip()
+		prefix = '{}<end>'.format(prefix).replace('.<end>','').strip()
 
 
 	if prefix in PREFIX_LIST: 
@@ -577,7 +543,7 @@ def parse_name(fullname):
 		lastname = parts[-1]		
 		del parts[0]
 		del parts[-1]
-		midname = u' '.join(parts)
+		midname = ' '.join(parts)
 
 	return {
 		'fullname': fullname,
@@ -590,25 +556,14 @@ def parse_name(fullname):
 	}	
 
 
-def readconfig(path):
-	configstr = DataItem(get_file(path) + '\n')
-	configstr = configstr.rr(r'^\s*\#.*?$--m','')
-	
-	config = DataObject()
-	names = re.compile(r'^\s*[\w]{5,}\:', re.M).findall(configstr)
-	for name in names:
-		#config.update({name.replace(':','').strip() : configstr.sub(name,'\n').trim() })
-		config.set( name.replace(':','').strip(), configstr.sub(name,'\n').trim() )
-	
-	return config
 def normalize_url(url):
 	try:
 		return str(url)
 	except:
 		try:
-			return str( urllib.quote(url.encode('utf8'), safe="%/:=&?~#+!$,;'@()*[]") )
+			return str( urllib.parse.quote(url.encode('utf8'), safe="%/:=&?~#+!$,;'@()*[]") )
 		except:
-			return str( urllib.quote(url.encode('latin1'), safe="%/:=&?~#+!$,;'@()*[]") )
+			return str( urllib.parse.quote(url.encode('latin1'), safe="%/:=&?~#+!$,;'@()*[]") )
 			
 	
 def rand_sort(input_list):
@@ -638,7 +593,7 @@ def start_threads(items, worker, cc=1, timeout=None, start_delay=1):
 					item = self.queue.get(block=False) #get immediately or raise exception
 					try:										
 						self.func(item)
-					except Exception, e:
+					except Exception as e:
 						logger.exception('thread item error')
 						
 					finally:	
@@ -676,14 +631,14 @@ def to_json_string(js):
 
 def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	"""
-	restype: list, dict, DataObject
+	restype: list, dict
 	"""
 	i=-1
 	fields = None
 	lines = read_lines_byrn(path, encoding=encoding) if line_sep == '\r\n' else read_lines(path)
 	for line in lines:
 		i += 1
-		r = [unicode(cell, encoding) for cell in csv.reader(StringIO.StringIO(line.encode(encoding))).next() ]
+		r = [str(cell, encoding) for cell in next(csv.reader(io.StringIO(line.encode(encoding)))) ]
 
 		if i == 0:
 			fields = r
@@ -699,15 +654,11 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 			for field in fields:
 				res.update({field: r[fields.index(field)] })
 			yield res
-		else:			
-			res = DataObject()
-			for field in fields:
-				setattr(res, field, r[fields.index(field)] )
-			yield res
+		
 def csv_to_excel(csvfile, excelfile=None):
-	import excellib
+	from . import excellib
 	if not excelfile:
-		excelfile = DataItem(csvfile).rr('\.csv$--is','.xls')	
+		excelfile = DataItem(csvfile).rr('\.csv$','.xls', flags=re.I|re.S)	
 
 	excellib.csvdatatoxls(excelfile,read_csv(csvfile))
 def write_json(filepath, data):
@@ -844,219 +795,63 @@ def parse_form_data(form_data_text, custom_params={}):
 	return '&'.join(listofparams)
 
 
-	
-class DataItem(unicode):
 
-	def __init__(self, data=u''):
+class DataItem(str):
+
+	def __init__(self, data=''):
 		
-		if data is None:
-			data = u''
-
-		try:	
-			data = unicode(data)
-		except:
-			
-			data = data.decode('utf8')	
-
-		self.data = data		
+		self.data = data or ''
 	
 	
 	def __repr__(self):
-
+		
 		return self.data	
 
 	def __str__(self):
-		
-		return unicode(self.data).encode('utf8')
+
+		return self.data
+
 	
 	def __unicode__(self):
-		
-		return unicode( self.data )
+
+		return self.data
 
 
 	def tostring(self):
 		return self.data						
 
 	def replace(self, old, new=''):
-		return DataItem(self.data.replace(old, new))		
+		return DataItem(self.data.replace(old, new))
 
-	def rr(self, old, new=''):
-		return DataItem(rr(old, new, self.data))
+	def rr(self, old, new='', flags=re.S):
+		return DataItem(rr(old, new, self.data, flags))
 		
 	def sub(self, startstr, endstr):
 		return  DataItem(sub(self.data, startstr, endstr))
+	
+	def substr(self, startstr, endstr):
+		return self.sub(startstr, endstr)
 		
-	def subreg(self, reg):
-		return DataItem(subreg(self.data, reg))
+	def subreg(self, reg, flags=re.S):
+		return DataItem(subreg(self.data, reg, flags=flags))
 		
 	def trim(self):
 		return DataItem(self.data.strip())
+	def strip(self):
+		return self.trim()
+
 	def urlencode(self):
-		return DataItem(urllib.quote_plus(self.data))
+		return DataItem(urllib.parse.quote_plus(self.data))
 	def urldecode(self):
-		return DataItem(urllib.unquote(self.data))	
-	def reg(self, regpattern):
-		return reg(self.data, regpattern)
+		return DataItem(urllib.parse.unquote(self.data))	
+	
 	def html_decode(self):
 		return DataItem(html_decode(self.data))
 
 	def len(self):
 		return len(self.data)
-	def print_(self):
-		print self.encode('utf8')
-	def strip_links(self):
-		return self.rr('<a [^<>].*?>(.*?)</a>--is', r'\1')
 
-		
-class DataObject(object):
-	def __init__(self, **data):
-		for key, value in data.iteritems():
-			setattr(self,key,value)
-
-	def set(self, key, value):
-		setattr(self,key,value)
-		return self
-	def __setitem__(self, key, value):
-		self.set(key, value)
-		return self
-	def __getitem__(self, key):
-		if hasattr(self, key):
-			return getattr(self, key)
-		else:
-			raise Exception('DataObject key error: %s', key)
-				
-
-	def from_list(self, arr, trim=True):
-		i=0
-		while i< len(arr) - 1:
-			value = arr[i+1]
-			if trim and isinstance(value, basestring):				
-				value = value.strip()
-
-			self.set(arr[i], value)
-
-			i+=2
-
-		return self
-	def to_list(self, headers = []):
-		if not headers:
-			for att in dir(self):
-				value = getattr(self, att)
-				if '__' not in att and not hasattr(value, '__call__'):
-					headers.append(att)
-		res = []
-		for att in headers:
-			res += [att, getattr(self, att)]	
-		return res	
-
-
-	def __str__(self):
-		data = []
-		for att in dir(self):
-			value = getattr(self, att)
-			if '__' not in att and not hasattr(value, '__call__'):
-				data.append(u'{0}: {1}'.format(att, value))
-		
-		return '\n'.join(data)	
-
-
-class MyDict(object):
-	def __init__(self, **data):
-		self.data = data
-	def update(self, dict={}, **data):
-		self.data.update(data)
-		self.data.update(dict)
-		return self
-	def from_post_string(self, post):
-		self.update(dict(urlparse.parse_qsl(post)))
-		return self
-	def update_from_doc(self, doc,keys=[], exceptkeys=[]):
-		for name, value in doc.form_data().iteritems():
-			if name in exceptkeys:
-				continue
-			if keys and name not in keys:
-				continue	
-			if name not in self.data.keys():
-				if keys and name in keys:
-					pass
-				else:
-					continue
-			
-			self.update({name:value})
-		return self		
-
-	def dict(self):
-		return self.data	
-
-	def __str__(self):
-		print '__str__'
-		return str(self.data)
-
-
-SURFFIX_LIST = [item.strip() for item in """
-B.V.M
-CFRE
-CLU
-CPA
-C.S.C
-C.S.J
-D.C
-D.D
-D.D.S
-D.M.D
-D.O.
-D.V.M
-Ed.D
-Esq
-II
-III
-IV
-Inc
-J.D
-Jr
-LL.D
-Ltd
-M.D
-O.D
-O.S.B
-P.C
-P.E
-Ph.D
-Ret
-R.G.S
-R.N
-R.N.C
-S.H.C.J
-S.J
-S.N.J.M
-Sr
-S.S.M.O
-USA
-USAF
-USAFR
-USAR
-USCG
-USMC
-USMCR
-USN
-USNR
-
-""".strip().split('\n') ]
-
-PREFIX_LIST = [item.strip() for item in """
-
-Mr
-Ms
-Mrs
-Miss
-Master
-Mx
-Dr
-
-
-
-""".strip().split('\n') ]
 
 if __name__ == '__main__':
 
-	print	parse_address('2309 Foothill Blvd, La Canada Flintridge, CA 91011')
+	print(parse_address('2309 Foothill Blvd, La Canada Flintridge, CA 91011'))

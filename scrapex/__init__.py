@@ -1,8 +1,16 @@
-from scrapex.core import Scraper
-from scrapex import common
-from scrapex.common import DataItem, DataObject
-from scrapex.http import Doc, Request
-from scrapex.node import Node
-from scrapex import excellib
-from scrapex import logging_config
+#encoding: utf-8
+
+from .core import Scraper
+from . import common
+from .common import DataItem
+from .doc import Doc
+from .node import Node
+from . import excellib
+
+
+#to avoid warning: "No handlers could be found...."
+import logging
+from logging import NullHandler
+logging.getLogger(__name__).addHandler(NullHandler())
+
 

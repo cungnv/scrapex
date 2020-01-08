@@ -1,24 +1,40 @@
-import re, HTMLParser, copy, sys
+#encoding: utf-8
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+from future import standard_library
+standard_library.install_aliases()
+
+from builtins import str
+from builtins import object
+
+import sys
+import re
+import html.parser
+import copy
 from lxml import etree
 import lxml.html
-from StringIO import StringIO
+from io import StringIO
+import logging
 
-from scrapex.common import DataItem
-from scrapex import common
+from .common import DataItem
 
+logger = logging.getLogger(__name__)
 class Node(object):
 	lxmlnode = None
 
 	def __init__(self, lxmlnode):
-		if 'lxml' not in str(type(lxmlnode)):			
+		if isinstance(lxmlnode, str):
+			#not already a native lxml Node object
 			try:					
 				if '<?xml' in lxmlnode:
 					lxmlnode = re.sub('^\s*<\?xml.*\?>', '', lxmlnode)
 					
 				self.lxmlnode = lxml.html.fromstring(lxmlnode or '<nothing/>')
 
-			except Exception, e:
-				#print e
+			except Exception as e:
+				logger.warn('failed to build node from string: %s', lxmlnode)
 				self.lxmlnode = lxml.html.fromstring('<html></html>')
 				
 		else:				
@@ -35,29 +51,42 @@ class Node(object):
 		try:			
 			res = etree.tostring(self.lxmlnode, with_tail=False)
 			
-		except Exception, e:
+		except Exception as e:
 			#attribute or text node
-			res = unicode(self.lxmlnode)
-		res = res.replace('&#13;', '')	
+			res = str(self.lxmlnode)
+
+		res = res.replace(b'&#13;', b'')	
 		if '<nothing/>' == res:
 			return DataItem()
 			
 		return DataItem(res)
 	
 	def nodevalue(self):
-		parser = HTMLParser.HTMLParser()
-		try:
+		parser = html.parser.HTMLParser()
+		if isinstance(self.lxmlnode, lxml.etree._ElementStringResult):
+			value = parser.unescape(self.lxmlnode)
+			return DataItem(value)
+		else:	
+		
 			__node = copy.deepcopy(self.lxmlnode)
 			etree.strip_tags(__node, '*')			
-			res = etree.tostring(__node, with_tail=False)
-			res = re.sub(r'<[^>]*?>','',res)			
-			res = parser.unescape(res)			
-		except Exception, e:
-			#attribute or text node
-			res = parser.unescape(self.lxmlnode)
+			value = etree.tostring(__node, with_tail=False).decode('utf8')
 
-		return DataItem(res)		
+			value = re.sub(r'<[^>]*?>','',value)
 
+			value = parser.unescape(value)
+			return DataItem(value)
+
+	def text(self):
+		return self.nodevalue()
+
+	def extract(self, xpath):
+		""" API """
+		return self.x(xpath)
+
+	def query(self, xpath):
+		""" API """
+		return self.q(xpath)
 
 	def x(self, xpath):				
 		if not hasattr(self.lxmlnode, 'xpath'): return DataItem()

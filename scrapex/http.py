@@ -1,30 +1,31 @@
+#encoding: utf-8
+
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys
 import os
-import urlparse
 import time
-import zlib
 import json
-import re
-import codecs
-import logging
-import urllib2
-import urllib
-import httplib
-import contextlib
-import cookielib
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
+from io import StringIO
+
 import random
 import socket
 import ssl
-import base64
-from cStringIO import StringIO
-from gzip import GzipFile
-
 import traceback
-
 import requests
+import logging
 
-from scrapex import common, agent
-from scrapex.node import Node
+from . import (common, agent)
+from .node import Node
+from .proxy import (ProxyManager, Proxy)
+from .doc import Doc
 
 try:
 	_create_unverified_https_context = ssl._create_unverified_context
@@ -43,114 +44,24 @@ meta_seperator = '=======META======'
 
 logger = logging.getLogger(__name__)
 
-class Proxy(object):
-	def __init__(self, host, port, proxy_auth = None):
-		self.host = host
-		self.port = int(port)
-		self.proxy_auth = proxy_auth
-		
-		self.auth_header = 'Basic ' + base64.b64encode(self.proxy_auth) if self.proxy_auth else None
-
-		self.full_address = ( '%s@%s:%s' % (self.proxy_auth, self.host, self.port) ) if self.proxy_auth else ('%s:%s' % (self.host, self.port))
-
-	def __str__(self):
-		return '%s:%s' % (self.host, self.port)
-
-class ProxyManager(object):
-	
-	""" for proxy rotation controlling """
-
-	def __init__(self, proxy_file, proxy_auth=''):      
-		self.proxy_file = proxy_file
-		self.proxy_auth = proxy_auth
-		self.proxies = []
-
-		self.load_proxies()
-
-		self.session_proxy = None #if set, always use this project intead of radom one
-
-	def parse_proxy(self, proxy_line):
-		proxy = proxy_line
-
-		if len(proxy.split(':')) == 2:
-			if self.proxy_auth:
-				return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth=self.proxy_auth)
-			else:
-				return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth= None)
-				
-			
-		#support proxy in ip:port:user:pass
-		if len(proxy.split(':')) == 4:
-			proxy = proxy.split(':')
-			return Proxy(host=proxy[0], port=proxy[1], proxy_auth='%s:%s' % (proxy[2], proxy[3]))
-		
-		raise Exception('failed to parse proxy: %s', proxy) 
-		
-	
-	def load_proxies(self):     
-		proxy_file = self.proxy_file
-
-		if proxy_file:
-			if not os.path.exists(proxy_file):
-				raise Exception('proxy_file not found: {0}'.format(proxy_file))
-			
-
-			for line in common.read_lines(proxy_file):
-				if 'proxy_auth' in line:
-					self.proxy_auth = common.DataItem(line).rr('proxy_auth\s*=\s*').trim()
-					continue
-
-				#support tab, commas separator as well
-				line = line.replace('\t',':').replace(',',':')  
-				self.proxies.append(self.parse_proxy(line))     
-
-
-		return self 
-
-	def random_proxy(self):
-		if not self.proxies:
-			return None
-
-		return random.choice( self.proxies )    
-
-
-	def get_proxy(self, url=None):
-
-		return self.session_proxy or self.random_proxy()
-		
-
-class Response(object):
-	""" a wrapper for http response """
-	def __init__(self, data, code = None, final_url='', message='', request = None, headers = ''):
-		
-		self.data = data #unicode data
-		self.code = code
-		self.message = message
-		self.final_url = final_url
-		
-		self.request = request #original request object
-
-		self.headers = headers #response headers
 
 
 class Request(object):  
 	""" Represents a http request """
 
-	def __init__(self, url, post = None, **options):        
+	def __init__(self, url, **options):        
 		#to avoid using invalid option names
-		logger = logging.getLogger('__name__')
+		logger = logging.getLogger(__name__)
 
-		allowed_option_names = 'cookies, proxy, log_file, use_default_logging, log_post, log_headers, max_redirects, accept_error_codes, return_type, cb, meta, proxy_url_filter, cache_only, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_logging_config, debug, preserve_log, use_cache,use_cookie, use_proxy, user_agent, proxy_file, proxy_auth, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
+		allowed_option_names = 'cookies, proxy, max_redirects, accept_error_codes, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_cache,use_cookie, use_session, use_proxy, user_agent, proxy_file, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
 
-		for o in options.keys():
+		for o in list(options.keys()):
 			if o not in allowed_option_names:
 				if not options.get('disable_option_name_warning'):
 					logger.warn('invalid option name: %s', o)
 
-
-
 		self.url = url.replace(' ', '%20')
-		self.post = post
+		
 		self.options = options
 		
 		#update headers
@@ -198,117 +109,46 @@ class Request(object):
 			req.set('accept_error_codes', accept_error_codes)
 
 		#default headers
-		user_agent = req.get('user_agent', agent.firefox ) #default agent is firefox
-		
-		if user_agent == 'random':
-			user_agent = agent.random_agent()
+		user_agent = req.get('user_agent')
+		if not user_agent or user_agent == 'random':
 
-		headers = {
+			user_agent = agent.random_agent()
+		
+		headers = requests.structures.CaseInsensitiveDict( {
 			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 			"User-Agent": user_agent,
 			"Accept-Language": "en-us,en;q=0.5",
 			"Accept-Encoding": "gzip, deflate",         
 			"Connection": "close" #turn off keep-alive
-			# "Connection": "keep-alive"
-		}
+			
+		})
 
-		if req.post:
-			headers.update({"Content-Type": "application/x-www-form-urlencoded"})
 			
 		#update user-passed in headers
-		if req.get('headers'):
+
+		if req.get('headers') is not None:
 			if req.get('merge_headers') is not False:
+				
 				#merge user defined headers with default headers
+
 				headers.update(req.get('headers')) 
+
 			else:
 				#only use user defined headers
 				headers = req.get('headers')    
 
 
 		req.set('headers', headers)
+
 			
 		proxy = req.get('proxy') or scraper.proxy_manager.get_proxy(req.url)
-		if proxy and req.get('proxy_url_filter'):
-			#check if this url is qualified for using proxy
-			if not re.compile(req.get('proxy_url_filter')).findall(req.url):
-				#failed
-				proxy = ''
-				logger.debug('proxy not used for url: %s', req.url)
-
+		
 		req.set('proxy', proxy)
 		
-		
-		#normalise the post
-		if req.post and isinstance(req.post, common.MyDict):
-			req.post = req.post.dict()
-		if req.post and isinstance(req.post, dict):
-			req.post = urllib.urlencode(sorted(req.post.items()))
-
 		self.is_normalized = True   
 		
 		return self 
 
-
-
-class Doc(Node):
-	def __init__(self, url='', html='<html></html>', html_clean=None, response=None):
-		logger = logging.getLogger('__name__')      
-		if html_clean:
-			html = html_clean(html)
-
-		Node.__init__(self, html)
-		try:
-			self.url = common.DataItem( url )
-		except:
-			self.url = common.DataItem( url.decode('utf8') )	
-
-		self.response = response or Response(data=html, final_url=url)
-		
-		#resolve relative urls
-		baseurl = self.x("//base/@href").tostring()
-		if not baseurl:
-			baseurl = self.url
-		try:
-			for n in self.q('//a[@href and not(contains(@href, "javascript")) and not(starts-with(@href, "#")) and not(contains(@href, "mailto:"))]'):                  
-				if n.href().trim() == '': continue
-				n.set('href', urlparse.urljoin(baseurl, n.get('href').tostring()))
-
-			for n in self.q('//iframe[@src]'):                  
-				if n.src().trim() == '': continue
-				n.set('src', urlparse.urljoin(baseurl, n.src()))
-		
-
-
-			for n in self.q('//form[@action]'):                 
-				n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))  
-			for n in self.q('//img[@src]'):                 
-				n.set('src', urlparse.urljoin(baseurl, n.get('src').tostring()))
-		except Exception as e:
-			logger.warn('there was error while init the Doc object: %s', self.url)
-			logger.exception(e)
-							
-	def form_data(self, xpath=None):
-		data = dict()
-		for node in self.q(xpath or "//input[@name and @value]"):
-			data.update(dict( ( (node.name(), node.value(),), ) ))
-
-		return data 
-	def aspx_vs(self):
-		return self.x("//input[@id='__VIEWSTATE']/@value").urlencode() or self.html().sub('__VIEWSTATE|','|').urlencode()
-	def aspx_ev(self):
-		return self.x("//input[@id='__EVENTVALIDATION']/@value").urlencode() or self.html().sub('__EVENTVALIDATION|','|').urlencode()
-	def aspx_prepage(self):
-		return self.x("//input[@id='__PREVIOUSPAGE']/@value").urlencode() or self.html().sub('__PREVIOUSPAGE|','|').urlencode() 
-
-
-def create_opener(use_cookie=True, cj=None):
-	if use_cookie:
-		cj = cj or cookielib.CookieJar()
-		opener = urllib2.build_opener(urllib2.HTTPCookieProcessor( cj ))
-		opener.cj = cj
-		return opener
-	else:
-		return urllib2.build_opener()   
 
 class Client(object):
 
@@ -325,12 +165,12 @@ class Client(object):
 		""" returns a DOM Document"""
 		html = self.load_html(req)
 		
-		# cleaned_html = html.replace(u'\xa0', ' ')
-
 		doc = Doc(
 			html=html, 
 			url = req.url, 
 			response= html.response)
+
+		doc.success = html.success
 
 		return doc
 
@@ -342,25 +182,21 @@ class Client(object):
 		if accept_error_codes is None:
 			accept_error_codes = []
 
-			
-		if req.get('use_cache') and cache and cache.exists(url = req.url, post=req.post, filename=req.get('filename')):
+		cacheoptions = dict(url = req.url, data=req.get('data'), json=req.get('json'), params=req.get('params'), filename=req.get('filename'))
+
+		if req.get('use_cache') and cache and cache.exists(cacheoptions):
 				
-			return self._read_from_cache(url=req.url, post=req.post, filename=req.get('filename'))
+			return self._read_from_cache(cacheoptions)
+	
+		res = self.request(req)
 
-		if req.get('use_cache') and req.get('cache_only') and not cache.exists(url = req.url, post=req.post, filename=req.get('filename')):
-			html = common.DataItem('<html/>')
-			html.response = Response()
-			return html     
-			
-		res = self.fetch_data(req)
+		html = common.DataItem( res.text or '')
 
-		html = common.DataItem( res.data or '')
-
-		if (res.code == 200 or res.code in accept_error_codes) and  cache and req.get('use_cache'):
-			self._write_to_cache(url=req.url, post=req.post, data=html, response=res, filename=req.get('filename'))
+		if (res.status_code == 200 or res.status_code in accept_error_codes) and  cache and req.get('use_cache'):
+			self._write_to_cache(html=html, response=res, cacheoptions=cacheoptions)
 
 		html.response = res
-
+		html.success = res.success
 		return html 
 
 		
@@ -374,7 +210,7 @@ class Client(object):
 			logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
 			return None 
 	
-	def fetch_data(self, req):
+	def request(self, req):
 		
 		logger = logging.getLogger(__name__)
 		
@@ -396,96 +232,82 @@ class Client(object):
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
 						
-		if self.scraper.config['log_post']:         
-			logger.debug('loading %s\n%s', req.url, req.post or '')
-		else:
-			logger.debug('loading %s', req.url)
-				
-
+		logger.debug('loading %s', req.url)	
+	
 		accept_error_codes = req.get('accept_error_codes')
 		
-		client = requests if req.get('use_cookie') is False else  self.session
+		client = requests if req.get('use_session') is False else  self.session
 		
 		status_code = 0
-		error_message = ''
-		final_url = None    
+		
+		tries = req.get('retries', 0)
 
-		tries = req.get('retries', 0)   
 
 		try:
 			
-			r = None    
-			if req.post:
-				r = client.post(req.url, data = req.post, headers = headers, cookies= cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=True)
+			r = None
+
+			if req.get('post') or req.get('data') or req.get('json'):
+				r = client.post(req.url, 
+					data = req.get('post') or req.get('data') or None, #backward support
+					json=req.get('json') or None, 
+					headers = headers, 
+					cookies= cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=False)
 			else:   
-				r = client.get(req.url, headers = headers, cookies=cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = True)
+				r = client.get(req.url, params = req.get('params') or None, 
+					headers = headers, cookies=cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = False)
 			
-
 			status_code = r.status_code
-			final_url = r.url
-			if status_code != 200:
-				if status_code not in accept_error_codes:
-					raise Exception('Invalid status code: %s' % r.status_code)
-			
-			rawdata = r.raw.read()
-
-			
-			if 'gzip' in r.headers.get('content-encoding', ''):
-				
-				bytes = zlib.decompress(rawdata, 16+zlib.MAX_WBITS)
-				
-			elif 'deflate' in r.headers.get('content-encoding', ''):
-
-				bytes = zlib.decompressobj(-zlib.MAX_WBITS).decompress(rawdata) 
-			
-			else:
-				bytes = rawdata
-
-			is_binary_data = req.get('bin') or False
-			
-			if is_binary_data:
-				return Response(data=bytes, code=status_code, final_url=final_url)
-
-
-			html = bytes.decode(req.get('encoding', r.encoding or 'utf8'), 'ignore')
-
-			#testing
-			# logger.info('rawdata: %s', len(rawdata))
-			# logger.info('html: %s', len(html))
 
 			#verify data
-			if req.get('contain') and req.get('contain') not in html:
-				raise Exception("invalid html, not contain: {0}".format(req.get('contain')))
-			verify = req.get('verify')
-			
-			if verify and (not verify(html)):
-				raise Exception("invalid html")
+			if req.get('contain'):
+				html = r.text
+				if req.get('contain') not in html:
+					raise Exception("invalid html, not contain: {0}".format(req.get('contain')))
 
+			if req.get('contain_xpath'):
+				html = r.text
+				doc = Doc(html=html, url=req.url)
+
+				if doc.q(req.get('contain_xpath')):
+
+					raise Exception("invalid html, not contain_xpath: {0}".format(req.get('contain_xpath')))
 			
-			return Response(data=html, code=status_code, final_url=final_url, request = req)    
-			
+			#success
+			r.success = True
+			return r
 				
 
-		except Exception, e:            
-			error_message = e.message
+		except Exception as e:            
 			
 			if tries > 0 and status_code not in accept_error_codes:
 				#try to open the request one again  
-				logger.debug('data fetching error: %s %s -- %s', status_code if status_code !=0 else '', error_message, req.url)
+				logger.debug('data fetching error: %s -- %s', status_code if status_code !=0 else '', req.url)
 				req.update({'retries': tries - 1})
-				return self.fetch_data(req)
+				return self.request(req)
 			else:
-				logger.warn('data fetching error: %s %s -- %s', status_code if status_code !=0 else '', error_message, req.url)    
-				if 'invalid html' in error_message:
-					status_code = 0
-				return Response(data=None, code = status_code, final_url=final_url, message = error_message, request=req)
+				logger.warn('data fetching error: %s -- %s', status_code if status_code !=0 else '', req.url)    
 
+				#failed
+				r.success = False
+				return r
 		
 
-	def _read_from_cache(self, url, post, filename=None):
+	def _build_response(self, html, meta):
+		response = requests.Response()
+		response.url = meta.get('url')
+		response.status_code, response.reason = meta.get('status_code'), meta.get('reason')
+		response.raw = StringIO( html )
+		response.encoding = 'utf-8'
+		response.success = meta.get('success')
+
+		return response
+
+
+	def _read_from_cache(self, options):
 		cache = self.scraper.cache
 
-		cachedata = cache.read(url = url, post = post, filename = filename).split(meta_seperator)
+		cachedata = cache.read(options).split(meta_seperator)
 		
 		cachedhtml = None
 		
@@ -493,61 +315,32 @@ class Client(object):
 		if len(cachedata)==2:
 			cachedhtml = cachedata[1]
 			meta = json.loads( cachedata[0] )
-			#reload status
-			try:
-				response = Response(data=cachedhtml,code= meta['response']['code'], final_url = meta['response']['final_url'], message = meta['response'].get('message', '') )
-			except:
-				response = Response(data=cachedhtml,code=200, final_url=None, message=None)		
+			
 		else:
-			#no meta data
+			meta = {}
 			cachedhtml = cachedata[0]
-			response = Response(data=cachedhtml,code=200, final_url=None, message=None)
-
+		
 		html = common.DataItem(cachedhtml)  
-		html.response = response
+		html.response = self._build_response(html,meta)
+		html.success = html.response.success
 
 		return html
 
-	def _write_to_cache(self, url, post, data, response, filename=None):
+	def _write_to_cache(self, html, response, cacheoptions):
 		meta = {
-				'url': url,
-				'response': {
-					'code': response.code,
-					'final_url': response.final_url,
-					'message': response.message
-				}
+				'url': cacheoptions['url'],
+				'status_code': response.status_code,
+				'reason': response.reason,
+				'success': response.success,
 			}
 		
-		self.scraper.cache.write(url=url, post=post, filename=filename, data=u''.join([json.dumps(meta), meta_seperator, data]) )   
-		
-
-class NoRedirection(urllib2.HTTPErrorProcessor):
-
-	def http_response(self, request, response):
-		return response
-
-	https_response = http_response
-
+		self.scraper.cache.write( html=''.join([json.dumps(meta), meta_seperator, html]), options=cacheoptions )   
 	
-def get_redirect_url(url):
-	try:
-		opener = urllib2.build_opener(NoRedirection)
-		
-		response = opener.open(url)
-
-		if response.code == 302:
-			return response.headers['location']
-		else:
-			return ''
-	except Exception as e:
-		logger.exception(e)
-	finally:
-		response.close()			
 
 if __name__ == '__main__':
-	import core
+	from . import core
 	s = core.Scraper(use_cache=False)
 	
 	doc = s.load('https://librivox.org/what-i-believe-by-leo-tolstoy/')
-	print doc.x("//title")
-	print doc.response
+	print(doc.x("//title"))
+	print(doc.response)

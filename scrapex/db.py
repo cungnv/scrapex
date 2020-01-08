@@ -1,12 +1,18 @@
+#encoding: utf-8
 
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import print_function
+
+from builtins import range
+from builtins import object
+import os
+import csv
 from pymongo import MongoClient
-
 from datetime import datetime
 
-import csv
-import os
 
-from scrapex import common
+from . import common
 
 class DB(object):
 	"""Provides a scaleable storage for big scrapes."""
@@ -105,7 +111,7 @@ class DB(object):
 	def _compile_all_fields(self,include_hidden_fields = False, exclude_fields = [], query={}, limit=10000):
 		fields = []
 		for item in self._db.items.find(query).limit(limit):#just need first 10,000 records to find all possible fields?
-			for field in item.keys():
+			for field in list(item.keys()):
 				if field in exclude_fields:
 					continue
 					
@@ -178,11 +184,11 @@ class DB(object):
 
 					if len(parts) < maxcol:
 						#normalize
-						for i in xrange(maxcol-len(parts)):
+						for i in range(maxcol-len(parts)):
 							parts.append('')
 
 
-					for i in xrange(maxcol):
+					for i in range(maxcol):
 						res.append(field_format.format(i+1))
 						res.append(parts[i])
 
@@ -198,10 +204,10 @@ class DB(object):
 
 		
 		if format == 'xls':
-			import excellib
+			from . import excellib
 			excellib.save_xls(dest_file, rows)
 		elif format == 'xlsx':
-			import excellib
+			from . import excellib
 			excellib.save_xlsx(dest_file, rows)	
 
 
@@ -222,10 +228,6 @@ class DB(object):
 			logs.append(log)
 
 		return logs	
-
-	
-
-	
 
 
 			

@@ -1,11 +1,18 @@
+#encoding: utf-8
+
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import os
 import sys
-import md5
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import logging
 
 
-from scrapex import common
+from . import common
 
 class Cache(object):
 	"""docstring for Cache"""
@@ -14,40 +21,56 @@ class Cache(object):
 		if self.location and not os.path.exists(self.location):
 			os.makedirs(location)
 
-	def make_key(self, url, post = ''):	
-		#normalise the post
-		if post and isinstance(post, common.MyDict):
-			post = post.dict()
-		if post and isinstance(post, dict):
-			post = urllib.urlencode(sorted(post.items()))
+	def make_key(self, options):	
+		url = options['url']
 
-		return common.md5(u'{}{}'.format(url, post or '' ).encode('utf8')) + '.htm'
+		data = options.get('data') or ''
+		if isinstance(data, dict):
+			data = urllib.parse.urlencode(sorted(data.items()))
+
+		jsondata = options.get('json') or ''
+		if isinstance(jsondata, dict):
+			data = urllib.parse.urlencode(sorted(jsondata.items()))
+		
+		params = options.get('params') or ''
+		if isinstance(params, dict):
+			params = urllib.parse.urlencode(sorted(params.items()))
+		
+		key = common.md5('{}{}{}{}'.format(url, data, jsondata, params).encode('utf8')) + '.htm'
+
+		return key
 
 
-	def write(self, url='', data='', post='',filename = None):
+	def write(self, html, options):
 		logger = logging.getLogger(__name__)
+		filename = options.get('filename')
 
-		key = filename if filename else 	self.make_key(url,post)
+		key = filename if filename else self.make_key(options)
+
 		full_path = os.path.join(self.location, key)
-		try:
-			if not os.path.exists(full_path):
-				common.put_file(full_path, data)
-		except Exception as e:
-			logger.exception(e)
+
+		common.put_file(full_path, html)
 					
-	def read(self, url='', post='', filename= None):
-		key = filename if filename else 	self.make_key(url,post)
+	def read(self, options):
+		filename = options.get('filename')
+
+		key = filename if filename else self.make_key(options)
 		return common.get_file(os.path.join(self.location, key))
 
-	def remove(self, url='', post='', filename= None):
-		key = filename if filename else 	self.make_key(url,post)
+	def remove(self, options):
+		filename = options.get('filename')
+
+		key = filename if filename else self.make_key(options)
+
 		filepath = os.path.join(self.location, key)
 		if os.path.exists(filepath):
 			os.remove(filepath)
 
 			
-	def exists(self, url = '', post='', filename = None):
-		key = filename if filename else 	self.make_key(url,post)
+	def exists(self, options):
+		filename = options.get('filename')
+
+		key = filename if filename else self.make_key(options)
 		
 		return os.path.exists(os.path.join(self.location, key))
 		
