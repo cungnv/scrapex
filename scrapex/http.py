@@ -13,8 +13,9 @@ import time
 import json
 import urllib.request, urllib.error, urllib.parse
 import urllib.request, urllib.parse, urllib.error
+import io
 from io import StringIO
-
+from collections import OrderedDict
 import random
 import socket
 import ssl
@@ -50,15 +51,8 @@ class Request(object):
 	""" Represents a http request """
 
 	def __init__(self, url, **options):        
-		#to avoid using invalid option names
+		
 		logger = logging.getLogger(__name__)
-
-		allowed_option_names = 'cookies, proxy, max_redirects, accept_error_codes, merge_headers,cc, ref, ajax, cache_path, show_status_message, use_cache,use_cookie, use_session, use_proxy, user_agent, proxy_file, timeout, delay, retries, bin, headers, filename, contain, dir, parse_log, html_clean, encoding'.replace(' ','').split(',')
-
-		for o in list(options.keys()):
-			if o not in allowed_option_names:
-				if not options.get('disable_option_name_warning'):
-					logger.warn('invalid option name: %s', o)
 
 		self.url = url.replace(' ', '%20')
 		
@@ -101,12 +95,6 @@ class Request(object):
 		req = self
 
 		self.url = common.normalize_url(self.url)
-		# self.url = str(self.url)
-
-		accept_error_codes = req.get('accept_error_codes')
-		if accept_error_codes is None:
-			accept_error_codes = []
-			req.set('accept_error_codes', accept_error_codes)
 
 		#default headers
 		user_agent = req.get('user_agent')
@@ -114,37 +102,31 @@ class Request(object):
 
 			user_agent = agent.random_agent()
 		
-		headers = requests.structures.CaseInsensitiveDict( {
-			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-			"User-Agent": user_agent,
-			"Accept-Language": "en-us,en;q=0.5",
-			"Accept-Encoding": "gzip, deflate",         
-			"Connection": "close" #turn off keep-alive
-			
-		})
+		
+		proxy = req.get('proxy') or scraper.proxy_manager.get_proxy(req.url)
+		req.set('proxy', proxy)
 
-			
-		#update user-passed in headers
+		#default base headers
+		headers = requests.structures.CaseInsensitiveDict(OrderedDict([
+			("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+			("User-Agent", user_agent),
+			("Accept-Language", "en-us,en;q=0.5"),
+			("Accept-Encoding", "gzip, deflate"), 
 
+			("Connection", "close"),
+			
+		]))
+
+		if not req.get('proxy') or req.get('use_proxy') is False or len(scraper.proxy_manager.proxies)>1:
+			#use keep-alive connection
+			headers['Connection'] = 'keep-alive'
+
+		#update user-passed headers
 		if req.get('headers') is not None:
-			if req.get('merge_headers') is not False:
-				
-				#merge user defined headers with default headers
-
-				headers.update(req.get('headers')) 
-
-			else:
-				#only use user defined headers
-				headers = req.get('headers')    
-
+			headers.update(req.get('headers')) 
 
 		req.set('headers', headers)
 
-			
-		proxy = req.get('proxy') or scraper.proxy_manager.get_proxy(req.url)
-		
-		req.set('proxy', proxy)
-		
 		self.is_normalized = True   
 		
 		return self 
@@ -156,9 +138,12 @@ class Client(object):
 
 		self.scraper = scraper
 		
-		socket.setdefaulttimeout(self.scraper.config.get('timeout', 45) )
-
 		self.session = requests.Session()
+		self.session_nocookies = requests.Session()
+
+		#clear default headers
+		self.session.headers.clear()
+		self.session_nocookies.headers.clear()
 
 
 	def load(self, req):
@@ -170,18 +155,13 @@ class Client(object):
 			url = req.url, 
 			response= html.response)
 
-		doc.success = html.success
-
 		return doc
 
 	def load_html(self, req):
 
 		""" returns a unicode html object """
 		cache = self.scraper.cache
-		accept_error_codes = req.get('accept_error_codes')
-		if accept_error_codes is None:
-			accept_error_codes = []
-
+		
 		cacheoptions = dict(url = req.url, data=req.get('data'), json=req.get('json'), params=req.get('params'), filename=req.get('filename'))
 
 		if req.get('use_cache') and cache and cache.exists(cacheoptions):
@@ -192,11 +172,11 @@ class Client(object):
 
 		html = common.DataItem( res.text or '')
 
-		if (res.status_code == 200 or res.status_code in accept_error_codes) and  cache and req.get('use_cache'):
+		if res.status_code == 200 and  cache and req.get('use_cache'):
 			self._write_to_cache(html=html, response=res, cacheoptions=cacheoptions)
 
 		html.response = res
-		html.success = res.success
+		
 		return html 
 
 		
@@ -234,30 +214,48 @@ class Client(object):
 						
 		logger.debug('loading %s', req.url)	
 	
-		accept_error_codes = req.get('accept_error_codes')
-		
-		client = requests if req.get('use_session') is False else  self.session
-		
-		status_code = 0
+		client = None
+		if req.get('use_session'):
+			client = self.session
+
+		else:
+			self.session_nocookies.cookies.clear()
+			client = self.session_nocookies
 		
 		tries = req.get('retries', 0)
-
+		
+		_start_time = time.time()
 
 		try:
 			
 			r = None
+			#by default, method is automatically detected
+			method = req.get('method') or None
+			if not method:
+				if req.get('post') or req.get('data') or req.get('json'):
+					method = 'POST'
+				else:
+					method = 'GET'	
+			
+			r = client.request(
+					url= req.url, 
+					
+					method = method,
+					
+					params = req.get('params') or None,
 
-			if req.get('post') or req.get('data') or req.get('json'):
-				r = client.post(req.url, 
 					data = req.get('post') or req.get('data') or None, #backward support
 					json=req.get('json') or None, 
+					
 					headers = headers, 
-					cookies= cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream=False)
-			else:   
-				r = client.get(req.url, params = req.get('params') or None, 
-					headers = headers, cookies=cookies, timeout = req.get('timeout'), proxies = proxies, verify = False, stream = False)
-			
-			status_code = r.status_code
+					cookies= cookies, 
+					timeout = req.get('timeout'), 
+					proxies = proxies, 
+					verify = False, 
+					stream=False
+					)
+
+			r.raise_for_status()
 
 			#verify data
 			if req.get('contain'):
@@ -274,33 +272,53 @@ class Client(object):
 					raise Exception("invalid html, not contain_xpath: {0}".format(req.get('contain_xpath')))
 			
 			#success
-			r.success = True
+			self.scraper.stats['success_requests'] += 1
 			return r
-				
-
-		except Exception as e:            
-			
-			if tries > 0 and status_code not in accept_error_codes:
-				#try to open the request one again  
-				logger.debug('data fetching error: %s -- %s', status_code if status_code !=0 else '', req.url)
-				req.update({'retries': tries - 1})
-				return self.request(req)
-			else:
-				logger.warn('data fetching error: %s -- %s', status_code if status_code !=0 else '', req.url)    
-
-				#failed
-				r.success = False
-				return r
 		
+		except requests.exceptions.RequestException as e:
+			status_code = None
+			reason = None
+			try:
+				status_code = e.response.status_code
+				reason = e.response.reason
+			except:
+				pass
+
+			self.scraper.stats['failed_requests'] += 1
+
+			if status_code not in self.scraper.stats['failed_requests_by_status_code']:
+				self.scraper.stats['failed_requests_by_status_code'][status_code] = 1
+			else:
+				self.scraper.stats['failed_requests_by_status_code'][status_code] += 1	
+					
+			if isinstance(e, requests.exceptions.Timeout) or ( status_code in [403,503] ) or ('invalid html' in e.message):
+				#retry this request
+
+				if tries > 0:
+					#try to open the request one again 
+					self.scraper.stats['retry_count'] += 1
+					logger.debug('request error: %s (%s) -- url: %s', status_code, reason, req.url)
+					req.update({'retries': tries - 1})
+					logger.debug('retry request...')
+					return self.request(req)
+
+			#for other reasons, just raise the exception
+			logger.warn('request error: %s (%s) -- url: %s', status_code, reason, req.url)
+			raise e
+		
+		finally:
+			
+			self.scraper.stats['total_request_seconds'] += time.time() - _start_time
+			self.scraper.stats['total_requests'] += 1
 
 	def _build_response(self, html, meta):
+
 		response = requests.Response()
 		response.url = meta.get('url')
 		response.status_code, response.reason = meta.get('status_code'), meta.get('reason')
-		response.raw = StringIO( html )
+		response.raw = io.BytesIO(html.encode('utf-8'))
 		response.encoding = 'utf-8'
-		response.success = meta.get('success')
-
+		
 		return response
 
 
@@ -322,7 +340,7 @@ class Client(object):
 		
 		html = common.DataItem(cachedhtml)  
 		html.response = self._build_response(html,meta)
-		html.success = html.response.success
+		
 
 		return html
 
@@ -331,7 +349,7 @@ class Client(object):
 				'url': cacheoptions['url'],
 				'status_code': response.status_code,
 				'reason': response.reason,
-				'success': response.success,
+				
 			}
 		
 		self.scraper.cache.write( html=''.join([json.dumps(meta), meta_seperator, html]), options=cacheoptions )   

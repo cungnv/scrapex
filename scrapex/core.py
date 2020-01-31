@@ -44,7 +44,6 @@ class Scraper(object):
 			timeout = 45,
 			delay = 0.1,
 			retries = 0,
-			show_status_message = False,
 			max_redirects = 3,
 			)
 
@@ -69,13 +68,7 @@ class Scraper(object):
 	
 		self.logger = logging.getLogger('scrapex')
 
-
-		if self.config['show_status_message']:
-
-			logger.info('start')
-		
 		atexit.register(self.__del__)
-
 			
 			
 		self.proxy_manager = ProxyManager(
@@ -93,27 +86,31 @@ class Scraper(object):
 		self.outdb = {}
 
 		self._time_start = time.time()
+
+		self.stats = {
+			'total_requests': 0,
+			'success_requests': 0,
+			'failed_requests': 0,
+			'failed_requests_by_status_code': {},
+			'retry_count': 0,
+			'total_request_seconds': 0,
+			'average_seconds_per_request': None,
+
+		}
 	
 	
 	def  __del__(self):
 		
 		self.flush()
-		if self.config['show_status_message']:
-			logger.info('Completed')
+		
+	def get_stats(self):
+		try:
+			self.stats['average_seconds_per_request'] = round(self.stats['total_request_seconds'] / self.stats['total_requests'], 1)
+		except Exception as e:
+			logger.exception(e)
 
-			time_elapsed = round(time.time() - self._time_start, 2)
+		return self.stats		
 
-			minutes = round(old_div(time_elapsed,60)) if time_elapsed > 60 else 0
-			seconds = time_elapsed - minutes * 60
-			
-			if minutes:
-				logger.info('time elapsed: %s minutes %s seconds', minutes, seconds)			
-			else:	
-				logger.info('time elapsed: %s seconds', seconds)			
-
-
-
-	
 	def join_path(self, filename):
 		return os.path.join(self.dir, filename)
 	def read_lines(self, filename):
@@ -126,7 +123,7 @@ class Scraper(object):
 		return common.read_json(self.join_path(filename))
 
 	def clear_cookies(self):
-		self.client = http.Client(scraper=self)
+		self.client.session.cookies.clear()
 		return self
 
 	

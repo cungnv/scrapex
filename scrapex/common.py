@@ -280,7 +280,7 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, 
 			_record += [key, value]
 
 		record = _record
-		
+
 
 	elif isinstance(record, dict):
 	
@@ -808,7 +808,7 @@ class DataItem(str):
 		return self.data	
 
 	def __str__(self):
-
+		
 		return self.data
 
 	

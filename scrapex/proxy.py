@@ -14,6 +14,7 @@ import random
 import base64
 import logging
 
+from . import common
 
 class Proxy(object):
 	def __init__(self, host, port, proxy_auth = None):

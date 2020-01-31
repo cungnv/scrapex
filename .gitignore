@@ -2,3 +2,6 @@
 log.txt
 cache/
 .DS_Store
+build/
+dist/
+*.egg-info

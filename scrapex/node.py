@@ -25,21 +25,23 @@ class Node(object):
 	lxmlnode = None
 
 	def __init__(self, lxmlnode):
-		if isinstance(lxmlnode, str):
+
+		if 'lxml' in str(type(lxmlnode)):
+			self.lxmlnode = lxmlnode
+
+		else:
 			#not already a native lxml Node object
 			try:					
 				if '<?xml' in lxmlnode:
 					lxmlnode = re.sub('^\s*<\?xml.*\?>', '', lxmlnode)
 					
-				self.lxmlnode = lxml.html.fromstring(lxmlnode or '<nothing/>')
+				self.lxmlnode = lxml.html.fromstring(lxmlnode or '<div></div>')
 
 			except Exception as e:
-				logger.warn('failed to build node from string: %s', lxmlnode)
+				# logger.exception(e)
+				logger.warn('failed to build node from string: %s -- %s', lxmlnode, type(lxmlnode))
 				self.lxmlnode = lxml.html.fromstring('<html></html>')
-				
-		else:				
-			self.lxmlnode = lxmlnode
-
+			
 	def set(self, name, value):
 		self.lxmlnode.set(name, value)
 		return self
@@ -49,13 +51,13 @@ class Node(object):
 
 	def html(self):
 		try:			
-			res = etree.tostring(self.lxmlnode, with_tail=False)
+			res = etree.tostring(self.lxmlnode, with_tail=False).decode('utf-8')
 			
 		except Exception as e:
 			#attribute or text node
-			res = str(self.lxmlnode)
+			res = str(self.lxmlnode.__string__().decode('utf-8'))
 
-		res = res.replace(b'&#13;', b'')	
+		res = res.replace('&#13;', '')	
 		if '<nothing/>' == res:
 			return DataItem()
 			
@@ -63,7 +65,7 @@ class Node(object):
 	
 	def nodevalue(self):
 		parser = html.parser.HTMLParser()
-		if isinstance(self.lxmlnode, lxml.etree._ElementStringResult):
+		if isinstance(self.lxmlnode, lxml.etree._ElementStringResult) or isinstance(self.lxmlnode, lxml.etree._ElementUnicodeResult):
 			value = parser.unescape(self.lxmlnode)
 			return DataItem(value)
 		else:	

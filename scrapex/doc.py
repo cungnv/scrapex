@@ -8,6 +8,13 @@ from future import standard_library
 standard_library.install_aliases()
 import logging
 
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
+try:
+	from urlparse import urljoin
+except:
+	from urllib.parse import urljoin	
+
 from .node import Node
 from . import common
 
@@ -32,18 +39,18 @@ class Doc(Node):
 		try:
 			for n in self.q('//a[@href and not(contains(@href, "javascript")) and not(starts-with(@href, "#")) and not(contains(@href, "mailto:"))]'):                  
 				if n.href().trim() == '': continue
-				n.set('href', urlparse.urljoin(baseurl, n.get('href').tostring()))
+				n.set('href', urljoin(baseurl, n.get('href').tostring()))
 
 			for n in self.q('//iframe[@src]'):                  
 				if n.src().trim() == '': continue
-				n.set('src', urlparse.urljoin(baseurl, n.src()))
+				n.set('src', urljoin(baseurl, n.src()))
 		
 
 
 			for n in self.q('//form[@action]'):                 
-				n.set('action', urlparse.urljoin(baseurl, n.get('action').tostring()))  
+				n.set('action', urljoin(baseurl, n.get('action').tostring()))  
 			for n in self.q('//img[@src]'):                 
-				n.set('src', urlparse.urljoin(baseurl, n.get('src').tostring()))
+				n.set('src', urljoin(baseurl, n.get('src').tostring()))
 		except Exception as e:
 			logger.warn('there was error while init the Doc object: %s', self.url)
 			logger.exception(e)
