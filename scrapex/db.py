@@ -126,7 +126,7 @@ class DB(object):
 		return sorted(fields)
 
 	def export_items(self, dest_file, query = None, limit = None, sort=None, fields = None, include_hidden_fields = False, multicol_fields={}, exclude_fields = []):
-
+		
 		""" 
 		@query: None means all items
 		
@@ -139,8 +139,8 @@ class DB(object):
 		if not fields:
 			fields =self._compile_all_fields(include_hidden_fields, exclude_fields=exclude_fields)
 
-		format = common.DataItem(dest_file).subreg('\.([a-z]{2,5})$--is').lower()
-
+		format = common.DataItem(dest_file).subreg('\.([a-z]{2,5})$').lower()
+		
 		rows = []
 
 		query = query or {}

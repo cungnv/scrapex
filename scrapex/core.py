@@ -45,11 +45,15 @@ class Scraper(object):
 			delay = 0.1,
 			retries = 0,
 			max_redirects = 3,
+			greeting = False,
 			)
 
 
 		
 		self.config.update(options)
+
+		if self.config['greeting']:
+			print('scrape started')
 
 		#backfowrd support
 		if 'use_cookie' in options:
@@ -102,12 +106,15 @@ class Scraper(object):
 	def  __del__(self):
 		
 		self.flush()
+
+		if self.config['greeting']:
+			print('scrape finished')
 		
 	def get_stats(self):
 		try:
 			self.stats['average_seconds_per_request'] = round(self.stats['total_request_seconds'] / self.stats['total_requests'], 1)
 		except Exception as e:
-			logger.exception(e)
+			pass
 
 		return self.stats		
 
