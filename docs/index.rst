@@ -10,55 +10,53 @@ Scrapex is a simple Web Scraping Framework for Fast and Flexible Development. Wo
 
 ::
 
+    Python 3.7.4 (v3.7.4:e09359112e, Jul  8 2019, 14:54:52)
+    [Clang 6.0 (clang-600.0.57)] on darwin
+    Type "help", "copyright", "credits" or "license" for more information.
     >>> from scrapex import Scraper, common
-    >>> 
-    >>> s = Scraper(dir = 'first-project', use_cache = True)
-    >>> 
-    >>> doc = s.load('https://www.yellowpages.com/search?search_terms=restaurant&geo_location_terms=New+York%2C+NY')
-    >>> 
-    >>> print doc.response.code
+    >>> from collections import OrderedDict
+    >>> scraper = Scraper(use_cache=True)
+    >>>
+    >>> doc = scraper.load('https://www.yellowpages.com/search?search_terms=restaurant&geo_location_terms=New+York%2C+NY')
+    >>> print(doc.response.status_code)
     200
-    >>> 
-    >>> listings = doc.q("//div[@class='result']") #query result nodes by Xpath
-    >>> 
-    >>> print 'number of listings:', len(listings)
+    >>>
+    >>> listings = doc.query("//div[@class='result']") #query result nodes by xpath
+    >>> print('number of listings:', len(listings))
     number of listings: 30
-    >>> 
-    >>> listing = listings[0] # just play with the first result node
-    >>> 
-    >>> name = listing.x(".//a[@class='business-name']").trim()
-    >>> 
-    >>> print name
-    Mr. K's
-    >>> 
-    >>> phone = listing.x(".//*[@itemprop='telephone']").trim()
-    >>> 
-    >>> print phone
+    >>>
+    >>> listing = listings[0] #let's play with the first result node
+    >>>
+    >>> item = OrderedDict() #to store data points
+    >>>
+    >>> item['name'] = listing.extract(".//a[@class='business-name']").strip()
+    >>> print(item)
+    OrderedDict([('name', Mr. K's)])
+    >>>
+    >>> item['phone'] = listing.extract(".//div[contains(@class,'phone')]").strip()
+    >>> print(item['phone'])
     (212) 583-1668
-    >>> 
-    >>> full_address = listing.q(".//p[@itemprop='address']/span").join(', ').replace(',,',',')
-    >>> 
-    >>> print full_address
-    570 Lexington Ave, New York, NY, 10022
-    >>> 
+    >>>
+    >>> full_address = listing.query(".//p[@class='adr']/following-sibling::div").join(', ').replace(',,',',')
+    >>> print(full_address)
+    570 Lexington Ave, New York, NY 10022
+    >>>
     >>> parsed_address = common.parse_address(full_address)
-    >>> 
-    >>> print parsed_address
-    {'city': u'New York', 'state': u'NY', 'zipcode': u'10022', 'address': u'570 Lexington Ave'}
-    >>> 
-    >>> #save the record to csv file
-    ... 
-    >>> s.save([
-    ...     #column name, value
-    ...     'name', name,
-    ...     'phone', phone,
-    ...     'address', parsed_address['address'],
-    ...     'city', parsed_address['city'],
-    ...     'state', parsed_address['state'],
-    ...     'zip code', parsed_address['zipcode']
-    ... 
-    ...     ], 'result.csv')
-    >>> 
+    >>> print(parsed_address)
+    {'address': 570 Lexington Ave, 'city': New York, 'state': NY, 'zipcode': 10022}
+    >>>
+    >>> item['address'] = parsed_address['address']
+    >>> item['city'] = parsed_address['city']
+    >>> item['state'] = parsed_address['state']
+    >>> item['zipcode'] = parsed_address['zipcode']
+    >>>
+    >>> print(item)
+    OrderedDict([('name', Mr. K's), ('phone', (212) 583-1668), ('address', 570 Lexington Ave), ('city', New York), ('state', NY), ('zipcode', 10022)])
+    >>>
+    >>> scraper.save(item, 'output.csv') #save item to a csv file
+    >>>
+    >>> scraper.save(item, 'output.xlsx') #or save item to an excel file
+    >>>
 
 
 
