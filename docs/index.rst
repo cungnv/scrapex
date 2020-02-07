@@ -6,9 +6,8 @@
 Welcome to scrapex's documentation!
 ===================================
 
-Scrapex is a Python Web Scraping Framework for Fast & Flexible Development.
+Scrapex is a simple Web Scraping Framework for Fast and Flexible Development. Works well on Python 2 and Python 3.
 
-At a glance:
 ::
 
     >>> from scrapex import Scraper, common
