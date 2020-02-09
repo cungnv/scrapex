@@ -38,6 +38,14 @@ Scrapex is a simple web scraping framework for fast and flexible development. Bu
     >>> 
 
 
+Key Features
+============
+
+    .. include:: inc.features.txt
+
+
+
+
 .. toctree::
     :maxdepth: 2
 
