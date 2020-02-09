@@ -1,20 +1,18 @@
-    * Flexible Cache Sysem: 
-        allow last-minutes changes, parsing-mistakes being fixed quickly, wihtout having to run against the website again and again
     
-    * Extracting data by Xpath, Regex, String Subtraction; All in a Chain
+    * Easy to parse data points from html documents using XPATH, regular expression, or string subtraction
     
-    * Automic Cookies Handling
+    * Easy to parse street address into components (street, city, state, zip code)
 
-    * Ramdom Proxy Rotation
+    * Easy to parse person name into components (prefix, first name, middle name, last name, suffix)
+    
+    * Easy to save results to CSV, Excel, JSON files
+    
+    * HTML cache: 
+        - quickly response to any parsing mistakes/changes without having to send HTTP rquests again.
+        - easy to resume a broken scrape without having to re-download the downloaded html files.
 
-    * Random User Agent Rotation
+    * Ramdom proxy rotation
 
-    * Easy Street Address Parsing
+    * Random user agent rotation
     
-    * Easily Saving data to CSV, Excel, JSON
     
-    * Automatically resolving relative URLs and making them absolute URLs.
-    
-    * Asynchronous Programing to Handle Big Data Scrape
-    
-    * Automatic Response Decode
