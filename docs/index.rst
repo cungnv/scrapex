@@ -6,9 +6,10 @@
 Welcome to scrapex's documentation!
 ===================================
 
-Scrapex is a simple Web Scraping Framework for Fast and Flexible Development. Works well on Python 2 and Python 3.
+Scrapex is a simple web scraping framework for fast and flexible development. Supports both Python 2 and Python 3.
 
 ::
+    
     Python 3.7.4 (v3.7.4:e09359112e, Jul  8 2019, 14:54:52)
     [Clang 6.0 (clang-600.0.57)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
