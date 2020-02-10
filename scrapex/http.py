@@ -291,7 +291,8 @@ class Client(object):
 			else:
 				self.scraper.stats['failed_requests_by_status_code'][status_code] += 1	
 					
-			if isinstance(e, requests.exceptions.Timeout) or ( status_code in [403,503] ) or ('invalid html' in e.message):
+			# if isinstance(e, requests.exceptions.Timeout) or ( status_code in [403,503] ) or ('invalid html' in e.message):
+			if status_code not in [404]:
 				#retry this request
 
 				if tries > 0:
