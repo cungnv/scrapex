@@ -1,7 +1,7 @@
 Example scraping script
 =======================
 A complete scraping script to scrape Github search result pages.
-`View the source file<https://github.com/cungnv/scrapex/blob/master/demo/example-script.py>`.
+`View the source file <https://github.com/cungnv/scrapex/blob/master/demo/example-script.py>`_.
 
 ::
     
