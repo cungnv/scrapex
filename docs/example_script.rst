@@ -1,6 +1,7 @@
 Example scraping script
 =======================
 A complete scraping script to scrape Github search result pages.
+`View the source file<https://github.com/cungnv/scrapex/blob/master/demo/example-script.py>`.
 
 ::
     
@@ -84,8 +85,6 @@ A complete scraping script to scrape Github search result pages.
         scrape()
 
 Output screen:
---------------
-
 ::
     
     CungMac:demo cung$ python example-script.py
@@ -103,4 +102,6 @@ Output screen:
     INFO next page url: https://github.com/search?p=6&q=scraping+framework&type=Repositories
     scrape finished
     
-    
+The results file screenshot:
+
+.. image:: https://scrapex-images.s3-us-west-2.amazonaws.com/example-results.png
