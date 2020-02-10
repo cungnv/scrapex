@@ -1,17 +1,12 @@
 Installation
 ============
 
-
+To install stable version, use this command in your terminal:
 ::
 
-    Stable version
-    --------------
-        pip install scrapex
+    pip install scrapex
 
-
+To install development version, use this command in your terminal:
 ::
-
-    Development version
-    -------------------
             
-        pip install https://github.com/cungnv/scrapex/archive/master.zip
+    pip install https://github.com/cungnv/scrapex/archive/master.zip
