@@ -1,11 +1,12 @@
 Installation
 ============
-::
 
-    pip install https://github.com/cungnv/scrapex/archive/master.zip
-    
-.. note::
+Stable version
+--------------
+    $ pip install scrapex
 
-	You may need to `install Lxml`_ before install scrapex.
 
-.. _install Lxml: http://lxml.de/installation.html
+Development version
+-------------------
+        
+    $ pip install https://github.com/cungnv/scrapex/archive/master.zip
