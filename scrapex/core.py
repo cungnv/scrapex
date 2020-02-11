@@ -38,7 +38,7 @@ class Scraper(object):
 			use_cache = False, 
 			cache_path = "cache",
 			use_proxy = True, 			
-			use_session = True,
+			use_session = False,
 			proxy_file = None,
 			proxy_url = None,
 			timeout = 45,

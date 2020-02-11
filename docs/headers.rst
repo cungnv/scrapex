@@ -1,6 +1,6 @@
 Custom HTTP Headers
 =========================
-By default, for each request, scrapex choosses a random User-Agent from a list of popular ones. It also uses a set of HTTP headers that a normal browser does.
+By default, for each request, the scraper chooses a random User-Agent from a list of popular ones. It also uses a set of HTTP headers that a normal browser does.
 
 You can easily customize the headers per request.
 ::

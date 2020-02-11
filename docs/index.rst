@@ -53,9 +53,8 @@ Key Features
     parse_data
     save_results
     proxies
-    cookies
     headers
-    session
+    cookies
     download_files
     cache
     other_usages
