@@ -5,7 +5,7 @@ Enable proxies at scraper level, and choose a random one for each request
 ::
 	
 	>>> from scrapex import Scraper
-	>>> s = Scraper(proxy_file="/var/scrape/proxy.txt")
+	>>> s = Scraper(proxy_file="/path/to/a_proxy_file.txt")
 	>>>
 	>>> doc = s.load('https://httpbin.org/anything')
 	>>> proxy_used = doc.response.json()['origin']
@@ -14,7 +14,7 @@ Enable proxies at scraper level, and choose a random one for each request
 	>>>
 
 
-Disable use of proxies at request level
+Disable use of proxy at request level
 ::
 	
 
@@ -24,7 +24,7 @@ Disable use of proxies at request level
 	42.114.13.13
 	>>>
 
-The format of proxies file without authentication
+The format of proxy file without authentication
 ::
 	
 	ip:port
@@ -32,7 +32,7 @@ The format of proxies file without authentication
 	ip:port
 	.......
 
-The format of proxies file with authentication
+The format of proxy file with authentication
 ::
 	
 	user:password@ip:port

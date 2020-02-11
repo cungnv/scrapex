@@ -54,7 +54,7 @@ Key Features
     save_results
     proxies
     cookies
-    custom_headers
+    headers
     session
     download_files
     cache

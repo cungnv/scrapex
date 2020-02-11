@@ -1,4 +1,4 @@
-Working with HTTP Headers
+Custom HTTP Headers
 =========================
     pip install scrapex
 
