@@ -1,4 +1,4 @@
-Working with Proxies
+Working with proxies
 ====================
     
 Enable proxies at scraper level, and choose a random one for each request

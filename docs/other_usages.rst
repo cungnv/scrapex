@@ -1,4 +1,4 @@
-Other Usages
+Other usages
 ============
     pip install scrapex
 

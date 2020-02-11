@@ -1,5 +1,5 @@
-Working with Cache System
-=========================
+Cache html content
+==================
 By default, cache is turned off. In many scraping jobs, we need to make some tweaks to our parsing part and re-scrape the site again. In that situation, caching the html content from the first scrape is very helpful, especially for big scrapes.
 
 Enable cache
