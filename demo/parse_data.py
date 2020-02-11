@@ -60,12 +60,13 @@ def case3():
 		item['name'] = node.extract(".//div[contains(@class,'text-normal')]/a")
 		item['description'] = node.extract(".//div[@class='mt-n1']/p").strip()
 		item['tags'] = node.query(".//a[contains(@class,'topic-tag')]").join(', ')
-		
+
 		s.save(item, 'results.csv')
 		
 		s.save(item, 'other_file.xlsx') #save this same item to another file
 
-
+def case4():
+	pass
 
 		
 

@@ -1,55 +1,42 @@
 Working with Proxies
 ====================
     
-How to Enable Proxies
----------------------
-The following setup will have the scraper select random proxy for each network request.
-::
-
-	>>> from scrapex import Scraper
-	>>> s = Scraper(
-	... proxy_file = '/path/to/proxy.txt',
-	... proxy_auth = 'username:password' #if authentication required
-	... )
-
-Proxy File Format
------------------
-::
-
-	host:port
-	host:port
-	...
-
-Reload Proxy File
------------------
-::
-
-	s.proxy_manager.load_proxies()
-
-Create a Proxy object
----------------------
-::
-
-	>>> from scrapex.http import Proxy
-	>>> proxy = Proxy(host, port, 'username:password')
-
-
-Which proxy was selected?
--------------------------
+Enable proxies at scraper level, and choose a random one for each request
 ::
 	
-	>>> doc = s.load(url)
-	>>> proxy = doc.response.request.get('proxy')
-	>>> print proxy.host, proxy.port
+	>>> from scrapex import Scraper
+	>>> s = Scraper(proxy_file="/var/scrape/proxy.txt")
+	>>>
+	>>> doc = s.load('https://httpbin.org/anything')
+	>>> proxy_used = doc.response.json()['origin']
+	>>> print(proxy_used)
+	193.31.72.120
+	>>>
 
 
-How to Stop Random Proxy Rotation?
-----------------------------------
+Disable use of proxies at request level
 ::
+	
 
-	>>> s.proxy_manager.sesssion_proxy = proxy #stay stick to this proxy only
+	>>> doc = s.load('https://httpbin.org/anything', use_proxy=False)
+	>>> client_real_ip = doc.response.json()['origin']
+	>>> print(client_real_ip)
+	42.114.13.13
+	>>>
 
+The format of proxies file without authentication
+::
+	
+	ip:host
+	ip:host
+	ip:host
+	.......
 
-
-
+The format of proxies file with authentication
+::
+	
+	user:password@ip:host
+	user:password@ip:host
+	user:password@ip:host
+	.......
 
