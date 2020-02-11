@@ -27,16 +27,16 @@ Disable use of proxies at request level
 The format of proxies file without authentication
 ::
 	
-	ip:host
-	ip:host
-	ip:host
+	ip:port
+	ip:port
+	ip:port
 	.......
 
 The format of proxies file with authentication
 ::
 	
-	user:password@ip:host
-	user:password@ip:host
-	user:password@ip:host
+	user:password@ip:port
+	user:password@ip:port
+	user:password@ip:port
 	.......
 
