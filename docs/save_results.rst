@@ -2,11 +2,11 @@ Save results to CSV/Excel files
 ===============================
 
 ::
+	
 	>>> from scrapex import Scraper
 	>>> from collections import OrderedDict
 	>>>
 	>>> s = Scraper(use_cache=True)
-	
 	>>> doc = s.load('https://github.com/search?q=scraping+framework')
 	>>> nodes = doc.query("//ul[@class='repo-list']/li")
 	>>> print('num of nodes:', len(nodes))
