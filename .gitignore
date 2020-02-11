@@ -5,3 +5,6 @@ cache/
 build/
 dist/
 *.egg-info
+*.csv
+*.xlsx
+*.zip
