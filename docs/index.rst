@@ -57,7 +57,7 @@ Key Features
     cookies
     download_files
     cache
-    other_usages
+    multi_threads
 
     
 Indices and tables
