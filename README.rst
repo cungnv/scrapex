@@ -42,4 +42,4 @@ Documentation available at `scrapex.readthedocs.io <https://scrapex.readthedocs.
 
 LICENSE
 =======
-.. include LICENSE
+    .. include:: LICENSE
