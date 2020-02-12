@@ -1,4 +1,4 @@
-Working with session/cookies
+Work with session/cookies
 ============================
 By default, session is turned off because it's a good practice for web scraping to avoid being tracked.
 
