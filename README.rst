@@ -23,9 +23,6 @@ Quick start
     >>> s = Scraper(use_cache = True)
     >>> doc = s.load('https://github.com/search?q=scraping')
     >>> 
-    >>> print(doc.extract("//title"))
-    Search · scraping · GitHub
-    >>> 
     >>> print(doc.extract("//h3[contains(text(),'results')]").strip())
     59,256 repository results
     >>> 
