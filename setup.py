@@ -12,7 +12,7 @@ setup(
 	packages=find_packages(),
 	author='Cung Nguyen',
 	author_email='cungjava2000@gmail.com',
-	description='A simple web scraping framework for fast and flexible development',    
+	description='A simple web scraping framework in Python',    
 	long_description= 'You can also install by download the package here:\n https://github.com/cungnv/scrapex/archive/master.zip',
 	url='https://github.com/cungnv/scrapex',   
 	download_url = 'https://github.com/cungnv/scrapex/archive/master.zip', 
@@ -25,7 +25,7 @@ setup(
 		'future',
 	],
 	
-	license='LGPL',
+	license='MIT',
 
 	classifiers=[
         

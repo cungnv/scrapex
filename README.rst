@@ -39,3 +39,7 @@ Quick start
     >>> 
 
 Documentation available at `scrapex.readthedocs.io <https://scrapex.readthedocs.io/>`_.
+
+LICENSE
+=======
+.. include LICENSE
