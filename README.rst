@@ -1,6 +1,6 @@
 Scrapex
 =======
-Scrapex is a simple web scraping framework. Built on top of `requests <https://github.com/psf/requests>` and `lxml <https://lxml.de/>`, supports both Python 2 and Python 3. `Documentations <https://scrapex.readthedocs.io/>`.
+Scrapex is a simple web scraping framework. Built on top of `requests <https://github.com/psf/requests>`_ and `lxml <https://lxml.de/>`_, supports both Python 2 and Python 3. `Documentations <https://scrapex.readthedocs.io/>`.
 
 To install stable version, use this command in your terminal:
 ::
@@ -12,7 +12,7 @@ To install development version, use this command in your terminal:
             
     pip install https://github.com/cungnv/scrapex/archive/master.zip
     
-
+Quick start
 ::
     
     
