@@ -1,5 +1,5 @@
 
-Scrapex is a simple web scraping framework. Built on top of `requests <https://github.com/psf/requests>`_ and `lxml <https://lxml.de/>`_, supports both Python 2 and Python 3.
+Scrapex is a simple web scraping framework. Built on top of `requests <https://github.com/psf/requests>`_ and `lxml <https://lxml.de/>`_, supports Python 2 and Python 3.
 
 
 Installation
