@@ -84,8 +84,8 @@ class Request(object):
 
 	def normalize(self, scraper):
 		""" normalize this req with using the provided scraper's config """
-		# if self.is_normalized:
-		# 	return self
+		if self.is_normalized:
+			return self
 
 		self.scraper = scraper  
 
@@ -127,7 +127,7 @@ class Request(object):
 
 		req.set('headers', headers)
 
-		# self.is_normalized = True   
+		self.is_normalized = True   
 		
 		return self 
 
@@ -212,8 +212,7 @@ class Client(object):
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
 						
-		# logger.debug('loading %s', req.url)
-		logger.debug('loading %s User-Agent: %s proxy: %s', req.url, headers.get('User-Agent'), proxy.full_address if proxy else '')
+		logger.debug('loading %s', req.url)
 		
 		client = None
 		if req.get('use_session'):
@@ -302,6 +301,8 @@ class Client(object):
 					logger.debug('request error: %s (%s) -- url: %s', status_code, reason, req.url)
 					req.update({'retries': tries - 1})
 					logger.debug('retry request...')
+
+					req.update({'proxy': self.scraper.proxy_manager.random_proxy()})
 
 					return self.request(req)
 
