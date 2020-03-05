@@ -16,7 +16,7 @@ setup(
 	long_description= 'You can also install by download the package here:\n https://github.com/cungnv/scrapex/archive/master.zip',
 	url='https://github.com/cungnv/scrapex',   
 	download_url = 'https://github.com/cungnv/scrapex/archive/master.zip', 
-	python_requires=">=2.7",
+	
 	install_requires = [
 		'lxml',
 		'requests',
