@@ -212,8 +212,8 @@ class Client(object):
 						'https': 'http://{0}'.format(proxy.full_address)
 					}
 						
-		logger.debug('loading %s', req.url)
-		logger.debug('User-Agent: %s', headers.get('User-Agent'))
+		# logger.debug('loading %s', req.url)
+		logger.debug('loading %s User-Agent: %s proxy: %s', req.url, headers.get('User-Agent'), proxy.full_address if proxy else '')
 		
 		client = None
 		if req.get('use_session'):
