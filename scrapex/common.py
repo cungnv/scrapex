@@ -233,7 +233,7 @@ def reg(s, reg):
 	
 	redata = parse_re_flags(reg)
 	reg = redata['reg']
-	flags = redata['flags'] or re.S
+	flags = redata['flags'] or re.S|re.I|re.U
 	m = re.search(reg, s, flags = flags)
 	fields = re.findall('\?P<([\w\d]+)>', reg)
 	
@@ -250,7 +250,7 @@ def reg(s, reg):
 
 	return res	
 	
-def subreg(s, reg, flags=re.S):
+def subreg(s, reg, flags=re.S|re.I|re.U):
 	m = re.search(reg, s, flags = flags)
 
 	return DataItem( m.groups(0)[0] if m else '')
@@ -265,7 +265,7 @@ def sub(s, startstr, endstr):
 	if to == -1: return DataItem('') #not found
 	return DataItem( s[start:to] )
 
-def rr(pt, to, s, flags=re.S):
+def rr(pt, to, s, flags=re.S|re.I|re.U):
 	
 	return DataItem( re.sub(pt, to, s, flags = flags) )
 
@@ -462,7 +462,7 @@ def get_domain(url):
 	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
 def get_emails(doc):
 	doc = DataItem(doc)
-	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] ", '@', flags=re.I|re.S)
+	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] ", '@', flags=re.S|re.I|re.U)
 	
 	emails = re.compile(r'\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b', re.S|re.I).findall(doc)
 
@@ -658,7 +658,7 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 def csv_to_excel(csvfile, excelfile=None):
 	from . import excellib
 	if not excelfile:
-		excelfile = DataItem(csvfile).rr('\.csv$','.xls', flags=re.I|re.S)	
+		excelfile = DataItem(csvfile).rr('\.csv$','.xls', flags=re.S|re.I|re.U)	
 
 	excellib.csvdatatoxls(excelfile,read_csv(csvfile))
 def write_json(filepath, data):
@@ -823,7 +823,7 @@ class DataItem(str):
 	def replace(self, old, new=''):
 		return DataItem(self.data.replace(old, new))
 
-	def rr(self, old, new='', flags=re.S):
+	def rr(self, old, new='', flags=re.S|re.I|re.U):
 		return DataItem(rr(old, new, self.data, flags))
 		
 	def sub(self, startstr, endstr):
@@ -832,7 +832,7 @@ class DataItem(str):
 	def substr(self, startstr, endstr):
 		return self.sub(startstr, endstr)
 		
-	def subreg(self, reg, flags=re.S):
+	def subreg(self, reg, flags=re.S|re.I|re.U):
 		return DataItem(subreg(self.data, reg, flags=flags))
 		
 	def trim(self):

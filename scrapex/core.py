@@ -138,7 +138,17 @@ class Scraper(object):
 		options = common.combine_dicts(self.config, _options)		
 		
 		return self.client.load(Request(url = url, post = post, **options))
+
+	def request(self, url, post=None, **_options):
+		"""
+		returns original requests' response, without building Doc object
+
+		"""
+		
+		options = common.combine_dicts(self.config, _options)
+		return self.client.request(Request(url = url, post = post, **options))
 	
+
 	def load_html(self, url, post=None, **_options):		
 		options = common.combine_dicts(self.config, _options)		
 		

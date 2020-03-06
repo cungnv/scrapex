@@ -189,6 +189,7 @@ class Client(object):
 		except:
 			logger.exception('json decode error for url: %s --  post: %s', req.url, req.post or '')
 			return None 
+
 	
 	def request(self, req):
 		
@@ -251,8 +252,8 @@ class Client(object):
 					cookies= cookies, 
 					timeout = req.get('timeout'), 
 					proxies = proxies, 
-					verify = False, 
-					stream=False
+					verify = req.get('verify') or False, 
+					stream= req.get('stream') or False
 					)
 
 			r.raise_for_status()
