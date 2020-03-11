@@ -52,9 +52,15 @@ class Scraper(object):
 		
 		self.config.update(options)
 
+		if self.config['autoflush']:
+			atexit.register(self.flush)
+
+
 		if self.config['greeting']:
 			print('scrape started')
-
+			atexit.register(self.last_message)
+		
+		
 		#backfowrd support
 		if 'use_cookie' in options:
 			self.config['use_session'] = options['use_cookie']
@@ -69,11 +75,6 @@ class Scraper(object):
 		cache_path = os.path.join(self.dir, self.config['cache_path'])	
 	
 		self.cache = Cache(cache_path)
-	
-		self.logger = logging.getLogger('scrapex')
-
-		atexit.register(self.__del__)
-			
 			
 		self.proxy_manager = ProxyManager(
 			proxy_file= self.join_path( self.config.get('proxy_file') ) if self.config.get('proxy_file') else None, 
@@ -91,32 +92,14 @@ class Scraper(object):
 
 		self._time_start = time.time()
 
-		self.stats = {
-			'total_requests': 0,
-			'success_requests': 0,
-			'failed_requests': 0,
-			'failed_requests_by_status_code': {},
-			'retry_count': 0,
-			'total_request_seconds': 0,
-			'average_seconds_per_request': None,
-
-		}
-	
-	
-	def  __del__(self):
-		
-		self.flush()
-
-		if self.config['greeting']:
-			print('scrape finished')
 		
 	def get_stats(self):
 		try:
-			self.stats['average_seconds_per_request'] = round(self.stats['total_request_seconds'] / self.stats['total_requests'], 1)
+			self.client.stats['average_seconds_per_request'] = round(self.client.stats['total_request_seconds'] / self.client.stats['total_requests'], 1)
 		except Exception as e:
 			pass
 
-		return self.stats		
+		return self.client.stats		
 
 	def join_path(self, filename):
 		return os.path.join(self.dir, filename)
@@ -213,6 +196,10 @@ class Scraper(object):
 				
 		#clear the db
 		self.outdb = {}
+
+	def last_message(self):
+		
+		print('scrape finished')
 
 	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True, always_quoted=True):		
 		

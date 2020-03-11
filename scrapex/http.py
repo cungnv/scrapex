@@ -22,6 +22,8 @@ import ssl
 import traceback
 import requests
 import logging
+import weakref
+
 
 from . import (common, agent)
 from .node import Node
@@ -52,8 +54,6 @@ class Request(object):
 
 	def __init__(self, url, **options):        
 		
-		logger = logging.getLogger(__name__)
-
 		self.url = url.replace(' ', '%20')
 		
 		self.options = options
@@ -67,7 +67,6 @@ class Request(object):
 		if self.options.get('ajax') is True:
 			self.options['headers']['X-Requested-With'] = 'XMLHttpRequest'
 
-		self.is_normalized = False  
 	
 	def __getitem__(self, key):
 		return self.get(key)
@@ -82,29 +81,20 @@ class Request(object):
 		self.options.update(dict2)
 		return self
 
-	def normalize(self, scraper):
-		""" normalize this req with using the provided scraper's config """
-		if self.is_normalized:
-			return self
-
-		self.scraper = scraper  
-
-		#copy scraper-wide options if not set yet   
-		self.options = common.combine_dicts(scraper.config, self.options)
-
-		req = self
-
+	def optimise(self, proxy_manager):
+		
 		self.url = common.normalize_url(self.url)
 
 		#default headers
-		user_agent = req.get('user_agent')
+		user_agent = self.get('user_agent')
 		if not user_agent or user_agent == 'random':
 
 			user_agent = agent.random_agent()
 		
 		
-		proxy = req.get('proxy') or scraper.proxy_manager.get_proxy(req.url)
-		req.set('proxy', proxy)
+		proxy = self.get('proxy') or proxy_manager.random_proxy()
+		
+		self.set('proxy', proxy)
 
 		#default base headers
 		headers = requests.structures.CaseInsensitiveDict(OrderedDict([
@@ -117,18 +107,16 @@ class Request(object):
 			
 		]))
 
-		if not req.get('proxy') or req.get('use_proxy') is False or len(scraper.proxy_manager.proxies)>1:
+		if not self.get('proxy') or self.get('use_proxy') is False or len(proxy_manager.proxies)>1:
 			#use keep-alive connection
 			headers['Connection'] = 'keep-alive'
 
 		#update user-passed headers
-		if req.get('headers') is not None:
-			headers.update(req.get('headers')) 
+		if self.get('headers') is not None:
+			headers.update(self.get('headers')) 
 
-		req.set('headers', headers)
+		self.set('headers', headers)
 
-		self.is_normalized = True   
-		
 		return self 
 
 
@@ -136,7 +124,9 @@ class Client(object):
 
 	def __init__(self, scraper):
 
-		self.scraper = scraper
+		self.config = scraper.config
+		self.cache =  scraper.cache
+		self.proxy_manager = scraper.proxy_manager
 		
 		self.session = requests.Session()
 		self.session_nocookies = requests.Session()
@@ -145,7 +135,19 @@ class Client(object):
 		self.session.headers.clear()
 		self.session_nocookies.headers.clear()
 
+		self.stats = {
+			'total_requests': 0,
+			'success_requests': 0,
+			'failed_requests': 0,
+			'failed_requests_by_status_code': {},
+			'finally_failed_requests': 0,
+			'retry_count': 0,
+			'total_request_seconds': 0,
+			'average_seconds_per_request': None,
 
+
+		}
+	
 	def load(self, req):
 		""" returns a DOM Document"""
 		html = self.load_html(req)
@@ -160,7 +162,7 @@ class Client(object):
 	def load_html(self, req):
 
 		""" returns a unicode html object """
-		cache = self.scraper.cache
+		cache = self.cache
 		
 		cacheoptions = dict(url = req.url, data=req.get('data'), json=req.get('json'), params=req.get('params'), filename=req.get('filename'))
 
@@ -193,128 +195,126 @@ class Client(object):
 	
 	def request(self, req):
 		
-		logger = logging.getLogger(__name__)
-		
-		req.normalize(self.scraper)
+		req.optimise(self.proxy_manager)
 
-		time.sleep(self.scraper.config['delay'])
+		maxtries = 1 + (req.get('retries') or 0)
 
-		headers = req.get('headers')
-		cookies = req.get('cookies') or {}
-		proxy = req.get('proxy')
+		tries = 0
+		while True:
+			tries += 1
+			if tries>maxtries:
+				raise Exception('max retries exceeded')
 
-		proxies = None
-		if proxy and req.get('use_proxy') is not False:
+			_start_time = time.time()
+			time.sleep(self.config['delay'])
+
+			headers = req.get('headers')
+			cookies = req.get('cookies') or {}
+			proxy = req.get('proxy')
+
+			proxies = None
+			if proxy and req.get('use_proxy') is not False:
+				
+				logger.debug('proxy: {}:{}'.format(proxy.host, proxy.port))
+
+				proxies = {
+							'http': 'http://{0}'.format(proxy.full_address),
+							'https': 'http://{0}'.format(proxy.full_address)
+						}
+							
+			logger.debug('loading (try# %s) %s', tries, req.url)
 			
-			logger.debug('proxy: {}:{}'.format(proxy.host, proxy.port))
+			client = None
+			if req.get('use_session'):
+				client = self.session
 
-			proxies = {
-						'http': 'http://{0}'.format(proxy.full_address),
-						'https': 'http://{0}'.format(proxy.full_address)
-					}
-						
-		logger.debug('loading %s', req.url)
-		
-		client = None
-		if req.get('use_session'):
-			client = self.session
-
-		else:
-			self.session_nocookies.cookies.clear()
-			client = self.session_nocookies
-		
-		tries = req.get('retries', 0)
-		
-		_start_time = time.time()
-
-		try:
-			
-			r = None
-			#by default, method is automatically detected
-			method = req.get('method') or None
-			if not method:
-				if req.get('post') or req.get('data') or req.get('json'):
-					method = 'POST'
-				else:
-					method = 'GET'	
-			
-			r = client.request(
-					url= req.url, 
-					
-					method = method,
-					
-					params = req.get('params') or None,
-
-					data = req.get('post') or req.get('data') or None, #backward support
-					json=req.get('json') or None, 
-					
-					headers = headers, 
-					cookies= cookies, 
-					timeout = req.get('timeout'), 
-					proxies = proxies, 
-					verify = req.get('verify') or False, 
-					stream= req.get('stream') or False
-					)
-
-			r.raise_for_status()
-
-			#verify data
-			if req.get('contain'):
-				html = r.text
-				if req.get('contain') not in html:
-					raise Exception("invalid html, not contain: {0}".format(req.get('contain')))
-
-			if req.get('contain_xpath'):
-				html = r.text
-				doc = Doc(html=html, url=req.url)
-
-				if doc.q(req.get('contain_xpath')):
-
-					raise Exception("invalid html, not contain_xpath: {0}".format(req.get('contain_xpath')))
-			
-			#success
-			self.scraper.stats['success_requests'] += 1
-			return r
-		
-		except requests.exceptions.RequestException as e:
-			status_code = None
-			reason = None
-			try:
-				status_code = e.response.status_code
-				reason = e.response.reason
-			except:
-				pass
-
-			self.scraper.stats['failed_requests'] += 1
-
-			if status_code not in self.scraper.stats['failed_requests_by_status_code']:
-				self.scraper.stats['failed_requests_by_status_code'][status_code] = 1
 			else:
-				self.scraper.stats['failed_requests_by_status_code'][status_code] += 1	
-					
-			# if isinstance(e, requests.exceptions.Timeout) or ( status_code in [403,503] ) or ('invalid html' in e.message):
-			if status_code not in [404]:
-				#retry this request
+				self.session_nocookies.cookies.clear()
+				client = self.session_nocookies
 
-				if tries > 0:
-					#try to open the request one again 
-					self.scraper.stats['retry_count'] += 1
-					logger.debug('request error: %s (%s) -- url: %s', status_code, reason, req.url)
-					req.update({'retries': tries - 1})
-					logger.debug('retry request...')
+			try:
 
-					req.update({'proxy': self.scraper.proxy_manager.random_proxy()})
+				
+				r = None
+				#by default, method is automatically detected
+				method = req.get('method') or None
+				if not method:
+					if req.get('post') or req.get('data') or req.get('json'):
+						method = 'POST'
+					else:
+						method = 'GET'	
+				
+				r = client.request(
+						url= req.url, 
+						
+						method = method,
+						
+						params = req.get('params') or None,
 
-					return self.request(req)
+						data = req.get('post') or req.get('data') or None, #backward support
+						json=req.get('json') or None, 
+						
+						headers = headers, 
+						cookies= cookies, 
+						timeout = req.get('timeout'), 
+						proxies = proxies, 
+						verify = req.get('verify') or False, 
+						stream= req.get('stream') or False
+						)
 
-			#for other reasons, just raise the exception
-			logger.warn('request error: %s (%s) -- url: %s', status_code, reason, req.url)
-			raise e
-		
-		finally:
+				r.raise_for_status()
+
+				#verify data
+				if req.get('contain'):
+					html = r.text
+					if req.get('contain') not in html:
+						raise Exception("invalid html, not contain: {0}".format(req.get('contain')))
+
+				if req.get('contain_xpath'):
+					html = r.text
+					doc = Doc(html=html, url=req.url)
+
+					if doc.q(req.get('contain_xpath')):
+
+						raise Exception("invalid html, not contain_xpath: {0}".format(req.get('contain_xpath')))
+				
+				#success
+				self.stats['success_requests'] += 1
+				return r
 			
-			self.scraper.stats['total_request_seconds'] += time.time() - _start_time
-			self.scraper.stats['total_requests'] += 1
+			except requests.exceptions.RequestException as e:
+				status_code = None
+				reason = None
+				try:
+					status_code = e.response.status_code
+					reason = e.response.reason
+				except:
+					pass
+
+				self.stats['failed_requests'] += 1
+
+				if status_code not in self.stats['failed_requests_by_status_code']:
+					self.stats['failed_requests_by_status_code'][status_code] = 1
+				else:
+					self.stats['failed_requests_by_status_code'][status_code] += 1	
+				
+				
+				if tries < maxtries and status_code not in [404]:
+					#try to open the request one again 
+					self.stats['retry_count'] += 1
+					logger.info('request error: %s (%s) -- url: %s', status_code, reason, req.url)
+					logger.info('retry request: %s', req.url)
+					req.update({'proxy': self.proxy_manager.random_proxy()})
+				else:	
+					#for other reasons, just raise the exception
+					self.stats['finally_failed_requests'] += 1
+					logger.warn('request failed: %s (%s) -- url: %s', status_code, reason, req.url)
+					raise e
+				
+			finally:
+				
+				self.stats['total_request_seconds'] += time.time() - _start_time
+				self.stats['total_requests'] += 1
 
 	def _build_response(self, html, meta):
 
@@ -328,7 +328,7 @@ class Client(object):
 
 
 	def _read_from_cache(self, options):
-		cache = self.scraper.cache
+		cache = self.cache
 
 		cachedata = cache.read(options).split(meta_seperator)
 		
@@ -357,7 +357,7 @@ class Client(object):
 				
 			}
 		
-		self.scraper.cache.write( html=''.join([json.dumps(meta), meta_seperator, html]), options=cacheoptions )   
+		self.cache.write( html=''.join([json.dumps(meta), meta_seperator, html]), options=cacheoptions )   
 	
 
 if __name__ == '__main__':
