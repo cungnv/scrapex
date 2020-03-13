@@ -41,19 +41,17 @@ class Scraper(object):
 			use_session = False,
 			proxy_file = None,
 			proxy_url = None,
-			timeout = 45,
+			timeout = (2,10),
 			delay = 0.1,
 			retries = 0,
 			max_redirects = 3,
 			greeting = False,
+			
 			)
 
 
 		
 		self.config.update(options)
-
-		if self.config['autoflush']:
-			atexit.register(self.flush)
 
 
 		if self.config['greeting']:
@@ -95,7 +93,8 @@ class Scraper(object):
 		
 	def get_stats(self):
 		try:
-			self.client.stats['average_seconds_per_request'] = round(self.client.stats['total_request_seconds'] / self.client.stats['total_requests'], 1)
+			self.client.stats['total_request_seconds'] = round(self.client.stats['total_request_seconds'], 2)
+			self.client.stats['average_seconds_per_request'] = round(self.client.stats['total_request_seconds'] / self.client.stats['total_requests'], 2)
 		except Exception as e:
 			pass
 
@@ -172,76 +171,76 @@ class Scraper(object):
 			else:
 				return (False, res.status_code)
 
-
-	
-
-	
         		
-	def flush(self):
-		if not hasattr(self, 'outdb'):
-			#nothing to flush out
-			return
-
-		for filepath in list(self.outdb.keys()):
-			trackingobj = self.outdb.get(filepath)
-			if trackingobj['format'] == 'csv':
-				continue
-			elif trackingobj['format'] == 'xls':
-				from . import excellib
-				excellib.save_xls(filepath, trackingobj.data)
-			elif trackingobj['format'] == 'xlsx':
-				from . import excellib
-				excellib.save_xlsx(filepath, trackingobj['data'])	
-
-				
-		#clear the db
-		self.outdb = {}
-
+	
 	def last_message(self):
 		
 		print('scrape finished')
 
-	def save(self, record, filename = 'result.csv', max=None, keys=[], id = None, headers = [], remove_existing_file = True, always_quoted=True):		
+	def save(self, record, filename='result.csv', remove_existing_file=True, always_quoted=True):		
 		
-		#waiting while other thread writing
-		while self.writingflag:			
-			pass
-		#hold the flag	
-		self.writingflag = True
-			
 		path = os.path.join(self.dir, filename)
 		format = common.DataItem(path).subreg('\.([a-z]{2,5})$', re.I|re.S).lower()
 
-		if not self.outdb.get(path):
-			if os.path.exists(path):
-				if remove_existing_file:						
-					os.remove(path)		
-					
-			self.outdb.update({ path: dict(cnt=0, data=[], ids = [], format = format)})	
+		if format == 'xlsx':
+			return self.save_xlsx(record,filename)
 
-		trackingobj = self.outdb.get(path)
-		if keys or id:
-			id = id or "".join([ str( record[record.index(key) + 1 ] ) for key in keys])
-			if id in trackingobj.ids:
-				self.writingflag = False
-				return
-			else:
-				trackingobj['ids'].append(id)
+		#waiting while other thread writing
+		while self.writingflag:			
+			pass
 		
-		trackingobj['cnt'] += 1
+		#hold the flag	
+		self.writingflag = True
+			
+		try:
+			
+			if not self.outdb.get(path):
+				if os.path.exists(path):
+					if remove_existing_file:						
+						os.remove(path)		
+						
+				self.outdb.update({ path: 0})
 
-		if format == 'csv':				
-			#for csv format, save to file immediately	
 			common.save_csv(path, record, always_quoted=always_quoted)
-		elif format in ['xls', 'xlsx']:
-			#save for later
-			trackingobj['data'].append(record)
-		if max and trackingobj['cnt'] == max:
-			self.flush() #save output files and quit
-			os._exit(1)	
+			
+		except Exception as e:
+			logger.exception(e)
 
 		#free the flag
 		self.writingflag = False
+
+	def save_xlsx(self, record, filename='result.xlsx'):
+		#waiting while other thread writing
+		while self.writingflag:			
+			pass
+		
+		#hold the flag	
+		self.writingflag = True
+		try:	
+			path = os.path.join(self.dir, filename)
+			csvpath = path + '.csv'
+
+			if not self.outdb.get(path):
+				if os.path.exists(path):
+					os.remove(path)
+				
+				if os.path.exists(csvpath):
+					os.remove(csvpath)
+
+				self.outdb.update({ path: 0 })
+
+				#will convert the csv file to xlsx at the end of the run
+				atexit.register(common.convert_csv_to_xlsx, csv_file_path=csvpath, xlsx_file_path=path)
+
+			#temporarily save the record to csvfile	
+			common.save_csv(csvpath, record, always_quoted=True)
+
+		except Exception as e:
+			logger.exception(e)		
+		
+		#free the flag
+		self.writingflag = False
+
 	def append_line(self, filename, line, dedup=False):		
 		#waiting while other thread writing
 		while self.writingflag:			
@@ -270,15 +269,9 @@ class Scraper(object):
 
 	def read_csv(self, path, restype='list', encoding='utf8', line_sep='\r\n'):
 		"""
-		read a csv file into a list
-
+		
 		@restype: list or dict
 
 		"""	
-		res = []
-		
-		for r in common.read_csv(path=self.join_path(path),restype=restype, encoding=encoding, line_sep=line_sep):
-			res.append(r)
-
-		return res	
+		return common.read_csv(path=self.join_path(path),restype=restype, encoding=encoding, line_sep=line_sep)
 	

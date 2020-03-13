@@ -46,6 +46,11 @@ class ProxyManager(object):
 	def parse_proxy(self, proxy_line, proxy_auth=None):
 		proxy = proxy_line
 
+		#support proxy in user:pass@ip:port
+		if '@' in proxy:
+			proxy = proxy.replace('@',':').split(':')
+			return Proxy(host=proxy[2], port=proxy[3], proxy_auth='%s:%s' % (proxy[0], proxy[1]))
+
 		if len(proxy.split(':')) == 2:
 
 			return Proxy(host=proxy.split(':')[0], port=proxy.split(':')[1], proxy_auth=proxy_auth)	

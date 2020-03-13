@@ -56,8 +56,8 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 	csv.field_size_limit(sys.maxsize)
 	if not max_num_of_rows:
 		# put all rows into a single xlsx file
-		wb = Workbook()
-		sheet = wb.active
+		wb = Workbook(write_only=True)
+		sheet = wb.create_sheet()
 
 		i = 0
 		for r in read_csv(csv_file_path):
@@ -66,7 +66,8 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 			sheet.append(r)
 
 
-		wb.save(xlsx_file_path)	
+		wb.save(xlsx_file_path)
+
 	else:
 		#use multiple xlsx file
 		fileindex = 0
@@ -92,8 +93,8 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 
 				print('to create file: %s' % xlsx_file)
 
-				wb = Workbook()
-				sheet = wb.active
+				wb = Workbook(write_only=True)
+				sheet = wb.create_sheet()
 				
 				sheet.append(headers)
 
@@ -638,7 +639,11 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	lines = read_lines_byrn(path, encoding=encoding) if line_sep == '\r\n' else read_lines(path)
 	for line in lines:
 		i += 1
-		r = [str(cell, encoding) for cell in next(csv.reader(io.StringIO(line.encode(encoding)))) ]
+		# r = [str(cell, encoding) for cell in next(csv.reader(io.StringIO(line.encode(encoding)))) ]
+
+		# r = [str(cell, encoding) for cell in next(csv.reader(io.StringIO(line))) ]
+
+		r = [cell.decode(encoding) for cell in next(csv.reader(io.StringIO(line))) ]
 
 		if i == 0:
 			fields = r
@@ -655,14 +660,10 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 				res.update({field: r[fields.index(field)] })
 			yield res
 		
-def csv_to_excel(csvfile, excelfile=None):
-	from . import excellib
-	if not excelfile:
-		excelfile = DataItem(csvfile).rr('\.csv$','.xls', flags=re.S|re.I|re.U)	
 
-	excellib.csvdatatoxls(excelfile,read_csv(csvfile))
 def write_json(filepath, data):
 	put_file(filepath, to_json_string(data))
+
 def read_json(filepath):
 	return json.loads(get_file(filepath))
 

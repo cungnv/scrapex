@@ -8,7 +8,7 @@ except ImportError:
 	
 setup(
 	name='scrapex', 
-	version='0.2.1',
+	version='0.2.2',
 	packages=find_packages(),
 	author='Cung Nguyen',
 	author_email='cungjava2000@gmail.com',

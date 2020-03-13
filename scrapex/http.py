@@ -99,16 +99,21 @@ class Request(object):
 		#default base headers
 		headers = requests.structures.CaseInsensitiveDict(OrderedDict([
 			("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
-			("User-Agent", user_agent),
+			("Accept-Encoding", "gzip, deflate"),
 			("Accept-Language", "en-us,en;q=0.5"),
-			("Accept-Encoding", "gzip, deflate"), 
-
+			
 			("Connection", "close"),
+
+			("Pragma", "no-cache"),
+			("Upgrade-Insecure-Requests", "1"),
+
+			("User-Agent", user_agent),
 			
 		]))
 
-		if not self.get('proxy') or self.get('use_proxy') is False or len(proxy_manager.proxies)>1:
+		if not self.get('proxy') or self.get('use_proxy') is False:
 			#use keep-alive connection
+
 			headers['Connection'] = 'keep-alive'
 
 		#update user-passed headers
@@ -139,7 +144,7 @@ class Client(object):
 			'total_requests': 0,
 			'success_requests': 0,
 			'failed_requests': 0,
-			'failed_requests_by_status_code': {},
+			'failed_requests_by_reason': {},
 			'finally_failed_requests': 0,
 			'retry_count': 0,
 			'total_request_seconds': 0,
@@ -205,7 +210,7 @@ class Client(object):
 			if tries>maxtries:
 				raise Exception('max retries exceeded')
 
-			_start_time = time.time()
+			
 			time.sleep(self.config['delay'])
 
 			headers = req.get('headers')
@@ -224,13 +229,16 @@ class Client(object):
 							
 			logger.debug('loading (try# %s) %s', tries, req.url)
 			
-			client = None
+			_requests_client = None
 			if req.get('use_session'):
-				client = self.session
+				_requests_client = self.session
 
 			else:
 				self.session_nocookies.cookies.clear()
-				client = self.session_nocookies
+				_requests_client = self.session_nocookies
+
+			
+			_start_time = time.time()
 
 			try:
 
@@ -244,7 +252,9 @@ class Client(object):
 					else:
 						method = 'GET'	
 				
-				r = client.request(
+				_requests_client.max_redirects = req.get('max_redirects')
+
+				r = _requests_client.request(
 						url= req.url, 
 						
 						method = method,
@@ -282,33 +292,63 @@ class Client(object):
 				self.stats['success_requests'] += 1
 				return r
 			
-			except requests.exceptions.RequestException as e:
+			except Exception as e:
+				
 				status_code = None
-				reason = None
+				reason = 'UNKNOWN_REASON'
+
 				try:
 					status_code = e.response.status_code
-					reason = e.response.reason
+					# reason = e.response.reason
 				except:
 					pass
+	
+				etype = str(type(e)).split("'")[1]
+				# logger.info('etype: %s',etype)
+				if etype == 'requests.exceptions.ConnectionError':
+					reason = 'CONNECTION_ERROR'
+
+				elif etype == 'requests.exceptions.ConnectionTimeout':
+					reason = 'CONNECTION_TIMEOUT'
+					
+				elif etype == 'requests.exceptions.ReadTimeout':
+					reason = 'READ_TIMEOUT'
+
+				elif etype == 'requests.exceptions.Timeout':
+					reason = 'TIMEOUT'
+
+				elif etype == 'requests.exceptions.TooManyRedirects':
+					reason = 'TOO_MANY_REDIRECTS'	
+
+				elif status_code is not None:
+					reason = 'STATUS_CODE_{}'.format(status_code)
+
+				else:
+
+					# logger.warn('UNKNOWN reason failed request: %s for url: %s', etype, req.url)
+					# reason = 'UNKNOWN_REASON'
+					reason = etype.replace('requests.exceptions.','')
 
 				self.stats['failed_requests'] += 1
 
-				if status_code not in self.stats['failed_requests_by_status_code']:
-					self.stats['failed_requests_by_status_code'][status_code] = 1
+				if reason not in self.stats['failed_requests_by_reason']:
+					self.stats['failed_requests_by_reason'][reason] = 1
 				else:
-					self.stats['failed_requests_by_status_code'][status_code] += 1	
+					self.stats['failed_requests_by_reason'][reason] += 1
 				
 				
 				if tries < maxtries and status_code not in [404]:
 					#try to open the request one again 
 					self.stats['retry_count'] += 1
-					logger.info('request error: %s (%s) -- url: %s', status_code, reason, req.url)
-					logger.info('retry request: %s', req.url)
+					
+					logger.info('request exception (will retry soon): %s url: %s', reason, req.url)
+					
 					req.update({'proxy': self.proxy_manager.random_proxy()})
 				else:	
 					#for other reasons, just raise the exception
 					self.stats['finally_failed_requests'] += 1
-					logger.warn('request failed: %s (%s) -- url: %s', status_code, reason, req.url)
+					logger.warn('request finally failed: %s url: %s', reason, req.url)
+					
 					raise e
 				
 			finally:
