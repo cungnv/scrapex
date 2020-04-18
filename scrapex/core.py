@@ -220,9 +220,10 @@ class Scraper(object):
 			path = os.path.join(self.dir, filename)
 			csvpath = path + '.csv'
 
-			if not self.outdb.get(path):
+			if path not in self.outdb:
 				if os.path.exists(path):
 					os.remove(path)
+
 				
 				if os.path.exists(csvpath):
 					os.remove(csvpath)
@@ -233,7 +234,9 @@ class Scraper(object):
 				atexit.register(common.convert_csv_to_xlsx, csv_file_path=csvpath, xlsx_file_path=path)
 
 			#temporarily save the record to csvfile	
-			common.save_csv(csvpath, record, always_quoted=True)
+			# logger.info('temporarily save_csv: %s',csvpath)
+
+			common.save_csv(csvpath,record, always_quoted=True)
 
 		except Exception as e:
 			logger.exception(e)		

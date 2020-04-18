@@ -220,7 +220,7 @@ class Client(object):
 			proxies = None
 			if proxy and req.get('use_proxy') is not False:
 				
-				logger.debug('proxy: {}:{}'.format(proxy.host, proxy.port))
+				# logger.debug('proxy: {}:{}'.format(proxy.host, proxy.port))
 
 				proxies = {
 							'http': 'http://{0}'.format(proxy.full_address),
@@ -284,7 +284,7 @@ class Client(object):
 					html = r.text
 					doc = Doc(html=html, url=req.url)
 
-					if doc.q(req.get('contain_xpath')):
+					if not doc.q(req.get('contain_xpath')):
 
 						raise Exception("invalid html, not contain_xpath: {0}".format(req.get('contain_xpath')))
 				
