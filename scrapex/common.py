@@ -98,6 +98,7 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 				
 				sheet.append(headers)
 
+
 			sheet.append(r)
 			cnt_rows += 1
 
@@ -634,6 +635,35 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	"""
 	restype: list, dict
 	"""
+	with open(path) as f:
+		csv_reader = csv.reader(f)
+		
+		i=-1
+		fields = None
+
+		for row in csv_reader:
+			i += 1
+			r = [cell.decode(encoding) for cell in row ]
+			
+			if i == 0:
+				fields = r
+				if restype == 'list':
+					yield r
+				
+				continue	
+
+			if restype == 'list':
+				yield r
+			elif restype == 'dict':
+				res = dict()
+				for field in fields:
+					res.update({field: r[fields.index(field)] })
+				yield res	
+
+def bk_read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
+	"""
+	restype: list, dict
+	"""
 	i=-1
 	fields = None
 	lines = read_lines_byrn(path, encoding=encoding) if line_sep == '\r\n' else read_lines(path)
@@ -644,7 +674,7 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 		# r = [str(cell, encoding) for cell in next(csv.reader(io.StringIO(line))) ]
 
 		r = [cell.decode(encoding) for cell in next(csv.reader(io.StringIO(line))) ]
-
+		
 		if i == 0:
 			fields = r
 			if restype == 'list':
