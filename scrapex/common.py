@@ -635,6 +635,7 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	"""
 	restype: list, dict
 	"""
+	print(path)
 	with open(path) as f:
 		csv_reader = csv.reader(f)
 		
@@ -650,15 +651,22 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 				if restype == 'list':
 					yield r
 				
-				continue	
+				continue
 
-			if restype == 'list':
-				yield r
-			elif restype == 'dict':
-				res = dict()
-				for field in fields:
-					res.update({field: r[fields.index(field)] })
-				yield res	
+			else:	
+
+				if restype == 'list':
+					yield r
+				
+				elif restype == 'dict':
+					res = {}
+					for field in fields:
+						res[field] = r[fields.index(field)]
+					
+					yield res
+
+				else:
+					raise Exception('Unknown return type: {}'.format(restype))	
 
 def bk_read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	"""
