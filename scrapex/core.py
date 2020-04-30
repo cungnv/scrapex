@@ -194,7 +194,7 @@ class Scraper(object):
 			
 		try:
 			
-			if not self.outdb.get(path):
+			if path not in self.outdb:
 				if os.path.exists(path):
 					if remove_existing_file:						
 						os.remove(path)		
