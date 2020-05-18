@@ -635,7 +635,7 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	"""
 	restype: list, dict
 	"""
-	print(path)
+	
 	with open(path) as f:
 		csv_reader = csv.reader(f)
 		
@@ -713,7 +713,7 @@ def parse_log(filepath):
 	return {'warnings': warnings, 'errors': errors}
 def parse_headers(headers_text):
 	headers_text = headers_text.strip()
-	headers = {}
+	headers = OrderedDict()
 	hs = re.compile(r'([^\n\:]+):([^\n]+)').findall(headers_text)
 	for name, value in hs:
 		headers[name.strip()] = value.strip()
