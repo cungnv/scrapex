@@ -29,10 +29,13 @@ class Scraper(object):
 	
 
 	def __init__(self, **options):		
-
-		_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else os.path.dirname( os.path.join( os.getcwd(), sys.argv[0] ) )
 		
-
+		_dir = '.'
+		try:
+			_dir = os.path.dirname(sys.executable) if 'python' not in sys.executable.lower() else os.path.dirname( os.path.join( os.getcwd(), sys.argv[0] ) )
+		except:
+			pass	
+			
 		self.config = dict(
 			dir = _dir,			
 			use_cache = False, 
