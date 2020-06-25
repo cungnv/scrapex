@@ -644,7 +644,18 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 
 		for row in csv_reader:
 			i += 1
-			r = [cell.decode(encoding) for cell in row ]
+			r = []
+			
+			for cell in row:
+				try:
+					#python2
+					value = cell.decode(encoding)
+				except:
+					#python3
+					value = cell
+				
+				r.append(value)
+					
 			
 			if i == 0:
 				fields = r

@@ -160,7 +160,7 @@ class Node(object):
 	def insert_line_breaks(self):
 		for _node in self.q(".//*"):
 			node = _node.lxmlnode
-			if node.tag.lower() in ['p','li','br']:
+			if node.tag.lower() in ['p','li','br','h1','h2','h3','h4','h5','h6','h7','div']:
 				
 				if node.tag.lower() == 'br':
 					newline = etree.Element('newline')
