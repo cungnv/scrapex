@@ -183,6 +183,7 @@ class Scraper(object):
 	def save(self, record, filename='result.csv', remove_existing_file=True, always_quoted=True):		
 		
 		path = os.path.join(self.dir, filename)
+		
 		format = common.DataItem(path).subreg('\.([a-z]{2,5})$', re.I|re.S).lower()
 
 		if format == 'xlsx':

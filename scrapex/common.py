@@ -309,9 +309,11 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, 
 		else:
 			#get the value
 			if item is None: item = DataItem()
-			if not isinstance(item, DataItem): item = DataItem(item)
+			if not isinstance(item, DataItem):
+				item = DataItem(str(item))
 
 			value = item.trim().replace(quote, escape + quote).replace('\r','').replace('\u00A0',' ').trim().tostring()
+			
 			if always_quoted or sep in value:
 				values.append(quote + value + quote)
 			else:
