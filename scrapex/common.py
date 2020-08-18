@@ -341,7 +341,7 @@ def file_ext(path):
 
 
 def parse_address(full, two_address_lines = False):	
-
+	
 	full = DataItem(full).replace('\u00A0',' ').rr('\s+',' ').trim()
 	
 	#normalize the full address when full looks like: Some City, State zipcode
@@ -350,8 +350,12 @@ def parse_address(full, two_address_lines = False):
 
 	full = DataItem(full if full else '').trim()
 	
+	#is this correct?
+	zip = full.subreg('\s+(?:[A-Z]{2,3})\s+(\d{3,5})$')
 
-	zip = full.subreg('(?: |,)\s*(\d{4,5} ?- ?\d{3,4})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d{9})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$', re.I|re.S).tostring()
+	if not zip:
+
+		zip = full.subreg('(?: |,)\s*(\d{4,5} ?- ?\d{3,4})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d{9})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{1,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*(\d[a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$', re.I|re.S).tostring() or full.subreg('(?: |,)\s*([a-z][a-z\d]{1,3}[\s\-]{0,2}[a-z\d]{1,3})$', re.I|re.S).tostring()
 
 	if not zip:
 		zip = full.subreg('(?: |,)\s*(\d{4,5})$', re.I|re.S)
@@ -371,6 +375,11 @@ def parse_address(full, two_address_lines = False):
 	else:
 		street2 = ''
 		street1 = street
+
+	if not street1 and street2:
+		street1 = street2
+		street2 = ''
+
 	if not two_address_lines:	
 		address = {
 			'address': street,
