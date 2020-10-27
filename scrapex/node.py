@@ -21,6 +21,14 @@ import logging
 from .common import DataItem
 
 logger = logging.getLogger(__name__)
+def unescape(text):
+	try:
+		parser = html.parser.HTMLParser()
+		return parser.unescape(text)
+	except:
+		import html as _html
+		return _html.unescape(text)
+
 class Node(object):
 	lxmlnode = None
 
@@ -64,9 +72,9 @@ class Node(object):
 		return DataItem(res)
 	
 	def nodevalue(self):
-		parser = html.parser.HTMLParser()
+		# parser = html.parser.HTMLParser()
 		if isinstance(self.lxmlnode, lxml.etree._ElementStringResult) or isinstance(self.lxmlnode, lxml.etree._ElementUnicodeResult):
-			value = parser.unescape(self.lxmlnode)
+			value = unescape(self.lxmlnode)
 			return DataItem(value)
 		else:	
 		
@@ -76,7 +84,7 @@ class Node(object):
 
 			value = re.sub(r'<[^>]*?>','',value)
 
-			value = parser.unescape(value)
+			value = unescape(value)
 			return DataItem(value)
 
 	def text(self):
