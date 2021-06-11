@@ -53,7 +53,7 @@ def parse_cookies(cookieline):
 
 
 def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
-	csv.field_size_limit(sys.maxsize)
+	# csv.field_size_limit(sys.maxsize)
 	if not max_num_of_rows:
 		# put all rows into a single xlsx file
 		wb = Workbook(write_only=True)
