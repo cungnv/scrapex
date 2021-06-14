@@ -31,7 +31,7 @@ from collections import OrderedDict
 
 from html.parser import HTMLParser
 from openpyxl import Workbook
-
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 
 logger = logging.getLogger()
 
