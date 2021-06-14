@@ -51,6 +51,15 @@ def parse_cookies(cookieline):
 
 	return cookies	
 
+def clean_value_for_xlsx(row):
+	values = []
+	for value in row:
+		if type(value)==str:
+			value=ILLEGAL_CHARACTERS_RE.sub('', value)
+		values.append(value)
+
+	return values
+
 
 def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 	# csv.field_size_limit(sys.maxsize)
@@ -63,7 +72,7 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 		for r in read_csv(csv_file_path):
 			i+= 1
 
-			sheet.append(r)
+			sheet.append(clean_value_for_xlsx(r))
 
 
 		wb.save(xlsx_file_path)
@@ -99,7 +108,7 @@ def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 				sheet.append(headers)
 
 
-			sheet.append(r)
+			sheet.append(clean_value_for_xlsx(r))
 			cnt_rows += 1
 
 			if cnt_rows == max_num_of_rows:
@@ -647,7 +656,7 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 	restype: list, dict
 	"""
 	
-	with open(path) as f:
+	with open(path,encoding=encoding) as f:
 		csv_reader = csv.reader(f)
 		
 		i=-1
@@ -658,6 +667,7 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 			r = []
 			
 			for cell in row:
+		
 				try:
 					#python2
 					value = cell.decode(encoding)
