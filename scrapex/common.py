@@ -280,6 +280,9 @@ def rr(pt, to, s, flags=re.S|re.I|re.U):
 	
 	return DataItem( re.sub(pt, to, s, flags = flags) )
 
+
+
+
 def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, always_quoted = True):
 	
 	#normalize the record to list
@@ -321,7 +324,7 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, 
 			if not isinstance(item, DataItem):
 				item = DataItem(str(item))
 
-			value = item.trim().replace(quote, escape + quote).replace('\r','').replace('\u00A0',' ').trim().tostring()
+			value = item.trim().replace(quote, escape + quote).replace('\r','').replace('\0','').replace('\u00A0',' ').trim().tostring()
 			
 			if always_quoted or sep in value:
 				values.append(quote + value + quote)
