@@ -55,7 +55,10 @@ def clean_value_for_xlsx(row):
 	values = []
 	for value in row:
 		if type(value)==str:
+			
+			value = value.encode('utf-8','ignore').decode('utf-8','ignore')
 			value=ILLEGAL_CHARACTERS_RE.sub('', value)
+			value = value.replace('\0','')
 		values.append(value)
 
 	return values
@@ -63,15 +66,15 @@ def clean_value_for_xlsx(row):
 
 def convert_csv_to_xlsx(csv_file_path, xlsx_file_path, max_num_of_rows=None):
 	# csv.field_size_limit(sys.maxsize)
+
 	if not max_num_of_rows:
 		# put all rows into a single xlsx file
 		wb = Workbook(write_only=True)
 		sheet = wb.create_sheet()
-
+		
 		i = 0
 		for r in read_csv(csv_file_path):
 			i+= 1
-
 			sheet.append(clean_value_for_xlsx(r))
 
 
@@ -335,6 +338,9 @@ def save_csv(path, record, sep=',', quote='"', escape = '"', write_header=True, 
 
 	
 	if not os.path.exists(path) and write_header:
+		# print('adding BOM...')
+		append_file(path,'\ufeff')
+
 		append_file(path, sep.join(keys)+'\r\n' + sep.join(values)+'\r\n')
 	else:		
 		append_file(path, sep.join(values)+'\r\n')	
@@ -483,8 +489,24 @@ def urlencode(rawstr):
 def urldecode(rawstr):
 	return DataItem(urllib.parse.unquote(rawstr))	
 def get_domain(url):
+	if not url:
+		return ''
+	url = url.lower()	
+
+	#from email
+	if not url.startswith('http') and '@' in url:
+		domain = url.split('@')[1].strip()
+		return domain
+
+	if not url.startswith('http'):
+		url = f'http://{url}'
+
 	urldata = urllib.parse.urlparse(url)
+	
 	return DataItem(urldata.netloc).rr('^[w\d]+\.','')
+
+
+
 def get_emails(doc):
 	doc = DataItem(doc)
 	doc = doc.rr("\(at\)|\[at\]| \(at\) | \[at\] ", '@', flags=re.S|re.I|re.U)
@@ -678,6 +700,9 @@ def read_csv(path, restype='list', encoding='utf8', line_sep='\r\n'):
 					#python3
 					value = cell
 				
+				if i == 0:
+					value = value.replace('"','').replace('\ufeff','').strip()
+
 				r.append(value)
 					
 			
@@ -928,4 +953,6 @@ class DataItem(str):
 
 if __name__ == '__main__':
 
-	print(parse_address('2309 Foothill Blvd, La Canada Flintridge, CA 91011'))
+	print(get_domain(''))
+
+	
