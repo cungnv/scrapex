@@ -179,7 +179,7 @@ class Client(object):
 
 		html = common.DataItem( res.text or '')
 
-		if res.status_code == 200 and  cache and req.get('use_cache'):
+		if (res.status_code == 200 or (res.status_code==404 and req.get('accept404')) ) and  cache and req.get('use_cache'):
 			self._write_to_cache(html=html, response=res, cacheoptions=cacheoptions)
 
 		html.response = res
@@ -271,6 +271,9 @@ class Client(object):
 						verify = req.get('verify') or False, 
 						stream= req.get('stream') or False
 						)
+
+				if r.status_code == 404 and req.get('accept404') is True:
+					return r
 
 				r.raise_for_status()
 

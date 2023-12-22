@@ -49,6 +49,7 @@ class Scraper(object):
 			retries = 0,
 			max_redirects = 3,
 			greeting = False,
+			accept404 = True,
 			
 			)
 
